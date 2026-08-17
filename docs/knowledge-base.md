@@ -223,7 +223,15 @@ The sandbox **cannot reach the databases**. Verified 2026-08-17:
   `management.azure.com` (403).
 - `psql` is installed; there is no `ssh` client.
 
-**Consequence: no Claude session can test anything against a live database.**
-Any work here is verified by unit tests and fakes; integration testing happens
-on the maintenance VM. Plan accordingly — do not promise verification that
-cannot happen.
+**This is a limitation of the development sandbox, not of the product.** The
+maintenance VM sits inside the VNet and reaches all three databases directly;
+that is the whole reason for a dedicated VM (PRD FR-5.1).
+
+Two consequences, and only two:
+
+1. Code written in a Claude session is verified by unit tests and fakes.
+   Integration testing happens on the VM. Do not promise verification that
+   cannot happen here.
+2. Nothing in the design should work around the sandbox. Injecting `connect`
+   and `tunnel_factory` into `ConnectionPool` is good practice for testability;
+   it is not a workaround, and the production path is the plain default.

@@ -38,7 +38,7 @@ Supporting: `docs/secrets.md` (Key Vault, already built and working).
   `docs/secrets.md`. **Not yet run against a real vault** — the sandbox cannot
   reach Azure.
 - **Monorepo restructure** — `apps/web/` (app), `scripts/` (repo tooling),
-  `packages/` (empty, for Python), `legacy/` (vendored source scripts).
+  `packages/` (Python), `legacy/` (vendored source scripts).
 - **CI** — `.github/workflows/ci.yml` runs Node tooling tests, the web app
   (lint/typecheck/test/build), and a Python job that self-skips until
   `packages/*/pyproject.toml` exists.
@@ -50,8 +50,9 @@ exactly as supplied, secrets already replaced with `CHANGE_ME`. **This is source
 material. Do not edit it in place** — refactor *out* of it into `packages/`, so
 the original stays available for comparison.
 
-- **`packages/trd365-core`** — the shared foundation. 128 tests, ruff clean.
-  Six modules: `environments`, `db`, `datamodel`, `cli`, `audit`, `registry`.
+- **`packages/trd365-core`** — the shared foundation. 163 tests, ruff clean.
+  Seven modules: `environments`, `db`, `datamodel`, `model_snapshot`, `cli`,
+  `audit`, `registry`.
   See its README for usage. Highlights:
   - **`datamodel`** carries the application schema knowledge every utility
     needs (owner's requirement): `rid` primary keys, `{prefix}_rid` foreign
@@ -64,6 +65,12 @@ the original stays available for comparison.
   - **`environments`** has all four environments; dev/qa/stage are
     placeholders that refuse to connect and name the variables that would fix
     them.
+  - **`model_snapshot`** makes the discovered model a shared artefact with one
+    producer and many consumers, so re-running the analysis propagates a new
+    model everywhere (owner's requirement). Snapshots are per environment,
+    versioned, immutable, atomically written, and diffable. `require_model`
+    refuses a missing or stale model rather than falling back to an assumed
+    one.
 
 ### Not started
 
@@ -110,11 +117,18 @@ best-structured module and becomes the template for the rest.
 - **Move `base_sql/*.sql` and `DELETION_ORDER.md` unchanged.** The SQL encodes
   foreign-key deletion order; it is data, not code to rewrite.
 
+Consume the shared model rather than introspecting: call
+`require_model(store, args.env, utility="purge-account")` and drive table
+ordering from `model.tables_referencing(schema, entity)`.
+
 ### Step 2 — the remaining modules
 
-3. `data_model_analysis` — port onto `trd365_core.datamodel`, which already
-   holds its conventions. Its orphan and deviation counts are the health
-   metrics the Phase-3 dashboard needs (FR-4.5).
+3. `data_model_analysis` — the **producer** of the shared model. It must call
+   `build_snapshot()` and `store.save()` on every run; that is what propagates
+   a refreshed model to every other utility (FR-1.9/1.10). Port it onto
+   `trd365_core.datamodel`, which already holds its conventions. Its orphan and
+   deviation counts are the health metrics the Phase-3 dashboard needs
+   (FR-4.5), and `diff_snapshots()` gives the drift signal.
 4. `reference_table_corrections`, `sharepoint_migration`,
    `interactions_dashboard`.
 5. `account_deletion` — **keep it**, alongside `data_purge/account`. The owner
@@ -135,10 +149,12 @@ error that explains the change. Announce this to operators before it ships.
 
 ## 5. Things that will bite you
 
-- **You cannot reach any database from a Claude session.** Private endpoints do
-  not resolve; the proxy blocks TCP :22 and `vault.azure.net`. Verified. Unit
-  tests and fakes only — integration testing happens on the VM. Do not claim
-  verification you cannot perform.
+- **A Claude session cannot reach the databases; the VM can.** Private
+  endpoints do not resolve from the sandbox and the proxy blocks TCP :22 and
+  `vault.azure.net`. That is a development-sandbox limit, not a product one —
+  the maintenance VM sits in the VNet and connects directly. So: verify with
+  unit tests and fakes here, integration-test on the VM, and do not design
+  around the sandbox.
 - **`legacy/` is reference, not a working tree.** Refactor out of it.
 - **The purge SQL is data, not code to rewrite.** `base_sql/*.sql` files encode
   foreign-key deletion order. Move them unchanged. `DELETION_ORDER.md` in each
@@ -223,5 +239,12 @@ implements the `--apply` reversal with `--dry-run` as a hard error.
 One real bug caught by the tests: `confirm_production` had `stream=sys.stderr`
 as a default argument, which binds stderr at import time and breaks redirection
 and capture. Resolved inside the function instead.
+
+Owner then confirmed the app deploys to a VM with direct database access, and
+required that re-running the data-model analysis propagate the new model to the
+other scripts. Added `model_snapshot`: one producer, many consumers, versioned
+immutable snapshots per environment, atomic writes with the `latest` pointer
+moved last, diffing for drift, and a hard refusal on missing or stale models.
+163 tests.
 
 **Resume at §4 — build `packages/trd365-data-purge`.**

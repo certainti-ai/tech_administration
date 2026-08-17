@@ -68,6 +68,20 @@ four concrete failures:
   behaviour preserved, including its rollback and backup-cleanup companions.
 - **FR-1.7** Duplicated code is removed: one connection layer, one
   project-fiscal purge implementation.
+- **FR-1.8** Every utility shares one understanding of the application data
+  model. Schema conventions are defined once; no utility re-derives them.
+- **FR-1.9** The data-model analysis utility is the sole **producer** of the
+  discovered model (tenant schemas, tables, references, deviations). It writes
+  a versioned, immutable snapshot per environment.
+- **FR-1.10** Every other utility is a **consumer**: it reads the current
+  snapshot rather than introspecting. Re-running the analysis therefore
+  propagates a new model to every utility with no code change and no rebuild.
+- **FR-1.11** A consumer that finds no snapshot, or one older than it accepts,
+  **fails** with instructions to re-run the analysis. It never falls back to a
+  stale or assumed model — a purge against an out-of-date schema is precisely
+  the failure this prevents.
+- **FR-1.12** Model changes are detectable: snapshots carry a content
+  fingerprint and can be diffed, so schema drift is visible (feeds FR-4.5).
 
 ### 4.2 Orchestration (Phase 2)
 
@@ -155,6 +169,7 @@ undiscovered and are an open question — see `docs/HANDOFF.md` §Open questions
 | A UI button runs a Prod purge by mistake | **Critical** | Dry-run default, explicit env, typed confirmation, second approver, per-env queue |
 | Porting the JS module changes financial calculations | High | Port with characterisation tests derived from the JS; compare outputs before switching over |
 | Refactoring purge SQL breaks deletion order | High | Treat SQL as data, not code to rewrite; move files unchanged, cover ordering with tests |
+| A utility runs against a stale data model | High | Snapshots are versioned and age-checked; consumers refuse a stale model rather than assuming (FR-1.11) |
 | Bastion/VM becomes a single point of access failure | Medium | Provision as code so it is rebuildable; document the manual fallback |
 | Audit log grows unbounded | Low | Retention policy, export to cold storage |
 

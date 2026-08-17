@@ -19,6 +19,7 @@ pytest packages/trd365-core
 | `cli` | Argument conventions, including the `--apply` safety rule |
 | `audit` | Append-only record of who ran what, where, and what changed |
 | `registry` | The catalogue the Phase-2 API and Phase-3 UI generate from |
+| `model_snapshot` | The discovered model: produced by analysis, consumed by all |
 
 ## The data model
 
@@ -45,8 +46,7 @@ The conventions encoded: primary keys are `rid`; foreign keys are
 enforces; org is multi-tenant by `trd365_*` schema.
 
 The pure functions take catalogs rather than connections, so resolution is
-fully testable without a database — which matters, because no Claude Code
-session can reach these databases.
+fully testable without a database.
 
 ## Environments
 
@@ -105,9 +105,46 @@ affected per table. Written on success, failure **and** cancellation — a purge
 that died halfway is exactly the run you need the record for. Credential-shaped
 arguments are redacted before they reach the sink.
 
+## Model propagation
+
+`datamodel` holds the *conventions* — they are rules and do not change when a
+database does. The *discovered* model does change, and it has one producer and
+many consumers:
+
+```python
+# Producer — the data-model analysis utility, and only it.
+snapshot = build_snapshot(pool.fetcher(), args.env, generated_by="model-analysis")
+version = FileModelStore().save(snapshot)
+
+# Consumer — every other utility.
+model = require_model(FileModelStore(), args.env, utility="purge-account")
+for table in model.tables_referencing("trd365_00042", "project"):
+    ...
+```
+
+Re-running the analysis writes a new snapshot, and every other utility picks it
+up on its next run — no code change, no rebuild, no regeneration step.
+
+Snapshots are per environment, immutable, and versioned; writes are atomic and
+the `latest` pointer moves last, so a consumer reading mid-analysis sees the
+previous model rather than a half-written one. Previous versions are kept, and
+`diff_snapshots()` reports what changed — the schema-drift signal for the
+dashboard.
+
+`require_model` **fails** on a missing or stale snapshot rather than falling
+back:
+
+```
+purge-account found a data-model snapshot for prod that is 30 day(s) old (limit 7).
+Re-run the data-model analysis, or pass a longer max_age if that is deliberate.
+```
+
+A purge running against an out-of-date understanding of the schema is the exact
+failure this design exists to prevent, so staleness is an error, not a warning.
+
 ## Testing note
 
-The pool takes its `connect` and `tunnel_factory` as constructor arguments
-specifically so the whole class can be driven by fakes. That is not
-gold-plating: the sandbox cannot reach these databases, so fakes are the only
-verification available before the maintenance VM exists.
+The pool takes its `connect` and `tunnel_factory` as constructor arguments so
+the class can be driven by fakes. The maintenance VM reaches the databases
+directly — this is for unit testing, not a workaround; the production path is
+the plain default.
