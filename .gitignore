@@ -27,9 +27,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env files — anything fetched from Key Vault lands in one of these
 .env
 .env*.local
+*.secrets.env
+secrets.env
 
 # vercel
 .vercel

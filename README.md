@@ -73,10 +73,11 @@ curl -X POST http://localhost:3000/api/access-requests/req-001/decision \
 ## Layout
 
 ```
-app/          routes, server actions, API handlers
-components/   presentational components (no data access)
-lib/          domain model, seed data, store, metrics, formatting
-tests/        Vitest unit tests
+app/              routes, server actions, API handlers
+components/       presentational components (no data access)
+lib/              domain model, seed data, store, metrics, formatting
+scripts/secrets/  Azure Key Vault tooling (see docs/secrets.md)
+tests/            Vitest unit tests
 ```
 
 `lib/` holds every decision worth testing — severity thresholds, renewal
@@ -98,6 +99,30 @@ be verified without rendering anything.
   sets, not an automatic inversion.
 - **All data access goes through `lib/store.ts`.** No page or route reaches past
   it, which is what makes the database swap below a contained change.
+
+## Secrets
+
+Credentials live in one Azure Key Vault and are read from every context —
+Claude Code sessions, developer shells, GitHub Actions, and deployed services —
+rather than being pasted into each one. The full runbook is
+[`docs/secrets.md`](docs/secrets.md).
+
+```bash
+npm run secrets:push -- --vault certainti-kv   # dry run; --apply to write
+npm run secrets:check -- --vault certainti-kv  # compare vault against this env
+source scripts/secrets/load.sh                 # load into the current shell
+```
+
+The inventory is declared in `scripts/secrets/manifest.mjs`; adding an entry
+there makes it available everywhere at once. No command prints a secret value —
+they report 12-character digests, so output is safe to paste into a ticket or a
+CI log. Writing fetched secrets to a repo path that git does not ignore is
+refused outright.
+
+The Azure service principal that unlocks the vault is deliberately excluded
+from the vault's own contents, since storing it there would be circular. It is
+the single bootstrap credential a Claude Code session needs; CI uses OIDC and
+deployed services use a managed identity, so neither stores a secret at all.
 
 ## Known limitations
 
@@ -133,6 +158,12 @@ real prerequisite before this handles anything sensitive.
 
 `.github/workflows/ci.yml` runs lint, typecheck, tests, build, and
 `npm audit --audit-level=high` on every push and pull request.
+
+`.github/workflows/secrets-check.yml` verifies weekly that Key Vault holds every
+secret the manifest declares. It authenticates over OIDC, so GitHub stores no
+credential; the client/tenant/subscription ids it uses are repository
+*variables*, not secrets, because they identify the app rather than
+authenticate it.
 
 Dependencies carry two `overrides` (`sharp`, `postcss`) that pull transitive
 packages forward onto patched versions. Revisit them when Next.js ships releases
