@@ -18,7 +18,7 @@ the databases they operate on, and the internal portal that runs them.
 
 ```
 apps/web/       Next.js portal (Phase 0; ports into the Phase 3 SPA)
-packages/       Python maintenance packages — empty, this is Phase 1
+packages/       Python maintenance packages (trd365-core built)
 legacy/         Original operator scripts, vendored verbatim. Reference only.
 scripts/        Repo-wide tooling (Key Vault secrets management)
 docs/           PRD, knowledge base, handoff, secrets runbook
@@ -48,7 +48,7 @@ source scripts/secrets/load.sh
 | Phase | Contents | State |
 |---|---|---|
 | 0 | Web scaffold, Key Vault tooling, monorepo restructure | **Done** |
-| 1 | `trd365-core`, utility packages, de-duplication, JS→Python port | **Next** |
+| 1 | `trd365-core` **done**; utility packages, de-duplication, JS→Python port | **In progress** |
 | 2 | FastAPI orchestrator, job execution, audit log | Not started |
 | 3 | React SPA — invocation, health dashboard, audit, SSO | Not started |
 | 4 | Maintenance VM, Terraform, deployment | Not started |

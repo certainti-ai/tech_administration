@@ -3,7 +3,7 @@
 **Read this first.** It is the resume point for anyone — human or another Claude
 session — picking this work up cold.
 
-Last updated: 2026-08-17, end of session 1.
+Last updated: 2026-08-17, session 2.
 Branch: `claude/certainti-tech-admin-y4c4ul`.
 
 ---
@@ -50,9 +50,24 @@ exactly as supplied, secrets already replaced with `CHANGE_ME`. **This is source
 material. Do not edit it in place** — refactor *out* of it into `packages/`, so
 the original stays available for comparison.
 
+- **`packages/trd365-core`** — the shared foundation. 128 tests, ruff clean.
+  Six modules: `environments`, `db`, `datamodel`, `cli`, `audit`, `registry`.
+  See its README for usage. Highlights:
+  - **`datamodel`** carries the application schema knowledge every utility
+    needs (owner's requirement): `rid` primary keys, `{prefix}_rid` foreign
+    keys, plural-aware parent resolution, the four primary entities, the
+    cross-database `account_rid` edge, polymorphic columns, backup-table
+    exclusion, tenant-schema discovery. Lifted from `model_analysis.py` so no
+    utility re-derives it.
+  - **`cli`** enforces the safety fix: `--env` required, `--apply` gates
+    writes, `--dry-run` is a hard error that explains the change.
+  - **`environments`** has all four environments; dev/qa/stage are
+    placeholders that refuse to connect and name the variables that would fix
+    them.
+
 ### Not started
 
-`packages/` is empty. Phases 1–4 are all ahead. See §4.
+Utility packages. Phases 2–4 are all ahead. See §4.
 
 ## 3. Decisions already taken — do not relitigate
 
@@ -75,47 +90,48 @@ Also settled earlier in the session:
 
 ## 4. Next task — start here
 
-**Phase 1, step 1: build `packages/trd365-core`.**
+**`trd365-core` is done.** Build the first utility package on top of it.
 
-Everything else depends on it. Suggested surface:
+### Step 1 — `packages/trd365-data-purge`
 
-```
-packages/trd365-core/
-  pyproject.toml
-  src/trd365_core/
-    config.py     Environment resolution (dev/qa/stage/prod) -> connection settings.
-                  Build the legacy db_config shape from env vars / Key Vault so
-                  each utility migrates with a one-line change (see KB §4).
-    db.py         ConnectionPool + SSH tunnels. Lift from
-                  legacy/trd365_maintenance/data_purge/engine/db.py — it is
-                  already decent; the fault is that there are four copies.
-                  Preserve: retry 4x with 5s*n backoff, tunnel teardown on
-                  failure, per-DB tunnels.
-    cli.py        Shared argparse base. MUST enforce: --env is required with no
-                  default; --apply gates all writes; --dry-run is a hard error
-                  with a message pointing at the change (KB §3.1).
-    audit.py      Append-only run records (FR-3). JSONL locally now; the
-                  Phase-2 service swaps the sink.
-    registry.py   Utility descriptors: id, description, typed parameters,
-                  destructive flag, databases touched. Phase 2 API and Phase 3
-                  UI are both generated from this — design it before writing
-                  many utilities against it.
-    reporting.py  Consolidate the three report.py copies.
-```
+Migrate `legacy/trd365_maintenance/data_purge/` first: it is the
+best-structured module and becomes the template for the rest.
 
-Then, in order:
+- Package layout mirroring `trd365-core` (`pyproject.toml`, `src/`, `tests/`),
+  depending on `trd365-core`.
+- Sub-commands `account`, `case`, `interaction`, `project`, `project_fiscal`.
+- Replace `engine/db.py` with `trd365_core.ConnectionPool`, and any local
+  schema assumptions with `trd365_core.datamodel`.
+- Replace hand-rolled argparse with `trd365_core.cli.build_parser`. The five
+  tools already default to dry run, so only `--env` is new to them.
+- Wrap each run in `trd365_core.AuditedRun` and call `record_rows` per table.
+- Register each sub-command in `trd365_core.registry` — the Phase-2 API and
+  Phase-3 UI are generated from it.
+- **Move `base_sql/*.sql` and `DELETION_ORDER.md` unchanged.** The SQL encodes
+  foreign-key deletion order; it is data, not code to rewrite.
 
-1. Migrate `data_purge/` onto core first — it is the best-structured module and
-   the template for the rest.
-2. Delete `project_fiscal_year_deletion/` **after** confirming its extra flags
-   (`--sections`, `--concurrency`, `--heartbeat`, `--backup-schema`, `--limit`)
-   exist in the `data_purge` equivalent. If they do not, port them across first.
-3. Migrate the remaining modules.
-4. Port `manual-rd-percent-update` JS → Python. Write characterisation tests
+### Step 2 — the remaining modules
+
+3. `data_model_analysis` — port onto `trd365_core.datamodel`, which already
+   holds its conventions. Its orphan and deviation counts are the health
+   metrics the Phase-3 dashboard needs (FR-4.5).
+4. `reference_table_corrections`, `sharepoint_migration`,
+   `interactions_dashboard`.
+5. `account_deletion` — **keep it**, alongside `data_purge/account`. The owner
+   has deferred the decision; use `Utility.supersedes` to record the
+   relationship so the UI can show it without either being deleted.
+6. `project_fiscal_year_deletion` — delete **only** after confirming its extra
+   flags (`--sections`, `--concurrency`, `--heartbeat`, `--backup-schema`,
+   `--limit`) exist in the `data_purge` equivalent. Port them first if not.
+7. Port `manual-rd-percent-update` JS → Python. Write characterisation tests
    from the JS behaviour *first*. It touches money.
-5. Standardise every entry point on `--apply`.
-6. Add the test that asserts *every* registered utility is dry-run by default —
-   that is the regression guard for the headline safety bug.
+
+### Step 3 — flip the three destructive-by-default tools
+
+`account_deletion/run.py`, `project_fiscal_year_deletion/run.py` and
+`sharepoint_migration/migrate.py` currently write by default. Once on
+`trd365_core.cli` they invert automatically, and `--dry-run` becomes the hard
+error that explains the change. Announce this to operators before it ships.
 
 ## 5. Things that will bite you
 
@@ -143,11 +159,13 @@ Then, in order:
 
 Ask these before building past them:
 
-1. **Dev/QA/Stage database connections.** Only Prod is known. What are the other
-   three environments' hosts/databases, and do they sit behind the same bastion?
-   FR-1.3 and the whole multi-environment story block on this.
-2. **`account_deletion/` vs `data_purge/account/`.** Two implementations that
-   look like they do the same thing. Which is current? Can one be deleted?
+1. **Dev/QA/Stage database connections.** *Owner will supply later.* Until then
+   they resolve to placeholders that refuse to connect. Nothing is blocked —
+   supply `TRD365_DEV_MAINDB_HOST` and friends and they light up with no code
+   change. `trd365_core.configuration_status()` reports which are ready.
+2. ~~**`account_deletion/` vs `data_purge/account/`.**~~ **Decided:** keep both
+   for now, decision deferred. Record the relationship with
+   `Utility.supersedes` rather than deleting either.
 3. **`reference_table_corrections/discover{,2,3}.py`.** Three scratch
    iterations. Which is authoritative?
 4. **`task_deletion_by_milestone/`.** 18 KB of SQL with no runner. Dead, or run
@@ -187,4 +205,23 @@ rather than trusting the build: a submit button's `name`/`value` was not
 reaching the server action, and `lib/store.ts` was instantiated twice because
 Next compiles server actions into a separate bundle from pages.
 
-Phase 1 not started — `packages/` is empty. **Resume at §4.**
+Phase 1 not started — `packages/` is empty.
+
+### Session 2 — 2026-08-17
+
+Owner directives: placeholder credentials for dev/qa/stage (real ones later),
+keep both account-deletion implementations, and **every script must share the
+application data model that the data-model-analysis script derives**.
+
+Built `packages/trd365-core` — 128 tests, ruff clean. The third directive drove
+the design: `datamodel.py` lifts the schema conventions out of
+`model_analysis.py` into tested shared code, so no utility re-derives them.
+`environments.py` carries all four environments with dev/qa/stage as
+placeholders that refuse to connect rather than failing obscurely. `cli.py`
+implements the `--apply` reversal with `--dry-run` as a hard error.
+
+One real bug caught by the tests: `confirm_production` had `stream=sys.stderr`
+as a default argument, which binds stderr at import time and breaks redirection
+and capture. Resolved inside the function instead.
+
+**Resume at §4 — build `packages/trd365-data-purge`.**
