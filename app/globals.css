@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+/*
+ * Palette roles.
+ *
+ * Light values are the base declaration; the dark values are a *selected* set
+ * stepped for the dark surface, not an automatic inversion. They are declared
+ * twice on purpose — the media query follows the OS setting, the `data-theme`
+ * scope lets an explicit toggle win in both directions.
+ */
+:root {
+  color-scheme: light;
+
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --line: #e1e0d9;
+  --baseline: #c3c2b7;
+
+  /* Categorical slots, in fixed order. Never cycled, never generated. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+
+  /* Sequential (blue) — meters use a light track and a mid fill. */
+  --seq-track: #cde2fb;
+  --seq-fill: #2a78d6;
+
+  /* Status roles. Fixed across modes; always shipped with an icon + label. */
+  --good: #0ca30c;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+  --success-text: #006300;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --line: #2c2c2a;
+    --baseline: #383835;
+
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+
+    --seq-track: #184f95;
+    --seq-fill: #3987e5;
+
+    --success-text: #0ca30c;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --line: #2c2c2a;
+  --baseline: #383835;
+
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+
+  --seq-track: #184f95;
+  --seq-fill: #3987e5;
+
+  --success-text: #0ca30c;
+}
+
+/* Expose the roles to Tailwind so utilities are written against roles, not hex. */
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-baseline: var(--baseline);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-series-4: var(--series-4);
+  --color-good: var(--good);
+  --color-warning: var(--warning);
+  --color-serious: var(--serious);
+  --color-critical: var(--critical);
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+/* Columns of numbers must align vertically; standalone figures should not. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
