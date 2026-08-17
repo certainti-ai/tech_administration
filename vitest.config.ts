@@ -1,16 +1,9 @@
 import { defineConfig } from "vitest/config";
-import { fileURLToPath } from "node:url";
 
+/** Root config — covers repo-wide tooling only. The web app has its own. */
 export default defineConfig({
   test: {
     environment: "node",
-    // Secrets tooling is plain ESM (.mjs) so it runs under bare `node` with no
-    // build step; the app and its tests are TypeScript.
-    include: ["tests/**/*.test.ts", "tests/**/*.test.mjs"],
-  },
-  resolve: {
-    alias: {
-      "@": fileURLToPath(new URL(".", import.meta.url)),
-    },
+    include: ["tests/**/*.test.mjs"],
   },
 });

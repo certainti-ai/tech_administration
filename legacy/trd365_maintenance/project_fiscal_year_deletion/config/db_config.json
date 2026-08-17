@@ -1,0 +1,38 @@
+{
+  "maindb": {
+    "host": "prod-thinkrd365-psqlserver-centralus-pvt-main.postgres.database.azure.com",
+    "port": 5432,
+    "dbname": "thinkrd365_pvt_main",
+    "user": "adminUser",
+    "password": "CHANGE_ME",
+    "sslmode": "require",
+    "ssh_tunnel": {
+      "ssh_host": "172.203.151.166",
+      "ssh_port": 22,
+      "ssh_user": "thinkrd_DevOps",
+      "ssh_password": "CHANGE_ME"
+    }
+  },
+  "orgdb": {
+    "host": "prod-thinkrd365-psqlserver-centralus-pvt-org.postgres.database.azure.com",
+    "port": 5432,
+    "dbname": "thinkrd365_pvt_org",
+    "user": "adminUser",
+    "password": "CHANGE_ME",
+    "sslmode": "require",
+    "ssh_tunnel": {
+      "ssh_host": "172.203.151.166",
+      "ssh_port": 22,
+      "ssh_user": "thinkrd_DevOps",
+      "ssh_password": "CHANGE_ME"
+    }
+  },
+  "trd365ai": {
+    "host": "4.246.251.140",
+    "port": 5432,
+    "dbname": "trd365ai",
+    "user": "aiadmin",
+    "password": "CHANGE_ME",
+    "sslmode": "prefer"
+  }
+}

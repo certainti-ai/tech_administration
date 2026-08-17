@@ -1,0 +1,35 @@
+{
+  "_comment": "Copy to config.json and fill in. Two SEPARATE Azure AD app registrations — one per tenant. App-only (client-credentials) auth. See README for the exact API permissions + admin consent each app needs. Secrets here are live credentials: keep config.json out of git.",
+
+  "source": {
+    "_comment": "Tenant you are migrating FROM. App needs Sites.Read.All + Files.Read.All (application, admin-consented).",
+    "tenant_id": "SOURCE_TENANT_ID_or_domain.onmicrosoft.com",
+    "client_id": "SOURCE_APP_CLIENT_ID",
+    "client_secret": "SOURCE_APP_CLIENT_SECRET",
+    "certificate": {
+      "_comment": "Optional: use a certificate instead of client_secret (recommended). Set client_secret to null if using this.",
+      "thumbprint": null,
+      "private_key_path": null
+    },
+    "site_url": "https://sourcetenant.sharepoint.com/sites/TeamSiteName"
+  },
+
+  "dest": {
+    "_comment": "Tenant you are migrating TO (different domain). App needs Sites.ReadWrite.All + Files.ReadWrite.All (application, admin-consented).",
+    "tenant_id": "DEST_TENANT_ID_or_domain.onmicrosoft.com",
+    "client_id": "DEST_APP_CLIENT_ID",
+    "client_secret": "DEST_APP_CLIENT_SECRET",
+    "certificate": { "thumbprint": null, "private_key_path": null },
+    "site_url": "https://desttenant.sharepoint.com/sites/TargetSiteName"
+  },
+
+  "options": {
+    "libraries": null,
+    "_libraries_comment": "null = all document libraries; or a list of source library display names to include, e.g. [\"Documents\", \"Policies\"].",
+    "create_missing_libraries": true,
+    "preserve_timestamps": true,
+    "overwrite_existing": false,
+    "chunk_size_mb": 10,
+    "large_file_threshold_mb": 4
+  }
+}

@@ -1,0 +1,23 @@
+# ── Secrets / credentials (never commit) ─────────────────────────────────────
+# SharePoint migration tenant app secrets
+sharepoint_migration/config.json
+sharepoint_migration/config_*.json
+!sharepoint_migration/config.example.json
+
+# Account deletion DB + SSH credentials
+account_deletion/config/db_config.json
+account_deletion/config/*_config.json
+!account_deletion/config/db_config.example.json
+
+# ── Run artifacts (regenerated; not source) ──────────────────────────────────
+sharepoint_migration/logs/
+sharepoint_migration/state/
+sharepoint_migration/reports/
+account_deletion/reports/
+account_deletion/state/
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+.venv/
+venv/
