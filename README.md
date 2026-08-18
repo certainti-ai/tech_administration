@@ -50,7 +50,7 @@ source scripts/secrets/load.sh
 |---|---|---|
 | 0 | Web scaffold, Key Vault tooling, monorepo restructure | **Done** |
 | 1 | `trd365-core` **done**; utility packages, de-duplication, JS→Python port | **In progress** |
-| 2 | FastAPI orchestrator, job execution, audit log | Not started |
+| 2 | FastAPI orchestrator, job execution, audit log | **Done** |
 | 3 | React SPA — invocation, health dashboard, audit, SSO | Not started |
 | 4 | Maintenance VM, Terraform, deployment | **Terraform written, never applied** |
 

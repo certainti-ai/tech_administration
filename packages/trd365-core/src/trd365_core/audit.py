@@ -140,6 +140,7 @@ class AuditedRun:
             arguments=redact_arguments(arguments or {}),
         )
         self._sink = sink if sink is not None else JsonlAuditSink(default_audit_path())
+        self._outcome_override: str | None = None
 
     @staticmethod
     def _default_actor() -> str:
@@ -156,6 +157,25 @@ class AuditedRun:
     def note(self, message: str) -> None:
         self.record.notes.append(message)
 
+    def mark_cancelled(self, message: str | None = None) -> None:
+        """
+        Record this run as cancelled without raising.
+
+        A caller that already knows the run was cancelled — an orchestrator
+        acting on a cancellation signal, say — should not have to throw to say
+        so. Using an exception for that would mean either raising
+        ``KeyboardInterrupt`` (a ``BaseException``, which escapes ordinary
+        handling) or having the cancellation recorded as a failure.
+        """
+        self._outcome_override = "cancelled"
+        if message:
+            self.note(message)
+
+    def mark_failed(self, message: str) -> None:
+        """Record this run as failed without raising."""
+        self._outcome_override = "failed"
+        self.record.error = message
+
     @property
     def total_rows(self) -> int:
         return sum(self.record.rows_affected.values())
@@ -166,7 +186,9 @@ class AuditedRun:
     def __exit__(self, exc_type, exc, _tb) -> bool:
         self.record.finished_at = _now()
         if exc_type is None:
-            self.record.outcome = "success"
+            # An exception always wins over an override: something went wrong
+            # that the caller did not know about when it marked the outcome.
+            self.record.outcome = self._outcome_override or "success"
         elif isinstance(exc, KeyboardInterrupt):
             self.record.outcome = "cancelled"
         else:

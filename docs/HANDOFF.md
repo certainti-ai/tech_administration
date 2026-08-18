@@ -72,6 +72,11 @@ the original stays available for comparison.
     refuses a missing or stale model rather than falling back to an assumed
     one.
 
+- **`packages/trd365-orchestrator`** — the Phase-2 service. 68 tests, ruff
+  clean. FastAPI: job execution, per-environment write serialisation, the
+  production approval workflow, cancellation that lets a utility roll back,
+  health, model drift, and a read-only audit endpoint. Entry point
+  `trd365_orchestrator.app:app`, which is what the systemd unit runs.
 - **`infra/`** — Terraform for the maintenance VM, plus `deploy.sh` and
   `verify.sh`, and a manual-dispatch deploy workflow. **Never applied.**
   Format-checked and the cloud-init renders to valid YAML, but `terraform
@@ -81,7 +86,8 @@ the original stays available for comparison.
 
 ### Not started
 
-Utility packages, and the Phase-2 service the VM would actually run. See §4.
+The utility packages themselves — the registry is empty until they land, so the
+orchestrator currently has nothing to run. Phases 3 and 4 are ahead. See §4.
 
 ## 3. Decisions already taken — do not relitigate
 
@@ -266,4 +272,16 @@ the VM can be stood up by hand, which is worth doing early: it is the only host
 that can reach the databases, and `verify.sh` proves that before any application
 depends on it.
 
-**Resume at §4 — build `packages/trd365-data-purge`.**
+### Session 3 — 2026-08-17
+
+Built Phase 2, `packages/trd365-orchestrator`. Three bugs found by testing
+rather than review: sync FastAPI endpoints run in a threadpool with no event
+loop, so `asyncio.create_task` raised — the endpoints that schedule work are now
+`async def`; `pytest packages/` from the repo root silently ignores each
+package's own config, so CI now runs pytest per package; and `AuditedRun` needed
+explicit `mark_cancelled`/`mark_failed` because signalling outcome by raising
+`KeyboardInterrupt` would have escaped the task as a `BaseException`.
+
+**Resume at §4 — build `packages/trd365-data-purge`.** The orchestrator's
+registry is empty until utility packages register themselves, so nothing is
+runnable through the API yet.

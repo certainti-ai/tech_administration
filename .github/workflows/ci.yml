@@ -70,7 +70,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install ruff mypy pytest
           for pkg in packages/*/; do
-            [ -f "$pkg/pyproject.toml" ] && pip install -e "$pkg"
+            [ -f "$pkg/pyproject.toml" ] && pip install -e "$pkg[dev]"
           done
           ruff check packages/
-          pytest packages/ -q
+          # Per package, not `pytest packages/`: each package carries its own
+          # pytest config (asyncio_mode, testpaths), and a repo-root rootdir
+          # silently ignores all of it.
+          for pkg in packages/*/; do
+            [ -f "$pkg/pyproject.toml" ] || continue
+            echo "::group::pytest $pkg"
+            (cd "$pkg" && pytest -q)
+            echo "::endgroup::"
+          done

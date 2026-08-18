@@ -5,6 +5,7 @@
 | Package | Purpose |
 |---|---|
 | [`trd365-core`](trd365-core/) | Shared foundation: environments, connections, **the application data model**, CLI conventions, audit, registry |
+| [`trd365-orchestrator`](trd365-orchestrator/) | Job execution, approvals, audit and health API — the service the VM hosts |
 
 ## Planned
 
@@ -15,7 +16,6 @@ trd365-data-model-analysis/  schema analysis; feeds the dashboard's health metri
 trd365-reference-corrections/
 trd365-rd-percent-update/    ported from JavaScript
 trd365-sharepoint-migration/
-trd365-orchestrator/         Phase 2
 ```
 
 Every package depends on `trd365-core` and imports the data model from it rather
@@ -25,7 +25,10 @@ Refactor **out of** `../legacy/trd365_maintenance/`; leave that tree untouched s
 the original stays available for comparison.
 
 ```bash
-pip install -e "packages/trd365-core[dev]"
-pytest packages/ -q
+for pkg in packages/*/; do pip install -e "$pkg[dev]"; done
 ruff check packages/
+
+# Per package, not `pytest packages/`: each carries its own pytest config
+# (asyncio_mode, testpaths), which a repo-root rootdir silently ignores.
+for pkg in packages/*/; do (cd "$pkg" && pytest -q); done
 ```
