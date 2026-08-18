@@ -1,39 +1,44 @@
-# Copy to terraform.tfvars and fill in — or better, supply these as TF_VAR_*
-# environment variables (see PREFLIGHT.md), which is how this project already
-# supplies its database credentials and needs no file at all.
-#
-# terraform.tfvars is gitignored. Do not commit a filled-in copy.
+# Copy to terraform.tfvars and fill in — or supply these as TF_VAR_* environment
+# variables, which is how this project already supplies its database credentials
+# and needs no file at all. terraform.tfvars is gitignored.
 
-# --- ALREADY SUPPLIED BY THE ENVIRONMENT — do not set these -----------------
+# --- SUPPLIED BY THE ENVIRONMENT — do not set ------------------------------
 #
 # subscription_id  read from ARM_SUBSCRIPTION_ID by the azurerm provider
 # (auth)           ARM_TENANT_ID / ARM_CLIENT_ID / ARM_CLIENT_SECRET likewise
+
+# --- CREATED FOR YOU — override only if you want something else -------------
 #
-# location         defaults to "centralus", read off the database hostnames
-#                  (prod-thinkrd365-psqlserver-centralus-pvt-main). Override
-#                  only if the VM belongs in a different region on purpose.
+# resource_group_name  = "trd365-maintenance"   created; set create_resource_group=false to reuse one
+# key_vault_name       = null                   generated with a random suffix (vault names are globally unique)
+# admin_ssh_public_key = null                   a key pair is generated and the private half stored in the vault
+# location             = "centralus"            read off the database hostnames
 
-# --- STILL NEEDED -----------------------------------------------------------
+# --- THE ONE THING YOU MUST PROVIDE ----------------------------------------
 
-# Existing resource group to create into.
-resource_group_name = "certainti-platform"
-
-# THE critical input, and the one most likely to be wrong. This subnet must
-# reach the SSH bastion (172.203.151.166) — and so maindb and orgdb behind it —
-# plus trd365ai (4.246.251.140) directly, for every environment the application
-# monitors. A VM in the wrong subnet comes up unable to see anything.
+# This subnet must reach the SSH bastion (172.203.151.166) — and so maindb and
+# orgdb behind it — plus trd365ai (4.246.251.140) directly, for every
+# environment the application monitors. A VM in the wrong subnet comes up
+# unable to see anything, and nothing here can detect that for you.
 subnet_id = "/subscriptions/.../resourceGroups/.../providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>"
 
-# The Key Vault holding the database credentials. NOTE: this vault may not exist
-# yet — nothing has ever been pushed to one (see docs/secrets.md). Create it
-# first, or decide that Terraform should create it, before applying.
-key_vault_id   = "/subscriptions/.../resourceGroups/.../providers/Microsoft.KeyVault/vaults/<vault>"
-key_vault_name = "<vault>"
+# --- optional ---------------------------------------------------------------
 
-# Public key only. Password authentication is disabled unconditionally.
-admin_ssh_public_key = "ssh-ed25519 AAAA... you@example.com"
+# Bring your own key instead of generating one. Preferred for anything
+# long-lived: a generated key's private half lands in Terraform state.
+# admin_ssh_public_key = "ssh-ed25519 AAAA... you@example.com"
 
-# --- optional, shown with their defaults ------------------------------------
+# Reuse existing infrastructure rather than creating it.
+# create_resource_group = false
+# create_key_vault      = false
+# existing_key_vault_id = "/subscriptions/.../vaults/<vault>"
+
+# Turn ON once the vault holds real secrets. Cannot be turned off again, and
+# blocks destroy/recreate for the retention window. See SECURITY.md.
+# key_vault_purge_protection = true
+
+# Once the VM is the vault's only consumer, close it off and use a private endpoint.
+# key_vault_public_network_access = false
 
 # name_prefix     = "trd365-maint"
 # vm_size         = "Standard_D2s_v5"
@@ -45,9 +50,5 @@ admin_ssh_public_key = "ssh-ed25519 AAAA... you@example.com"
 # Leave false. A maintenance host that can purge production should not be
 # reachable from the internet; use Azure Bastion or `az vm run-command`.
 # assign_public_ip = false
-
-# Only consulted when assign_public_ip is true. 0.0.0.0/0 is rejected.
-# allowed_ssh_source_prefixes = ["10.0.0.0/8"]
-
-# Who may reach the application port. Keep this to the VNet or a proxy subnet.
-# allowed_app_source_prefixes = ["10.0.0.0/8"]
+# allowed_ssh_source_prefixes = ["10.0.0.0/8"]   # only read when assign_public_ip is true
+# allowed_app_source_prefixes = ["10.0.0.0/8"]   # who may reach the app port

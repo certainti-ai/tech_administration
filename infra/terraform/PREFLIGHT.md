@@ -1,69 +1,78 @@
-# Preflight — what is already available, and what is not
+# Preflight — what you need before applying
 
 Checked against this session's environment on 2026-08-18.
 
-## Already supplied (do not re-enter)
+## Supplied by the environment
 
-| Input | Source | Status |
-|---|---|---|
-| Provider auth | `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_CLIENT_SECRET` | present, well-formed |
-| `subscription_id` | `ARM_SUBSCRIPTION_ID` | present, valid GUID |
-| `location` | derived → `centralus` | read off the database hostnames |
-
-The azurerm provider reads the `ARM_*` variables directly, so `subscription_id`
-is now an optional override rather than a required input, and `location`
-defaults to the region the databases are actually in.
-
-## Still needed — five values
-
-| Input | Why it cannot be derived |
+| Input | Source |
 |---|---|
-| `resource_group_name` | Nothing in the environment names one |
-| **`subnet_id`** | **The critical one.** Must reach the bastion (172.203.151.166) and trd365ai (4.246.251.140). Discoverable via ARM, which is blocked from this sandbox |
-| `key_vault_id` | No vault is named anywhere; `AZURE_KEY_VAULT_NAME` is unset |
-| `key_vault_name` | As above |
-| `admin_ssh_public_key` | Not present, and should not be — supply your own |
+| Provider auth | `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_CLIENT_SECRET` |
+| `subscription_id` | `ARM_SUBSCRIPTION_ID` |
+| `location` | derived → `centralus`, from the database hostnames |
+
+## Created for you
+
+| Resource | Notes |
+|---|---|
+| Resource group | `trd365-maintenance`. `create_resource_group = false` to reuse one |
+| Key Vault | Name generated with a random suffix — vault names are globally unique |
+| SSH key pair | Generated when none supplied; private half stored in the vault |
+
+## The one input with no default
+
+**`subnet_id`.** An existing subnet that can reach the SSH bastion
+(`172.203.151.166`) and `trd365ai` (`4.246.251.140`).
+
+It has no default because there is nothing sensible to guess, and getting it
+wrong is the most likely way this deployment disappoints: the VM comes up
+healthy and cannot see a single database. Nothing in the configuration can
+detect that — only `deploy/verify.sh` can, after the fact.
+
+```bash
+export TF_VAR_subnet_id="/subscriptions/.../virtualNetworks/<vnet>/subnets/<subnet>"
+```
 
 Plus, for remote state: a storage account and container for the backend.
 
-## The easiest way to supply them
+## Permissions the Terraform identity needs
 
-Terraform reads `TF_VAR_<name>` environment variables automatically. This
-project already carries its database credentials that way, so adding these five
-to the same environment configuration means **no tfvars file is needed at all**:
+| Role | Scope | Why |
+|---|---|---|
+| Contributor | subscription or resource group | Create the group, VM, NIC, NSG, vault |
+| **User Access Administrator** or Owner | resource group | **Contributor cannot create role assignments**, and this configuration creates two |
 
-```
-TF_VAR_resource_group_name
-TF_VAR_subnet_id
-TF_VAR_key_vault_id
-TF_VAR_key_vault_name
-TF_VAR_admin_ssh_public_key
-```
+That second row is the most common first-apply failure, and it surfaces late —
+after the VM already exists.
 
-`TF_VAR_repo_pat` already follows this pattern, so the mechanism is proven here.
+## Checked, and what could not be
 
-## Two things to settle before applying
+Verified here:
 
-1. **Does the Key Vault exist?** Nothing has ever been pushed to one — the
-   secrets tooling is built but unrun (`docs/secrets.md`). If no vault exists,
-   `key_vault_id` has nothing to point at. Either create it first, or decide
-   that this module should create it, which is a deliberate change: it would put
-   the vault's lifecycle in the same state file as a VM you may want to rebuild.
+- HCL parses and is canonically formatted (`terraform fmt`)
+- every `var.*`, `local.*`, resource and data reference resolves, and nothing
+  declared is unused (static check, since `validate` needs the provider)
+- the cloud-init template renders to valid YAML with no unsubstituted variables
+- the systemd unit carries its restart, boot-persistence and sandboxing directives
 
-2. **Service principal permissions.** `ARM_CLIENT_ID` needs Contributor on the
-   resource group *and* **User Access Administrator** (or Owner) scoped to the
-   vault — `identity.tf` creates an RBAC role assignment, and Contributor cannot
-   write those. This is the most common first-apply failure.
+Not verified, because the sandbox blocks `management.azure.com` and
+`registry.terraform.io`:
 
-## What could not be checked from here
-
-The sandbox blocks `management.azure.com`, so none of the following could be
-confirmed and all are assumptions until `terraform plan` runs:
-
-- whether the resource group, vault or subnet exist
+- `terraform validate` and `plan` — the azurerm provider cannot be downloaded
+- whether the subnet exists or reaches anything
 - whether the service principal holds the two roles above
-- whether the subnet actually reaches the bastion and trd365ai
 
-`terraform plan` answers the first two. The third is only proven by
-`deploy/verify.sh` once the VM exists — which is the main reason to stand it up
-early.
+**Read the plan before applying.** It is the first real check this
+configuration has had.
+
+## Order of operations
+
+```bash
+export TF_VAR_subnet_id="..."
+
+terraform init -backend-config=...
+terraform plan          # read it properly
+terraform apply
+
+# then follow the `next_steps` output: populate the vault, fetch the SSH key,
+# deploy, and verify the VM can actually reach the databases.
+```

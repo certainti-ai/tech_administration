@@ -13,10 +13,17 @@ guessed or hardcoded.
 
 | Resource | Notes |
 |---|---|
+| Resource group | Created by default; `create_resource_group = false` to reuse one |
+| Key Vault | Created, RBAC-authorised, with `prevent_destroy` |
+| SSH key pair | Generated when none supplied; private half stored in the vault |
 | Linux VM (Ubuntu 24.04) | Key-only auth; password login disabled |
 | User-assigned managed identity | Granted **Key Vault Secrets User**, read-only |
 | Network interface + NSG | Deny-all inbound by default; no public IP |
 | cloud-init bootstrap | Python 3.12, service account, directories, systemd unit |
+
+Everything except the subnet is created, so a first deployment needs nothing
+prepared beyond a network to join. That does mean this state file governs a
+vault of production credentials — see [`terraform/SECURITY.md`](terraform/SECURITY.md).
 
 ## Design decisions worth knowing
 
@@ -96,13 +103,18 @@ application exists.
 
 ```
 terraform/
-  versions.tf              provider + remote state backend
+  versions.tf              providers + remote state backend
   variables.tf             every input, all documented
+  resource_group.tf        the group (created or looked up)
+  keyvault.tf              the vault, its RBAC, and the propagation wait
+  ssh.tf                   key generation, stored in the vault
   main.tf                  the VM
   network.tf               NIC, NSG, optional public IP
   identity.tf              managed identity + Key Vault role
   cloud-init.yaml.tftpl    bootstrap and systemd unit
-  outputs.tf
+  outputs.tf               includes a `next_steps` output
+  PREFLIGHT.md             what you need before applying
+  SECURITY.md              what creating the vault and key implies
   terraform.tfvars.example
 deploy/
   deploy.sh                install or update the application
@@ -111,12 +123,19 @@ deploy/
 
 ## Still needed
 
-See [`PREFLIGHT.md`](terraform/PREFLIGHT.md) for what the environment already
-supplies and what it does not.
+**One input: `subnet_id`.** Everything else is either supplied by the
+environment or created by this configuration.
 
-Short version: authentication and `subscription_id` come from the `ARM_*`
-variables already present, and `location` defaults to `centralus` (read off the
-database hostnames). **Five values remain**: `resource_group_name`, `subnet_id`,
-`key_vault_id`, `key_vault_name`, `admin_ssh_public_key` — supplied most easily
-as `TF_VAR_*` environment variables, the way this project already supplies its
-database credentials.
+```bash
+export TF_VAR_subnet_id="/subscriptions/.../virtualNetworks/<vnet>/subnets/<subnet>"
+```
+
+It has no default because there is nothing sensible to guess, and it is the
+input most likely to be wrong: the subnet must reach the bastion
+(`172.203.151.166`) and `trd365ai` (`4.246.251.140`). A VM in the wrong subnet
+comes up healthy and unable to see a single database, and only
+`deploy/verify.sh` will tell you.
+
+The Terraform identity also needs **User Access Administrator** (or Owner) as
+well as Contributor — this configuration creates two RBAC role assignments, and
+Contributor cannot. Full detail in [`PREFLIGHT.md`](terraform/PREFLIGHT.md).

@@ -3,7 +3,7 @@
 resource "azurerm_linux_virtual_machine" "maintenance" {
   name                = "${var.name_prefix}-vm"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = local.resource_group_name
   size                = var.vm_size
   admin_username      = var.admin_username
   tags                = var.tags
@@ -16,7 +16,7 @@ resource "azurerm_linux_virtual_machine" "maintenance" {
 
   admin_ssh_key {
     username   = var.admin_username
-    public_key = var.admin_ssh_public_key
+    public_key = local.admin_ssh_public_key
   }
 
   identity {
@@ -43,7 +43,7 @@ resource "azurerm_linux_virtual_machine" "maintenance" {
   custom_data = base64encode(templatefile("${path.module}/cloud-init.yaml.tftpl", {
     admin_username = var.admin_username
     app_port       = var.app_port
-    key_vault_name = var.key_vault_name
+    key_vault_name = local.key_vault_name
     client_id      = azurerm_user_assigned_identity.vm.client_id
     repository_url = var.app_repository_url
     branch         = var.app_branch

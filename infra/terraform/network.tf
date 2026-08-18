@@ -8,7 +8,7 @@
 resource "azurerm_network_security_group" "vm" {
   name                = "${var.name_prefix}-nsg"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = local.resource_group_name
   tags                = var.tags
 }
 
@@ -16,7 +16,7 @@ resource "azurerm_network_security_rule" "ssh" {
   count = var.assign_public_ip && length(var.allowed_ssh_source_prefixes) > 0 ? 1 : 0
 
   name                        = "allow-ssh"
-  resource_group_name         = var.resource_group_name
+  resource_group_name         = local.resource_group_name
   network_security_group_name = azurerm_network_security_group.vm.name
   priority                    = 100
   direction                   = "Inbound"
@@ -32,7 +32,7 @@ resource "azurerm_network_security_rule" "app" {
   count = length(var.allowed_app_source_prefixes) > 0 ? 1 : 0
 
   name                        = "allow-app"
-  resource_group_name         = var.resource_group_name
+  resource_group_name         = local.resource_group_name
   network_security_group_name = azurerm_network_security_group.vm.name
   priority                    = 110
   direction                   = "Inbound"
@@ -49,7 +49,7 @@ resource "azurerm_network_security_rule" "app" {
 # rather than slipping in above an implicit default.
 resource "azurerm_network_security_rule" "deny_all_inbound" {
   name                        = "deny-all-inbound"
-  resource_group_name         = var.resource_group_name
+  resource_group_name         = local.resource_group_name
   network_security_group_name = azurerm_network_security_group.vm.name
   priority                    = 4096
   direction                   = "Inbound"
@@ -66,7 +66,7 @@ resource "azurerm_public_ip" "vm" {
 
   name                = "${var.name_prefix}-pip"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = local.resource_group_name
   allocation_method   = "Static"
   sku                 = "Standard"
   tags                = var.tags
@@ -75,7 +75,7 @@ resource "azurerm_public_ip" "vm" {
 resource "azurerm_network_interface" "vm" {
   name                = "${var.name_prefix}-nic"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = local.resource_group_name
   tags                = var.tags
 
   ip_configuration {

@@ -204,14 +204,14 @@ Ask these before building past them:
 6. **AWS credentials are broken** — `AWS_ACCESS_KEY_ID` and
    `AWS_SECRET_ACCESS_KEY` hold the same 14-character value with no `AKIA`
    prefix. What were they for? Fix or drop.
-7. **Maintenance VM** — narrowed after checking the session environment. Auth
-   and `subscription_id` come from the `ARM_*` variables already present, and
-   `location` now defaults to `centralus`, derived from the database hostnames.
-   **Five values remain**: `resource_group_name`, `subnet_id`, `key_vault_id`,
-   `key_vault_name`, `admin_ssh_public_key`. The subnet is the one that
-   matters — wrong subnet and the VM comes up seeing nothing. Supply them as
-   `TF_VAR_*` environment variables and no tfvars file is needed. Full detail
-   in `infra/terraform/PREFLIGHT.md`.
+7. ~~**Maintenance VM**~~ — **effectively closed.** The Terraform now creates
+   the resource group, Key Vault and SSH key, and takes auth, subscription and
+   region from the environment. **One input remains: `subnet_id`**, which must
+   reach the bastion and trd365ai — there is nothing sensible to guess, and a
+   wrong subnet means a VM that sees nothing. The Terraform identity also needs
+   User Access Administrator alongside Contributor, since two RBAC role
+   assignments are created. See `infra/terraform/PREFLIGHT.md` and
+   `SECURITY.md`.
 8. **Entra ID** — which tenant and app registration should the SPA use, and
    which groups map to `viewer`/`operator`/`approver`/`admin`?
 

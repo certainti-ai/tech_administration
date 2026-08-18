@@ -7,7 +7,7 @@
 resource "azurerm_user_assigned_identity" "vm" {
   name                = "${var.name_prefix}-identity"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = local.resource_group_name
   tags                = var.tags
 }
 
@@ -15,7 +15,7 @@ resource "azurerm_user_assigned_identity" "vm" {
 # administrator action from a machine with Secrets Officer, not something the
 # maintenance host can do.
 resource "azurerm_role_assignment" "key_vault_secrets_user" {
-  scope                = var.key_vault_id
+  scope                = local.key_vault_id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_user_assigned_identity.vm.principal_id
 }

@@ -15,8 +15,21 @@ variable "subscription_id" {
 }
 
 variable "resource_group_name" {
-  description = "Existing resource group to create resources in."
+  description = "Name of the resource group. Created unless create_resource_group is false."
   type        = string
+  default     = "trd365-maintenance"
+}
+
+variable "create_resource_group" {
+  description = <<-EOT
+    Create the resource group (default), or use an existing one of that name.
+
+    Set false when the maintenance VM belongs alongside other platform
+    resources — creating the group means Terraform owns its lifecycle, and a
+    group destroy takes everything inside it.
+  EOT
+  type        = bool
+  default     = true
 }
 
 variable "location" {
@@ -115,11 +128,16 @@ variable "admin_ssh_public_key" {
   description = <<-EOT
     SSH public key for the administrator account. Password authentication is
     disabled unconditionally, so this is the only interactive route in.
+
+    Left unset, a key pair is generated and its private half stored in the Key
+    Vault. Supplying your own is preferred for anything long-lived: a generated
+    key's private half necessarily lands in Terraform state.
   EOT
   type        = string
+  default     = null
 
   validation {
-    condition     = can(regex("^(ssh-rsa|ssh-ed25519|ecdsa-sha2-)", var.admin_ssh_public_key))
+    condition     = var.admin_ssh_public_key == null ? true : can(regex("^(ssh-rsa|ssh-ed25519|ecdsa-sha2-)", var.admin_ssh_public_key))
     error_message = "admin_ssh_public_key must be an OpenSSH public key, not a path or a private key."
   }
 }
@@ -132,19 +150,91 @@ variable "os_disk_size_gb" {
 
 # -------------------------------------------------------------------- key vault
 
-variable "key_vault_id" {
+variable "create_key_vault" {
   description = <<-EOT
-    Resource id of the Key Vault holding the database credentials.
+    Create the Key Vault (default), or point at an existing one via
+    existing_key_vault_id.
 
-    The VM's managed identity is granted 'Key Vault Secrets User' on it — read
-    only, and no credential is ever written to the VM's disk (PRD FR-5.3).
+    Creating it means this state file governs a vault of production database
+    credentials. That is why the vault carries prevent_destroy, and why the
+    backend must be remote and access-controlled — see SECURITY.md.
   EOT
-  type        = string
+  type        = bool
+  default     = true
 }
 
 variable "key_vault_name" {
-  description = "Key Vault name, passed to the app as AZURE_KEY_VAULT_NAME."
+  description = <<-EOT
+    Key Vault name. Left unset, one is generated from name_prefix with a random
+    suffix, because vault names are globally unique across all of Azure and a
+    fixed name eventually collides with someone else's.
+  EOT
   type        = string
+  default     = null
+
+  validation {
+    condition     = var.key_vault_name == null ? true : can(regex("^[a-zA-Z][a-zA-Z0-9-]{1,22}[a-zA-Z0-9]$", var.key_vault_name))
+    error_message = "Key Vault names are 3-24 chars, alphanumeric and hyphens, starting with a letter."
+  }
+}
+
+variable "existing_key_vault_id" {
+  description = "Resource id of an existing vault. Only used when create_key_vault is false."
+  type        = string
+  default     = null
+}
+
+variable "key_vault_soft_delete_retention_days" {
+  description = "Recovery window for deleted secrets and for the vault itself (7-90)."
+  type        = number
+  default     = 90
+
+  validation {
+    condition     = var.key_vault_soft_delete_retention_days >= 7 && var.key_vault_soft_delete_retention_days <= 90
+    error_message = "Azure permits 7 to 90 days."
+  }
+}
+
+variable "key_vault_purge_protection" {
+  description = <<-EOT
+    Enable purge protection. Correct end state for a vault holding production
+    credentials, but a ONE-WAY DOOR: it cannot be disabled afterwards, and a
+    destroyed vault's name stays reserved for the whole retention window, so
+    destroy/recreate cycles fail.
+
+    Default is off so a first deployment can be iterated on. Turn it on once the
+    vault holds real secrets.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "key_vault_public_network_access" {
+  description = <<-EOT
+    Allow reaching the vault from outside the VNet. Needs to be true for the
+    initial `secrets:push` from an operator machine; consider turning it off,
+    with a private endpoint, once the VM is the only consumer.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "grant_deployer_vault_access" {
+  description = <<-EOT
+    Grant the identity running Terraform 'Key Vault Secrets Officer' on the new
+    vault, so it can populate it and store the generated SSH key.
+
+    Requires that identity to hold User Access Administrator or Owner —
+    Contributor alone cannot create role assignments.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "store_ssh_key_in_vault" {
+  description = "Store a generated SSH private key in the vault, so it need not be read from state."
+  type        = bool
+  default     = true
 }
 
 # ------------------------------------------------------------------------ misc
