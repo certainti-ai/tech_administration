@@ -111,6 +111,12 @@ deploy/
 
 ## Still needed
 
-`terraform.tfvars` cannot be completed without answers to `docs/HANDOFF.md` §6
-question 7: subscription, resource group, region, and above all the **VNet and
-subnet** that can reach all four environments' databases.
+See [`PREFLIGHT.md`](terraform/PREFLIGHT.md) for what the environment already
+supplies and what it does not.
+
+Short version: authentication and `subscription_id` come from the `ARM_*`
+variables already present, and `location` defaults to `centralus` (read off the
+database hostnames). **Five values remain**: `resource_group_name`, `subnet_id`,
+`key_vault_id`, `key_vault_name`, `admin_ssh_public_key` — supplied most easily
+as `TF_VAR_*` environment variables, the way this project already supplies its
+database credentials.

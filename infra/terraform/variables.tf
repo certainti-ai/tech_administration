@@ -4,8 +4,14 @@
 # ---------------------------------------------------------------------------
 
 variable "subscription_id" {
-  description = "Azure subscription the maintenance VM is created in."
+  description = <<-EOT
+    Azure subscription. Leave unset in normal use: the azurerm provider reads
+    ARM_SUBSCRIPTION_ID from the environment, which is where this project's
+    credentials already live. Set it only to target a different subscription
+    than the one those credentials default to.
+  EOT
   type        = string
+  default     = null
 }
 
 variable "resource_group_name" {
@@ -14,8 +20,14 @@ variable "resource_group_name" {
 }
 
 variable "location" {
-  description = "Azure region. Should match the databases' region to keep latency low."
+  description = <<-EOT
+    Azure region. Defaults to the region the databases are actually in, read off
+    their hostnames (prod-thinkrd365-psqlserver-**centralus**-pvt-main), so the
+    VM does not sit a continent away from every query it makes. Override only if
+    the maintenance host belongs somewhere else on purpose.
+  EOT
   type        = string
+  default     = "centralus"
 }
 
 variable "name_prefix" {
