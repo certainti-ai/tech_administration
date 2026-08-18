@@ -72,9 +72,16 @@ the original stays available for comparison.
     refuses a missing or stale model rather than falling back to an assumed
     one.
 
+- **`infra/`** — Terraform for the maintenance VM, plus `deploy.sh` and
+  `verify.sh`, and a manual-dispatch deploy workflow. **Never applied.**
+  Format-checked and the cloud-init renders to valid YAML, but `terraform
+  validate`/`plan` could not run here (the sandbox blocks
+  `registry.terraform.io`). Needs `terraform.tfvars` filled in — blocked on
+  open question 7. See `infra/README.md`.
+
 ### Not started
 
-Utility packages. Phases 2–4 are all ahead. See §4.
+Utility packages, and the Phase-2 service the VM would actually run. See §4.
 
 ## 3. Decisions already taken — do not relitigate
 
@@ -191,8 +198,11 @@ Ask these before building past them:
 6. **AWS credentials are broken** — `AWS_ACCESS_KEY_ID` and
    `AWS_SECRET_ACCESS_KEY` hold the same 14-character value with no `AKIA`
    prefix. What were they for? Fix or drop.
-7. **Maintenance VM** — subscription, resource group, region, size, and which
-   VNet(s) it must reach to see all four environments.
+7. **Maintenance VM** — subscription, resource group, region, and above all
+   the **VNet/subnet** that reaches all four environments' databases. The
+   Terraform is written and parameterised; `terraform.tfvars` cannot be
+   completed without these. The subnet is the one that matters: wrong subnet
+   and the VM comes up seeing nothing.
 8. **Entra ID** — which tenant and app registration should the SPA use, and
    which groups map to `viewer`/`operator`/`approver`/`admin`?
 
@@ -246,5 +256,14 @@ other scripts. Added `model_snapshot`: one producer, many consumers, versioned
 immutable snapshots per environment, atomic writes with the `latest` pointer
 moved last, diffing for drift, and a hard refusal on missing or stale models.
 163 tests.
+
+Owner asked whether the VM could be spun up and the application deployed. No,
+on two independent grounds, both verified: the sandbox blocks
+`management.azure.com` and `graph.microsoft.com` so no VM can be created from a
+session, and there is nothing deployable yet — `trd365-core` is a library with
+no entry point and the Phase-2 service does not exist. Wrote `infra/` instead so
+the VM can be stood up by hand, which is worth doing early: it is the only host
+that can reach the databases, and `verify.sh` proves that before any application
+depends on it.
 
 **Resume at §4 — build `packages/trd365-data-purge`.**

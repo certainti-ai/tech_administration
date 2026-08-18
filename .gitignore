@@ -48,3 +48,12 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+
+# terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log

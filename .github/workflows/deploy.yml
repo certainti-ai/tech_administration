@@ -1,0 +1,63 @@
+name: Deploy to maintenance VM
+
+# Deployment is repeatable from CI rather than by hand (PRD FR-5.4).
+#
+# The VM has no public IP, so this does not SSH in: it authenticates to Azure
+# over OIDC and runs the deploy script through `az vm run-command`, which works
+# against a host with no inbound access at all.
+#
+# Manual trigger only. Nothing deploys to the maintenance host because a commit
+# landed — that host can purge production.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or tag to deploy"
+        required: true
+        default: "main"
+      verify_only:
+        description: "Run the read-only checks without deploying"
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-maintenance-vm
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: maintenance-vm # gate approvals here
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Azure via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy
+        if: ${{ !inputs.verify_only }}
+        run: |
+          az vm run-command invoke \
+            --resource-group "${{ vars.MAINTENANCE_RESOURCE_GROUP }}" \
+            --name "${{ vars.MAINTENANCE_VM_NAME }}" \
+            --command-id RunShellScript \
+            --scripts "sudo -u trd365 TRD365_BRANCH='${{ inputs.ref }}' /opt/trd365/deploy.sh" \
+            --query "value[0].message" -o tsv
+
+      - name: Verify
+        run: |
+          az vm run-command invoke \
+            --resource-group "${{ vars.MAINTENANCE_RESOURCE_GROUP }}" \
+            --name "${{ vars.MAINTENANCE_VM_NAME }}" \
+            --command-id RunShellScript \
+            --scripts "sudo /opt/trd365/verify.sh" \
+            --query "value[0].message" -o tsv

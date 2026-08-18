@@ -1,0 +1,44 @@
+# Copy to terraform.tfvars and fill in. Every value below is specific to
+# Certainti's Azure estate and none of it is guessed — see docs/HANDOFF.md §6.
+#
+# terraform.tfvars is gitignored. Do not commit a filled-in copy.
+
+# --- required --------------------------------------------------------------
+
+subscription_id     = "00000000-0000-0000-0000-000000000000"
+resource_group_name = "certainti-platform"
+
+# Put the VM in the same region as the databases; every query crosses this hop.
+location = "centralus"
+
+# THE critical input. This subnet must reach the SSH bastion (and so maindb and
+# orgdb behind it) and trd365ai directly, for every environment the application
+# monitors. A VM in the wrong subnet comes up unable to see anything.
+subnet_id = "/subscriptions/.../resourceGroups/.../providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>"
+
+# Key Vault holding the database credentials. The VM's managed identity is
+# granted read-only access to it.
+key_vault_id   = "/subscriptions/.../resourceGroups/.../providers/Microsoft.KeyVault/vaults/certainti-kv"
+key_vault_name = "certainti-kv"
+
+# Public key only. Password authentication is disabled unconditionally.
+admin_ssh_public_key = "ssh-ed25519 AAAA... you@example.com"
+
+# --- optional, shown with their defaults ------------------------------------
+
+# name_prefix    = "trd365-maint"
+# vm_size        = "Standard_D2s_v5"
+# admin_username = "trd365admin"
+# os_disk_size_gb = 64
+# app_port       = 8080
+# app_branch     = "main"
+
+# Leave false. A maintenance host that can purge production should not be
+# reachable from the internet; use Azure Bastion or `az vm run-command`.
+# assign_public_ip = false
+
+# Only consulted when assign_public_ip is true. 0.0.0.0/0 is rejected.
+# allowed_ssh_source_prefixes = ["10.0.0.0/8"]
+
+# Who may reach the application port. Keep this to the VNet or a proxy subnet.
+# allowed_app_source_prefixes = ["10.0.0.0/8"]

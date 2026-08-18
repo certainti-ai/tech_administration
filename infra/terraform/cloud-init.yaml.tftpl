@@ -1,0 +1,105 @@
+#cloud-config
+# Bootstrap for the trd365 maintenance VM.
+#
+# Installs the runtime, creates a dedicated service account, and lays out the
+# directories the application writes to. It deliberately does NOT start the
+# application: the Phase-2 service does not exist yet, so the unit is installed
+# and left disabled until `deploy.sh` finds something to run.
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - python3.12
+  - python3.12-venv
+  - python3-pip
+  - git
+  - postgresql-client
+  - openssh-client
+  - curl
+  - jq
+  - unzip
+
+users:
+  - name: ${admin_username}
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+  # Unprivileged account the application runs as. No login shell: it is a
+  # service identity, not a person, and nothing should be run as it by hand
+  # except through the deploy script.
+  - name: trd365
+    system: true
+    shell: /usr/sbin/nologin
+    homedir: /opt/trd365
+
+write_files:
+  # Environment shared by the service and by interactive utility runs. It holds
+  # no secrets — only the vault name and the identity that can read it.
+  - path: /etc/trd365/environment
+    permissions: "0644"
+    content: |
+      AZURE_KEY_VAULT_NAME=${key_vault_name}
+      AZURE_CLIENT_ID=${client_id}
+      TRD365_MODEL_DIR=/var/lib/trd365/model
+      TRD365_AUDIT_DIR=/var/lib/trd365/audit
+      TRD365_APP_PORT=${app_port}
+      TRD365_REPO_URL=${repository_url}
+      TRD365_BRANCH=${branch}
+
+  - path: /etc/systemd/system/trd365-admin.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Certainti Tech Administration
+      Documentation=https://github.com/certainti-ai/tech_administration
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=exec
+      User=trd365
+      Group=trd365
+      EnvironmentFile=/etc/trd365/environment
+      WorkingDirectory=/opt/trd365/app
+      ExecStart=/opt/trd365/venv/bin/uvicorn trd365_orchestrator.app:app \
+          --host 0.0.0.0 --port ${app_port} --proxy-headers
+
+      Restart=on-failure
+      RestartSec=5s
+      # Survives reboot and keeps restarting through a bad patch, rather than
+      # giving up after a burst of failures (PRD FR-5.2).
+      StartLimitIntervalSec=0
+
+      # A host that can purge production gets no more of the filesystem than it
+      # needs. State lives in two directories; everything else is read-only.
+      NoNewPrivileges=true
+      PrivateTmp=true
+      ProtectSystem=strict
+      ProtectHome=true
+      ReadWritePaths=/var/lib/trd365 /var/log/trd365
+      ProtectKernelTunables=true
+      ProtectControlGroups=true
+      RestrictSUIDSGID=true
+
+      StandardOutput=journal
+      StandardError=journal
+      SyslogIdentifier=trd365-admin
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  - mkdir -p /opt/trd365 /var/lib/trd365/model /var/lib/trd365/audit /var/log/trd365
+  - chown -R trd365:trd365 /opt/trd365 /var/lib/trd365 /var/log/trd365
+  - chmod 0750 /var/lib/trd365/audit
+  - python3.12 -m venv /opt/trd365/venv
+  - /opt/trd365/venv/bin/pip install --upgrade pip
+  - chown -R trd365:trd365 /opt/trd365/venv
+  - git config --system --add safe.directory /opt/trd365/app
+  - systemctl daemon-reload
+  # Enabled but not started: nothing to run until Phase 2 lands and deploy.sh
+  # has installed it. Starting now would produce a restart loop in the journal.
+  - systemctl enable trd365-admin.service
+
+final_message: "trd365 maintenance VM ready after $UPTIME seconds. Run deploy.sh to install the application."
