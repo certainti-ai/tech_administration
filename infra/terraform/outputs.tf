@@ -82,3 +82,23 @@ output "next_steps" {
            --command-id RunShellScript --scripts 'sudo /opt/trd365/verify.sh'
   EOT
 }
+
+output "pending_role_assignments" {
+  description = <<-EOT
+    Role assignments this apply did NOT make, and the command to complete them.
+
+    Creating a role assignment requires User Access Administrator or Owner;
+    Contributor cannot. When that is skipped the VM comes up unable to read a
+    single credential, so this output exists to make the remaining step
+    impossible to miss rather than something discovered later from a 403.
+  EOT
+  value = var.grant_vm_vault_access ? "none — all role assignments were created" : join("\n", [
+    "The VM identity was NOT granted access to the vault. It cannot read secrets until:",
+    "",
+    "  az role assignment create \\",
+    "    --role 'Key Vault Secrets User' \\",
+    "    --assignee-object-id ${azurerm_user_assigned_identity.vm.principal_id} \\",
+    "    --assignee-principal-type ServicePrincipal \\",
+    "    --scope ${local.key_vault_id}",
+  ])
+}

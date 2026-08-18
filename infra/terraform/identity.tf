@@ -15,6 +15,8 @@ resource "azurerm_user_assigned_identity" "vm" {
 # administrator action from a machine with Secrets Officer, not something the
 # maintenance host can do.
 resource "azurerm_role_assignment" "key_vault_secrets_user" {
+  count = var.grant_vm_vault_access ? 1 : 0
+
   scope                = local.key_vault_id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_user_assigned_identity.vm.principal_id

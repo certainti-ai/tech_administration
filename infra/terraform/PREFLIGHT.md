@@ -76,3 +76,50 @@ terraform apply
 # then follow the `next_steps` output: populate the vault, fetch the SSH key,
 # deploy, and verify the VM can actually reach the databases.
 ```
+
+---
+
+## Lessons from the sibling deployment (`incentiwise-beta`)
+
+A session in the `incentiwise-beta` environment provisioned a live Azure VM in
+**this same subscription** (`b8e81c74…`, "Certainti.Ai - Platform") and tenant
+(`b6734060…`) on 2026-08-17. Three of its findings apply directly here.
+
+**1. Dsv5 quota was zero.** In its region the `Dsv5` family had **0 cores**
+available while `Dsv3`, `Ev3` and `Dav6` had 10 free. Quota is per family per
+region and is not granted by default. `vm_size` therefore defaults to
+`Standard_D2s_v3`, not v5. Confirm before applying:
+
+```bash
+az vm list-usage --location centralus -o table | grep -i standardd
+```
+
+A quota failure surfaces at apply time, after the network and identity exist.
+
+**2. Their service principal had Contributor only.** Verified against ARM. This
+configuration creates **two** role assignments, and Contributor cannot create
+any. The service principal here is a *different* one (`7b8767e1…` vs their
+`8e964b9a…`), so its rights are unknown and unverifiable from the sandbox.
+
+If the apply fails on `Authorization` when creating a role assignment, set
+`grant_vm_vault_access = false` and `grant_deployer_vault_access = false` to get
+the infrastructure up, then have someone with User Access Administrator run the
+command from the `pending_role_assignments` output. **The VM cannot read a
+single credential until that is done.**
+
+**3. Region.** They used `eastus`; this defaults to `centralus`, because that is
+where the databases are. Check quota in the region you actually use.
+
+### Not a problem here
+
+They had to inject a repo PAT into cloud-init `custom_data` to clone a private
+repository, and their handover flags that PAT for revocation.
+`certainti-ai/tech_administration` is **public**, so `deploy.sh` clones
+anonymously and no credential is baked into the VM's boot configuration.
+
+### Worth acting on separately
+
+Their handover lists two credentials to rotate: a service principal client
+secret that was pasted into a chat transcript, and the repo PAT baked into
+cloud-init. This environment carries a `TF_VAR_repo_pat` variable — if it is the
+same PAT, it should be revoked regardless of this deployment.

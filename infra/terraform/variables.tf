@@ -113,9 +113,19 @@ variable "vm_size" {
   description = <<-EOT
     VM size. The workload is long-running database jobs — mostly waiting on IO,
     occasionally holding a large result set — so memory matters more than cores.
+
+    Defaults to a v3 rather than the newer v5. A sibling deployment in this same
+    subscription found the Dsv5 quota was **zero** in its region while Dsv3,
+    Ev3 and Dav6 had free cores; quota is per family per region and is not
+    granted by default. Check before changing family:
+
+      az vm list-usage --location <region> -o table | grep -i standardd
+
+    A quota failure surfaces at apply time, after the network and identity are
+    already created.
   EOT
   type        = string
-  default     = "Standard_D2s_v5"
+  default     = "Standard_D2s_v3"
 }
 
 variable "admin_username" {
@@ -214,6 +224,24 @@ variable "key_vault_public_network_access" {
     Allow reaching the vault from outside the VNet. Needs to be true for the
     initial `secrets:push` from an operator machine; consider turning it off,
     with a private endpoint, once the VM is the only consumer.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "grant_vm_vault_access" {
+  description = <<-EOT
+    Grant the VM's managed identity 'Key Vault Secrets User' on the vault.
+
+    True is correct, and the VM cannot read a single credential without it. It
+    is a variable because creating a role assignment needs User Access
+    Administrator or Owner, and a sibling deployment in this subscription found
+    the service principal had **Contributor only** — which cannot create role
+    assignments at all.
+
+    Set false to let a Contributor-only identity complete the apply, then have
+    someone with rights run the command printed by the `pending_role_assignments`
+    output. The VM will not work until they do.
   EOT
   type        = bool
   default     = true
