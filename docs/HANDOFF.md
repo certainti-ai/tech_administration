@@ -197,6 +197,10 @@ error that explains the change. Announce this to operators before it ships.
 - **Nothing produces a data-model snapshot yet.** `purge-account --apply`
   refuses without one, by design. Porting `data_model_analysis` unblocks it;
   until then, dry runs work and `--ignore-model` is the deliberate escape hatch.
+- **The product repos are attached to this session and answer several open
+  questions.** `certainti-ai/rdcredits_platform_iac` and
+  `certainti-ai/rdcredits_platform_db_scripts` are cloned under `/workspace/`;
+  more can be attached with `add_repo`. See §9.
 - **Utility packages are found by entry point**, not by a list in the service.
   A new package that forgets its `[project.entry-points."trd365.utilities"]`
   block installs cleanly, passes its own tests, and is simply invisible in the
@@ -342,3 +346,52 @@ Four things worth knowing:
   queue.
 
 **Resume at §4 Step 1 — port `data_model_analysis`.**
+
+---
+
+## 9. The product repositories
+
+This session can attach any repo in the `certainti-ai` org with `add_repo`.
+Two are already cloned; a third is wanted and not yet pulled.
+
+### `rdcredits_platform_iac` — `/workspace/rdcredits_platform_iac`
+
+The platform's own Terraform, and it answers the question that has been blocking
+`infra/terraform/`: **which VNet the maintenance VM belongs in.**
+
+- `modified_network.tf` defines one VNet per Terraform workspace,
+  `<workspace>-thinkrd365-vnet`, in resource group
+  `thinkrd365_assist_resource_group`, with `/24` subnets carved out of
+  `local.vnet_cidr` — etl (.1), backend (.2), redis (.3), appgw (.4).
+- Postgres sits in a **separate** VNet, `<workspace>-thinkrd365-vnet-pg`, with
+  `postgres_subnet` and private DNS zones (`new_rds_dns_zone.tf`); the two are
+  joined in `new_vnet-peering.tf`. That is why the databases are unreachable
+  from anywhere outside these VNets, and why the maintenance VM has to live in
+  one of them.
+- The workspaces are `development`, `qa`, `preprod`, `prod` — so our **Stage
+  maps to `preprod`**, which is worth confirming before wiring Stage credentials.
+- `local.location = "eastus"`. Our Terraform defaults to `centralus`, inferred
+  from the production database hostnames. **These disagree and it matters** —
+  a VM in the wrong region cannot peer cheaply and adds latency to every query.
+  Resolve before applying.
+
+The obvious approach is now to add a `maintenance` subnet to the existing VNet
+rather than standing up a new network, and to reuse `key_vault.tf`'s pattern.
+That is a change to *their* repo, so it needs the owner's agreement first.
+
+### `rdcredits_platform_db_scripts` — `/workspace/rdcredits_platform_db_scripts`
+
+Flyway-style DDL: `baseline/`, `migrations/`, `seed/`, 50 SQL files, versioned
+`V4.1.0` → `V5.0.0`.
+
+This is what makes it possible to **validate `trd365_core.datamodel` against the
+real schema without a database** — the standing gap that nothing built so far
+has touched one. A test that parses the baseline DDL and asserts the
+conventions (`rid` primary keys, `_rid` foreign keys, the `trd365` main schema)
+would turn assumptions into checks. Worth doing before the VM exists.
+
+### `rdcredits_platform_be` — not yet cloned
+
+Contains `entity-module`, which the `manual-rd-percent-update` JS tool cites by
+file and line. That is the specification for the port (§4 Step 3.6). Attach it
+when that port starts, not before — it is large and the port is not next.
