@@ -89,8 +89,14 @@ apply is the fix, not a permissions change.
 
 ## What this configuration deliberately does not do
 
-- It does not create or manage the VNet or subnet. The subnet must already
-  exist and must reach the bastion; that is the one input with no default.
+- It does not touch any infrastructure it did not create. No peering, no private
+  DNS zone link, no subnet added to another team's VNet, no change to another
+  repository's Terraform. The stack builds its own network and reaches the
+  databases over the public endpoints the operator scripts already use, so an
+  `apply` here cannot affect the platform.
+- It does not connect the VM to anything inbound. The network it creates is
+  peered with nothing, so the only route to the host is Azure Bastion or
+  `az vm run-command`.
 - It does not put database credentials into Terraform. They are pushed
   separately, so rotating one is not a `terraform apply`.
 - It does not grant the VM write access to the vault. Read-only is the whole

@@ -7,22 +7,34 @@
 # subscription_id  read from ARM_SUBSCRIPTION_ID by the azurerm provider
 # (auth)           ARM_TENANT_ID / ARM_CLIENT_ID / ARM_CLIENT_SECRET likewise
 
+# --- NOTHING IS REQUIRED ----------------------------------------------------
+#
+# `terraform apply` with no variables at all stands up a complete, self-contained
+# deployment: its own resource group, virtual network, subnet, Key Vault, SSH key
+# pair, managed identity and VM. It changes nothing that already exists and it
+# peers with nothing.
+#
+# That works because the databases are reached over public endpoints — an SSH
+# tunnel to the bastion (172.203.151.166) for maindb and orgdb, and a public
+# address for trd365ai (4.246.251.140) — which is the same path the operator
+# scripts already take from a laptop. Outbound internet is the only network
+# dependency.
+
 # --- CREATED FOR YOU — override only if you want something else -------------
 #
-# resource_group_name  = "trd365-maintenance"   created; set create_resource_group=false to reuse one
-# key_vault_name       = null                   generated with a random suffix (vault names are globally unique)
-# admin_ssh_public_key = null                   a key pair is generated and the private half stored in the vault
-# location             = "centralus"            read off the database hostnames
-
-# --- THE ONE THING YOU MUST PROVIDE ----------------------------------------
-
-# This subnet must reach the SSH bastion (172.203.151.166) — and so maindb and
-# orgdb behind it — plus trd365ai (4.246.251.140) directly, for every
-# environment the application monitors. A VM in the wrong subnet comes up
-# unable to see anything, and nothing here can detect that for you.
-subnet_id = "/subscriptions/.../resourceGroups/.../providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>"
+# resource_group_name   = "trd365-maintenance"   created; set create_resource_group=false to reuse one
+# key_vault_name        = null                   generated with a random suffix (vault names are globally unique)
+# admin_ssh_public_key  = null                   a key pair is generated and the private half stored in the vault
+# location              = "centralus"            read off the database hostnames; nothing peers, so this is a
+#                                                latency and cost choice, not a topology constraint
+# vnet_address_space    = ["10.80.0.0/16"]       unroutable to anything else by design
+# subnet_address_prefix = "10.80.1.0/24"
 
 # --- optional ---------------------------------------------------------------
+
+# Join an existing subnet instead of creating a network. Only do this if you
+# have decided the host belongs inside an existing VNet, and accept the coupling.
+# subnet_id = "/subscriptions/.../virtualNetworks/<vnet>/subnets/<subnet>"
 
 # Bring your own key instead of generating one. Preferred for anything
 # long-lived: a generated key's private half lands in Terraform state.

@@ -80,7 +80,7 @@ resource "azurerm_network_interface" "vm" {
 
   ip_configuration {
     name                          = "internal"
-    subnet_id                     = var.subnet_id
+    subnet_id                     = local.subnet_id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = var.assign_public_ip ? azurerm_public_ip.vm[0].id : null
   }

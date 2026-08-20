@@ -15,24 +15,35 @@ Checked against this session's environment on 2026-08-18.
 | Resource | Notes |
 |---|---|
 | Resource group | `trd365-maintenance`. `create_resource_group = false` to reuse one |
+| Virtual network + subnet | `10.80.0.0/16` and `10.80.1.0/24`. Peered with nothing |
 | Key Vault | Name generated with a random suffix — vault names are globally unique |
 | SSH key pair | Generated when none supplied; private half stored in the vault |
+| Managed identity | Granted Key Vault Secrets User |
 
-## The one input with no default
+## Nothing is required
 
-**`subnet_id`.** An existing subnet that can reach the SSH bastion
-(`172.203.151.166`) and `trd365ai` (`4.246.251.140`).
+`terraform apply` with no variables set stands up a complete deployment. It
+creates everything it uses and **changes nothing that already exists** — no
+peering, no private DNS, no subnet added to somebody else's network, no edit to
+another repository's Terraform.
 
-It has no default because there is nothing sensible to guess, and getting it
-wrong is the most likely way this deployment disappoints: the VM comes up
-healthy and cannot see a single database. Nothing in the configuration can
-detect that — only `deploy/verify.sh` can, after the fact.
+That is possible because every database is already reachable over a public
+endpoint: `maindb` and `orgdb` through an SSH tunnel to the bastion
+(`172.203.151.166`), and `trd365ai` directly (`4.246.251.140`). This is the same
+path the operator scripts take from a laptop today. **Outbound internet is the
+only network dependency.**
 
-```bash
-export TF_VAR_subnet_id="/subscriptions/.../virtualNetworks/<vnet>/subnets/<subnet>"
-```
+Two consequences worth knowing:
 
-Plus, for remote state: a storage account and container for the backend.
+- **`location` is a latency and cost choice, not a topology constraint.** It
+  defaults to `centralus` because the production database hostnames say the data
+  is there. The platform's own Terraform uses `eastus`; that disagreement no
+  longer matters for connectivity, only for round-trip time.
+- **Set `subnet_id` only to opt out.** Supplying it joins an existing subnet
+  instead, and couples this deployment to a network it does not own. There is no
+  need to unless you have decided the host belongs inside one.
+
+For remote state you still need a storage account and container for the backend.
 
 ## Permissions the Terraform identity needs
 
@@ -58,7 +69,9 @@ Not verified, because the sandbox blocks `management.azure.com` and
 `registry.terraform.io`:
 
 - `terraform validate` and `plan` — the azurerm provider cannot be downloaded
-- whether the subnet exists or reaches anything
+- whether the VM, once up, can actually open the tunnel and reach the databases.
+  Only `deploy/verify.sh` can answer that, after the fact — and it is the first
+  thing to run
 - whether the service principal holds the two roles above
 
 **Read the plan before applying.** It is the first real check this
@@ -67,10 +80,8 @@ configuration has had.
 ## Order of operations
 
 ```bash
-export TF_VAR_subnet_id="..."
-
 terraform init -backend-config=...
-terraform plan          # read it properly
+terraform plan          # read it properly — nothing else has checked this
 terraform apply
 
 # then follow the `next_steps` output: populate the vault, fetch the SSH key,

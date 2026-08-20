@@ -7,6 +7,20 @@ output "resource_group_name" {
   value = local.resource_group_name
 }
 
+output "network_was_created" {
+  description = <<-EOT
+    True when this stack built its own VNet and subnet, which is the default and
+    the intended posture. False means the VM joined a subnet you supplied, and
+    the deployment is therefore coupled to a network it does not own.
+  EOT
+  value       = local.create_network
+}
+
+output "subnet_id" {
+  description = "The subnet the VM joined, created or supplied."
+  value       = local.subnet_id
+}
+
 output "private_ip_address" {
   description = "The address to reach the application on from inside the VNet."
   value       = azurerm_network_interface.vm.private_ip_address

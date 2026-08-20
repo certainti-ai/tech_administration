@@ -58,14 +58,41 @@ variable "name_prefix" {
 
 variable "subnet_id" {
   description = <<-EOT
-    Resource id of the existing subnet the VM joins.
+    Resource id of an existing subnet to join, instead of the one this stack
+    creates. Leave null — the default — and the stack builds its own network.
 
-    This is the load-bearing input: the subnet must be able to reach the SSH
-    bastion (and therefore maindb/orgdb behind it) and trd365ai directly, for
-    every environment the application monitors. A VM in the wrong subnet is the
-    single most likely reason a deployment comes up unable to see anything.
+    Self-contained is the intended posture. This application administers the
+    platform's databases but is not part of the platform: it creates its own
+    resource group, network, vault and host, and it changes nothing that already
+    exists. It reaches every database over public endpoints — an SSH tunnel to
+    the bastion for maindb/orgdb, and a public address for trd365ai — which is
+    the same path the operator scripts already take from a laptop. So it needs
+    outbound internet and nothing else: no VNet peering, no private DNS, no
+    change to anybody else's network.
+
+    Set this only if you have decided the host belongs inside an existing
+    network, and accept the coupling that comes with it.
   EOT
   type        = string
+  default     = null
+}
+
+variable "vnet_address_space" {
+  description = <<-EOT
+    Address space for the VNet this stack creates. Ignored when subnet_id is set.
+
+    Unroutable to anything else by design. Nothing peers with this network, so
+    the range only has to avoid colliding with whatever the VM reaches over a
+    VPN, if you ever add one.
+  EOT
+  type        = list(string)
+  default     = ["10.80.0.0/16"]
+}
+
+variable "subnet_address_prefix" {
+  description = "Address prefix for the VM subnet. Ignored when subnet_id is set."
+  type        = string
+  default     = "10.80.1.0/24"
 }
 
 variable "assign_public_ip" {

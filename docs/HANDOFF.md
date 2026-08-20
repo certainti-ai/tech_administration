@@ -118,6 +118,16 @@ Also settled earlier in the session:
 6. **The Azure service principal stays out of the vault** it unlocks; it is the
    one bootstrap credential per context.
 
+Settled 2026-08-20:
+
+7. **This application is independent of the existing estate.** It creates its
+   own resource group, network, vault and host; it modifies no existing Azure
+   resource, no existing repository, and no database schema. It *reads and
+   writes application data* in the platform's databases — that is its entire
+   purpose — over the public endpoints the operator scripts already use. The
+   product repositories are attached for understanding only; never open a PR
+   against one.
+
 ## 4. Next task — start here
 
 The producer/consumer loop is closed: `data-model-analysis --apply` publishes a
@@ -237,19 +247,18 @@ Ask these before building past them:
 6. **AWS credentials are broken** — `AWS_ACCESS_KEY_ID` and
    `AWS_SECRET_ACCESS_KEY` hold the same 14-character value with no `AKIA`
    prefix. What were they for? Fix or drop.
-7. **Maintenance VM — one question left, and it changed shape.** The Terraform
-   creates the resource group, Key Vault and SSH key and takes auth,
-   subscription and region from the environment. `subnet_id` was the blocking
-   input; `rdcredits_platform_iac` (§9) now shows where it comes from — the
-   platform's own `<workspace>-thinkrd365-vnet`, with Postgres in a separate
-   peered VNet. What remains is a **decision, not a lookup**: add a
-   `maintenance` subnet to the platform's VNet (a change to *their* repo, so it
-   needs the owner's agreement) or stand up a peered one of our own.
-   **Also unresolved: region.** The platform is `eastus`; our Terraform defaults
-   to `centralus`, inferred from the production database hostnames. These
-   disagree and a VM in the wrong region cannot peer cheaply. The Terraform
-   identity also needs User Access Administrator alongside Contributor, since
-   two RBAC role assignments are created. See `infra/terraform/PREFLIGHT.md`.
+7. ~~**Maintenance VM — which subnet?**~~ **Closed 2026-08-20, and the question
+   dissolved.** The owner's constraint is that this application runs
+   independently, with no link to and no change to existing infrastructure. That
+   turns out to be the *simpler* design, not a compromise: every database is
+   already reachable over a public endpoint — `maindb`/`orgdb` through the
+   bastion tunnel, `trd365ai` directly — which is how the operator scripts
+   connect from a laptop today. So the stack creates its own VNet and subnet,
+   peers with nothing, and needs only outbound internet. `subnet_id` is now an
+   opt-out, not a requirement, and the eastus/centralus disagreement is a
+   latency choice rather than a peering constraint. The Terraform identity still
+   needs User Access Administrator alongside Contributor, since two RBAC role
+   assignments are created. See `infra/terraform/PREFLIGHT.md`.
 8. ~~**Which platform workspace is Stage?**~~ **Answered 2026-08-20: `preprod`.**
    Recorded as `Environment.platform_workspace` in `trd365_core.environments`,
    with a test, rather than only in prose — anything naming a platform resource
@@ -395,9 +404,12 @@ The platform's own Terraform, and it answers the question that has been blocking
   a VM in the wrong region cannot peer cheaply and adds latency to every query.
   Resolve before applying.
 
-The obvious approach is now to add a `maintenance` subnet to the existing VNet
-rather than standing up a new network, and to reuse `key_vault.tf`'s pattern.
-That is a change to *their* repo, so it needs the owner's agreement first.
+**We do not touch any of this.** The owner's constraint (2026-08-20) is that the
+maintenance application runs independently, changing nothing that exists. Our
+Terraform therefore builds its own network and reaches the databases over their
+public endpoints. This repo is read here for *understanding* — what the estate
+looks like, what a workspace is called, why the databases are unreachable from
+an arbitrary network — and for nothing else. Do not open a PR against it.
 
 ### `rdcredits_platform_db_scripts` — `/workspace/rdcredits_platform_db_scripts`
 
