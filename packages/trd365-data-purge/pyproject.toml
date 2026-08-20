@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trd365-data-purge"
+version = "0.1.0"
+description = "Entity purges (account, case, interaction, project, project fiscal) across the three trd365 databases."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["trd365-core", "psycopg2-binary>=2.9"]
+
+[project.entry-points."trd365.utilities"]
+data-purge = "trd365_data_purge.registry:register"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]

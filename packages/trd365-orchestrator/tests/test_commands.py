@@ -62,3 +62,21 @@ class TestRejection:
     def test_read_only_utilities_cannot_be_applied(self):
         with pytest.raises(InvalidArguments, match="read-only"):
             build_argv(REPORT, Environment.DEV, {}, apply=True)
+
+
+class TestProductionConfirmation:
+    """
+    The utility asks for a typed confirmation before writing to production,
+    which a subprocess has no stdin to answer. The service has already required
+    a second approver (FR-4.3), so it answers on the command line rather than
+    leaving the job hung with nothing to say why.
+    """
+
+    def test_a_production_apply_answers_it_up_front(self):
+        assert "--yes" in argv(env=Environment.PROD, apply=True)
+
+    def test_a_production_dry_run_does_not_need_it(self):
+        assert "--yes" not in argv(env=Environment.PROD, apply=False)
+
+    def test_a_non_production_apply_does_not_need_it(self):
+        assert "--yes" not in argv(env=Environment.DEV, apply=True)

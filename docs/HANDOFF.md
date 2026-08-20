@@ -3,7 +3,7 @@
 **Read this first.** It is the resume point for anyone — human or another Claude
 session — picking this work up cold.
 
-Last updated: 2026-08-17, session 2.
+Last updated: 2026-08-20, session 4.
 Branch: `claude/certainti-tech-admin-y4c4ul`.
 
 ---
@@ -40,8 +40,15 @@ Supporting: `docs/secrets.md` (Key Vault, already built and working).
 - **Monorepo restructure** — `apps/web/` (app), `scripts/` (repo tooling),
   `packages/` (Python), `legacy/` (vendored source scripts).
 - **CI** — `.github/workflows/ci.yml` runs Node tooling tests, the web app
-  (lint/typecheck/test/build), and a Python job that self-skips until
-  `packages/*/pyproject.toml` exists.
+  (lint/typecheck/test/build), and a Python job that installs each
+  `packages/*/` and runs ruff plus that package's own pytest config.
+- **`packages/trd365-core`** — environments, connections, the shared data model,
+  CLI conventions, audit, model snapshots, registry. 168 tests.
+- **`packages/trd365-orchestrator`** — FastAPI service, job store, approvals,
+  subprocess runner, per-environment write lock, health. 71 tests.
+- **`packages/trd365-data-purge`** — the engine plus `purge-account`. 132 tests.
+  See its README for the port's deliberate deviations from the original.
+  **Never run against a real database.**
 
 ### Vendored, untouched
 
@@ -110,50 +117,54 @@ Also settled earlier in the session:
 
 ## 4. Next task — start here
 
-**`trd365-core` is done.** Build the first utility package on top of it.
+**`trd365-core`, the orchestrator, and the first utility are done.** The account
+purge is registered, discoverable and invocable through the API.
 
-### Step 1 — `packages/trd365-data-purge`
+### Step 1 — `data_model_analysis`, the producer of the shared model
 
-Migrate `legacy/trd365_maintenance/data_purge/` first: it is the
-best-structured module and becomes the template for the rest.
+This is now the highest-value port, because everything downstream already
+depends on its output and nothing produces it yet. Today `purge-account`
+refuses to `--apply` without a snapshot, and there is no way to make one.
 
-- Package layout mirroring `trd365-core` (`pyproject.toml`, `src/`, `tests/`),
-  depending on `trd365-core`.
-- Sub-commands `account`, `case`, `interaction`, `project`, `project_fiscal`.
-- Replace `engine/db.py` with `trd365_core.ConnectionPool`, and any local
-  schema assumptions with `trd365_core.datamodel`.
-- Replace hand-rolled argparse with `trd365_core.cli.build_parser`. The five
-  tools already default to dry run, so only `--env` is new to them.
-- Wrap each run in `trd365_core.AuditedRun` and call `record_rows` per table.
-- Register each sub-command in `trd365_core.registry` — the Phase-2 API and
-  Phase-3 UI are generated from it.
+- Port `legacy/trd365_maintenance/data_model_analysis/` onto
+  `trd365_core.datamodel`, which already holds all of its conventions.
+- Every run must call `build_snapshot()` and `FileModelStore().save()`. That
+  save is what propagates a refreshed model to every other utility
+  (FR-1.9/1.10) — the purge reads it through `require_model()`.
+- Its orphan and deviation counts are the health metrics the Phase-3 dashboard
+  needs (FR-4.5); `diff_snapshots()` gives the drift signal.
+- Register it with `Impact.READ_ONLY` and declare the entry point in its
+  `pyproject.toml` (`[project.entry-points."trd365.utilities"]`) so the service
+  picks it up — see `packages/trd365-data-purge/pyproject.toml`.
+
+### Step 2 — the remaining purge entities
+
+`case`, `interaction`, `project`, `project_fiscal` in
+`legacy/trd365_maintenance/data_purge/`. The engine and CLI driver are entity
+agnostic and already built: each entity needs only a `manifest.py`, a
+`scoping.py` and a `__main__.py`, mirroring `account/`. Roughly a day each.
+
 - **Move `base_sql/*.sql` and `DELETION_ORDER.md` unchanged.** The SQL encodes
   foreign-key deletion order; it is data, not code to rewrite.
+- `project_fiscal` carries extra flags in the legacy tool (`--sections`,
+  `--concurrency`, `--heartbeat`, `--backup-schema`, `--limit`). Port them or
+  consciously drop them; do not lose them silently.
 
-Consume the shared model rather than introspecting: call
-`require_model(store, args.env, utility="purge-account")` and drive table
-ordering from `model.tables_referencing(schema, entity)`.
+### Step 3 — the remaining modules
 
-### Step 2 — the remaining modules
-
-3. `data_model_analysis` — the **producer** of the shared model. It must call
-   `build_snapshot()` and `store.save()` on every run; that is what propagates
-   a refreshed model to every other utility (FR-1.9/1.10). Port it onto
-   `trd365_core.datamodel`, which already holds its conventions. Its orphan and
-   deviation counts are the health metrics the Phase-3 dashboard needs
-   (FR-4.5), and `diff_snapshots()` gives the drift signal.
-4. `reference_table_corrections`, `sharepoint_migration`,
+3. `reference_table_corrections`, `sharepoint_migration`,
    `interactions_dashboard`.
-5. `account_deletion` — **keep it**, alongside `data_purge/account`. The owner
-   has deferred the decision; use `Utility.supersedes` to record the
+4. `account_deletion` — **keep it**, alongside `data_purge/account`. The owner
+   has deferred the decision; `PURGE_ACCOUNT.supersedes` already records the
    relationship so the UI can show it without either being deleted.
-6. `project_fiscal_year_deletion` — delete **only** after confirming its extra
-   flags (`--sections`, `--concurrency`, `--heartbeat`, `--backup-schema`,
-   `--limit`) exist in the `data_purge` equivalent. Port them first if not.
-7. Port `manual-rd-percent-update` JS → Python. Write characterisation tests
-   from the JS behaviour *first*. It touches money.
+5. `project_fiscal_year_deletion` — delete **only** after confirming its flags
+   exist in the `data_purge` equivalent (see Step 2).
+6. Port `manual-rd-percent-update` JS → Python. Write characterisation tests
+   from the JS behaviour *first*. It touches money. Its `index.js` header cites
+   file and line references into `entity-module`, which lives in
+   `certainti-ai/rdcredits_platform_be` — read that repo before porting.
 
-### Step 3 — flip the three destructive-by-default tools
+### Step 4 — flip the three destructive-by-default tools
 
 `account_deletion/run.py`, `project_fiscal_year_deletion/run.py` and
 `sharepoint_migration/migrate.py` currently write by default. Once on
@@ -183,6 +194,13 @@ error that explains the change. Announce this to operators before it ships.
 - **Secrets:** all 33 live in the Claude Code environment config today. Key
   Vault tooling is built but the migration has not been run. Until it is, the
   vault is not yet the source of truth.
+- **Nothing produces a data-model snapshot yet.** `purge-account --apply`
+  refuses without one, by design. Porting `data_model_analysis` unblocks it;
+  until then, dry runs work and `--ignore-model` is the deliberate escape hatch.
+- **Utility packages are found by entry point**, not by a list in the service.
+  A new package that forgets its `[project.entry-points."trd365.utilities"]`
+  block installs cleanly, passes its own tests, and is simply invisible in the
+  API. `create_app()` reports what it loaded at `GET /`.
 
 ## 6. Open questions — need the product owner
 
@@ -288,3 +306,39 @@ explicit `mark_cancelled`/`mark_failed` because signalling outcome by raising
 **Resume at §4 — build `packages/trd365-data-purge`.** The orchestrator's
 registry is empty until utility packages register themselves, so nothing is
 runnable through the API yet.
+
+### Session 4 — 2026-08-20
+
+Built `packages/trd365-data-purge`: the entity-agnostic engine plus
+`purge-account`, 132 tests, ruff clean. It is a **port, not a rewrite** — the
+legacy engine was already the right shape and the manifest is vendor-derived
+data, reproduced verbatim and guarded by a test that diffs it against the legacy
+file.
+
+Four things worth knowing:
+
+- **A legacy cache bug is fixed in the port.** `engine/core.py` cached column and
+  foreign-key metadata in module-level dicts keyed by `(schema, table)` only, and
+  `clear_caches()` was never called anywhere in the tree. Harmless in a one-shot
+  CLI; under the long-running orchestrator it means one database's metadata can
+  be served for another sharing a table name. The cache is now keyed by database
+  and scoped to a single run. **The legacy file still has the bug** — it is
+  reference material and was deliberately not edited.
+- **Utilities are discovered, not listed.** `trd365_core.registry` gained
+  `load_installed_utilities()`, which loads the `trd365.utilities` entry-point
+  group; `create_app()` calls it. Adding a utility means installing a package,
+  not editing the service. `Registry.register` is now a no-op for an identical
+  descriptor (a package registers on import *and* advertises an entry point) and
+  still refuses a *different* utility under an existing id.
+- **A production run through the API would have hung forever.**
+  `confirm_production` prompts on stdin, which a subprocess does not have. It now
+  refuses without a terminal instead of hanging, `--yes` moved into the shared
+  `build_parser`, and `build_argv` passes it for a production apply because the
+  service has already required a second approver. Also fixed: `input_fn=input` as
+  a default argument bound the builtin at import time — the same class of bug as
+  the `stream=sys.stderr` default fixed in session 2.
+- **`--apply` requires a data-model snapshot**, and nothing produces one yet.
+  That is why `data_model_analysis` is now Step 1 rather than fourth in the
+  queue.
+
+**Resume at §4 Step 1 — port `data_model_analysis`.**

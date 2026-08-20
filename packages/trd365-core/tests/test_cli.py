@@ -89,15 +89,32 @@ class TestProductionConfirmation:
 
     def test_typing_the_environment_name_proceeds(self, capsys):
         args = parse(["--env", "prod", "--apply"])
-        cli.confirm_production(args, "purge", input_fn=lambda _: "prod")
+        cli.confirm_production(
+            args, "purge", input_fn=lambda _: "prod", isatty=lambda: True
+        )
         assert "WRITE TO PRODUCTION" in capsys.readouterr().err
 
     def test_anything_else_aborts(self):
         args = parse(["--env", "prod", "--apply"])
         with pytest.raises(UnsafeOperationError, match="nothing was written"):
-            cli.confirm_production(args, "purge", input_fn=lambda _: "yes")
+            cli.confirm_production(args, "purge", input_fn=lambda _: "yes", isatty=lambda: True)
 
-    def test_assume_yes_skips_the_prompt_for_non_interactive_callers(self):
+    def test_without_a_terminal_it_refuses_rather_than_hanging(self):
+        # A subprocess started by the orchestrator has no stdin to read.
+        # Prompting there would hang the job with nothing to say why.
+        args = parse(["--env", "prod", "--apply"])
+        with pytest.raises(UnsafeOperationError, match="no terminal"):
+            cli.confirm_production(
+                args, "purge", input_fn=lambda _: pytest.fail("prompted"), isatty=lambda: False
+            )
+
+    def test_yes_skips_the_prompt_for_non_interactive_callers(self):
+        args = parse(["--env", "prod", "--apply", "--yes"])
+        cli.confirm_production(
+            args, "purge", input_fn=lambda _: pytest.fail("prompted"), isatty=lambda: False
+        )
+
+    def test_assume_yes_can_also_be_passed_directly(self):
         args = parse(["--env", "prod", "--apply"])
         cli.confirm_production(
             args, "purge", assume_yes=True, input_fn=lambda _: pytest.fail("prompted")

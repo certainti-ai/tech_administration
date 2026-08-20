@@ -68,6 +68,12 @@ def build_argv(
 
     argv = [python or sys.executable, "-m", utility.module, "--env", environment.value]
 
+    if apply and environment.is_production:
+        # The utility's own terminal confirmation cannot be answered from a
+        # subprocess. The service has already required a second approver
+        # (FR-4.3), which is the stronger control the prompt stands in for.
+        argv.append("--yes")
+
     for name in sorted(arguments):
         parameter = declared[name]
         value = arguments[name]

@@ -15,6 +15,7 @@ from trd365_core.audit import JsonlAuditSink, default_audit_path
 from trd365_core.db import ConnectionPool
 from trd365_core.environments import Environment
 from trd365_core.model_snapshot import FileModelStore
+from trd365_core.registry import load_installed_utilities
 from trd365_core.registry import registry as default_registry
 
 from .api import router
@@ -55,6 +56,11 @@ def create_app(
     orchestrator: Orchestrator | None = None,
 ) -> FastAPI:
     dev_auth = os.environ.get("TRD365_DEV_AUTH") == "1"
+
+    # Whatever utility packages are installed alongside the service, not a list
+    # this file has to keep up to date. A caller that supplies its own registry
+    # has already decided what is in it.
+    discovered = load_installed_utilities() if registry is None else []
 
     if orchestrator is None:
         store = JobStore()
@@ -106,6 +112,8 @@ def create_app(
             "environments": [e.value for e in Environment],
             "docs": "/docs",
             "authentication": "development headers" if dev_auth else "not configured",
+            "utilities": len(app.state.orchestrator.registry),
+            "discovered": discovered,
         }
 
     return app

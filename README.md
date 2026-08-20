@@ -18,7 +18,7 @@ the databases they operate on, and the internal portal that runs them.
 
 ```
 apps/web/       Next.js portal (Phase 0; ports into the Phase 3 SPA)
-packages/       Python maintenance packages (trd365-core built)
+packages/       Python maintenance packages (core, orchestrator, data-purge)
 infra/          Terraform for the maintenance VM, and deploy scripts
 legacy/         Original operator scripts, vendored verbatim. Reference only.
 scripts/        Repo-wide tooling (Key Vault secrets management)
@@ -37,6 +37,29 @@ npm run web:test
 npm run web:build
 ```
 
+Python packages:
+
+```bash
+pip install -e packages/trd365-core \
+            -e "packages/trd365-orchestrator[dev]" \
+            -e "packages/trd365-data-purge[dev]"
+
+ruff check packages/
+for pkg in packages/*/; do (cd "$pkg" && pytest -q); done
+```
+
+Run pytest **per package**, never `pytest packages/` — each package carries its
+own config (`asyncio_mode`, `testpaths`) and a repo-root rootdir ignores it.
+
+| Package | What it is | Tests |
+|---|---|---|
+| `trd365-core` | Environments, connections, data model, CLI conventions, audit, registry | 168 |
+| `trd365-orchestrator` | FastAPI service: jobs, approvals, execution, health | 71 |
+| `trd365-data-purge` | Purge engine and `purge-account` | 132 |
+
+Utilities are discovered through the `trd365.utilities` entry-point group, so
+installing a package makes it appear in the API — there is no list to edit.
+
 Secrets:
 
 ```bash
@@ -49,7 +72,7 @@ source scripts/secrets/load.sh
 | Phase | Contents | State |
 |---|---|---|
 | 0 | Web scaffold, Key Vault tooling, monorepo restructure | **Done** |
-| 1 | `trd365-core` **done**; utility packages, de-duplication, JS→Python port | **In progress** |
+| 1 | `trd365-core` and `trd365-data-purge` **done**; remaining utility packages, JS→Python port | **In progress** |
 | 2 | FastAPI orchestrator, job execution, audit log | **Done** |
 | 3 | React SPA — invocation, health dashboard, audit, SSO | Not started |
 | 4 | Maintenance VM, Terraform, deployment | **Terraform written, never applied** |
@@ -66,7 +89,7 @@ Two constraints worth knowing before you plan work:
 ## CI
 
 `.github/workflows/ci.yml` — Node tooling tests, the web app
-(lint/typecheck/test/build), and a Python job that activates once
-`packages/*/pyproject.toml` exists.
+(lint/typecheck/test/build), and a Python job that installs each `packages/*/`
+and runs ruff plus that package's own pytest config.
 
 `.github/workflows/secrets-check.yml` — weekly Key Vault verification over OIDC.

@@ -4,7 +4,14 @@ import pytest
 
 from trd365_core.environments import Environment
 from trd365_core.errors import Trd365Error
-from trd365_core.registry import Impact, Parameter, ParameterType, Registry, Utility
+from trd365_core.registry import (
+    Impact,
+    Parameter,
+    ParameterType,
+    Registry,
+    Utility,
+    load_installed_utilities,
+)
 
 
 def utility(utility_id="purge-account", impact=Impact.DESTRUCTIVE, **kwargs):
@@ -26,10 +33,18 @@ class TestRegistration:
         assert registry.get("purge-account").title == "Purge account"
         assert "purge-account" in registry
 
-    def test_duplicate_ids_are_rejected(self):
+    def test_registering_the_same_descriptor_again_is_a_no_op(self):
+        # A utility package registers on import *and* advertises an entry point
+        # for discovery, so both paths run in one process. Refusing the second
+        # would make importing a package before starting the service an error.
+        registry = Registry([utility()])
+        registry.register(utility())
+        assert len(registry) == 1
+
+    def test_a_different_utility_cannot_take_an_id_already_in_use(self):
         registry = Registry([utility()])
         with pytest.raises(Trd365Error, match="already registered"):
-            registry.register(utility())
+            registry.register(utility(title="Something else entirely"))
 
     def test_unknown_database_keys_are_rejected(self):
         # Catches a typo in a utility descriptor at import time rather than
@@ -131,3 +146,50 @@ class TestSerialisation:
     def test_registry_serialises_as_a_list(self):
         payload = Registry([utility("a"), utility("b")]).to_dict()
         assert [entry["id"] for entry in payload] == ["a", "b"]
+
+
+class TestDiscovery:
+    """
+    Entry-point discovery is how the orchestrator serves whatever utility
+    packages are installed alongside it, rather than a list it has to maintain.
+    """
+
+    def test_a_package_that_advertises_utilities_is_loaded(self, monkeypatch):
+        registered = []
+
+        def register(target):
+            registered.append(target)
+            target.register(utility(utility_id="from-entry-point"))
+
+        monkeypatch.setattr(
+            "importlib.metadata.entry_points", lambda group: [_Point("demo", register)]
+        )
+        target = Registry()
+        assert load_installed_utilities(target) == ["demo"]
+        assert "from-entry-point" in target
+
+    def test_one_broken_package_does_not_stop_the_others(self, monkeypatch):
+        def explode(_target):
+            raise ImportError("psycopg2 is missing")
+
+        def works(target):
+            target.register(utility(utility_id="fine"))
+
+        monkeypatch.setattr(
+            "importlib.metadata.entry_points",
+            lambda group: [_Point("broken", explode), _Point("fine", works)],
+        )
+        target = Registry()
+        loaded = load_installed_utilities(target)
+
+        assert "fine" in target
+        assert any("broken FAILED" in entry for entry in loaded)
+
+
+class _Point:
+    def __init__(self, name, callable_):
+        self.name = name
+        self._callable = callable_
+
+    def load(self):
+        return self._callable

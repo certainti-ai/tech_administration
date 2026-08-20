@@ -56,7 +56,15 @@ from .model_snapshot import (
     diff_snapshots,
     require_model,
 )
-from .registry import Impact, Parameter, ParameterType, Registry, Utility, registry
+from .registry import (
+    Impact,
+    Parameter,
+    ParameterType,
+    Registry,
+    Utility,
+    load_installed_utilities,
+    registry,
+)
 
 __version__ = "0.1.0"
 
@@ -106,6 +114,7 @@ __all__ = [
     "is_configured",
     "is_polymorphic",
     "load_catalog",
+    "load_installed_utilities",
     "references",
     "registry",
     "require_model",

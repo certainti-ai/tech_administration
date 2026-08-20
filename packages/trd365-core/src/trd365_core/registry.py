@@ -117,8 +117,18 @@ class Registry:
             self.register(utility)
 
     def register(self, utility: Utility) -> Utility:
-        if utility.id in self._utilities:
-            raise Trd365Error(f'A utility with id "{utility.id}" is already registered.')
+        existing = self._utilities.get(utility.id)
+        if existing is not None:
+            # Registering the identical descriptor again is a no-op, not an
+            # error: a utility package registers on import *and* advertises an
+            # entry point, so both paths can run in one process. Registering a
+            # *different* utility under the same id is still refused — that is
+            # two tools disagreeing about what an id means.
+            if existing == utility:
+                return existing
+            raise Trd365Error(
+                f'A different utility with id "{utility.id}" is already registered.'
+            )
         unknown = set(utility.databases) - set(DB_KEYS)
         if unknown:
             raise Trd365Error(
@@ -154,6 +164,39 @@ class Registry:
 
 #: The process-wide registry. Utility packages register themselves on import.
 registry = Registry()
+
+
+#: Installed packages advertise their utilities under this entry-point group.
+UTILITY_ENTRY_POINT_GROUP = "trd365.utilities"
+
+
+def load_installed_utilities(target: Registry | None = None) -> list[str]:
+    """
+    Register the utilities of every installed package that advertises them.
+
+    The orchestrator serves whatever utility packages are installed alongside
+    it, so it must not carry a hard-coded list of them — adding a utility should
+    mean installing a package, not editing the service. Each package declares an
+    entry point in ``trd365.utilities`` pointing at a ``register(registry)``
+    callable.
+
+    A package that fails to import is skipped and named in the return value
+    rather than taking the service down with it: one broken utility should not
+    stop the other nine from being runnable.
+    """
+    from importlib.metadata import entry_points
+
+    into = registry if target is None else target
+    loaded: list[str] = []
+
+    for point in entry_points(group=UTILITY_ENTRY_POINT_GROUP):
+        try:
+            point.load()(into)
+            loaded.append(point.name)
+        except Exception as exc:  # noqa: BLE001 — reported, never fatal
+            loaded.append(f"{point.name} FAILED: {type(exc).__name__}: {exc}")
+
+    return loaded
 
 
 # --------------------------------------------------------------------------

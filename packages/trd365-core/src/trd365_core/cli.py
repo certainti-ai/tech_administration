@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from .environments import Environment
@@ -49,6 +49,8 @@ class CommonArgs:
     apply: bool
     verbose: bool
     actor: str | None
+    #: The interactive production confirmation was answered out of band.
+    assume_yes: bool = False
 
     @property
     def dry_run(self) -> bool:
@@ -88,6 +90,14 @@ def build_parser(
             action="store_true",
             help="Write the changes. Omit for a dry run that reports what would change.",
         )
+        parser.add_argument(
+            "--yes",
+            action="store_true",
+            help=(
+                "Skip the interactive production confirmation. For callers with no "
+                "terminal — the orchestrator, which enforces a second approver instead."
+            ),
+        )
     parser.add_argument(
         "--dry-run",
         nargs=0,
@@ -109,6 +119,7 @@ def common_args(namespace: argparse.Namespace) -> CommonArgs:
         apply=bool(getattr(namespace, "apply", False)),
         verbose=bool(getattr(namespace, "verbose", False)),
         actor=getattr(namespace, "actor", None),
+        assume_yes=bool(getattr(namespace, "yes", False)),
     )
 
 
@@ -117,8 +128,9 @@ def confirm_production(
     utility: str,
     *,
     stream=None,
-    input_fn=input,
-    assume_yes: bool = False,
+    input_fn=None,
+    assume_yes: bool | None = None,
+    isatty: Callable[[], bool] | None = None,
 ) -> None:
     """
     Require a typed confirmation before writing to production from a terminal.
@@ -126,15 +138,30 @@ def confirm_production(
     This is the CLI's backstop only. The web application enforces the real
     control — a second approver (PRD FR-4.3) — because a confirmation prompt
     stops accidents, not intent.
+
+    Without a terminal this refuses rather than prompting. A subprocess started
+    by the orchestrator has no stdin to read, and prompting there would hang the
+    job forever with no indication of why; the orchestrator passes ``--yes``
+    because it has already taken a second approval.
     """
     if not args.apply or not args.env.is_production:
         return
-    if assume_yes:
+    if args.assume_yes if assume_yes is None else assume_yes:
         return
 
-    # Resolved here rather than as a default argument: a default would bind the
-    # stream at import time, which breaks redirection and output capture.
+    at_terminal = isatty if isatty is not None else sys.stdin.isatty
+    if not at_terminal():
+        raise UnsafeOperationError(
+            f"{utility} will not write to production without a confirmation, and there is "
+            f"no terminal to ask at.\n"
+            f"Run it interactively, or pass --yes if the approval was taken elsewhere."
+        )
+
+    # Both resolved here rather than as default arguments: a default binds at
+    # import time, which breaks redirection, output capture, and any caller that
+    # replaces the built-in to drive this non-interactively.
     stream = sys.stderr if stream is None else stream
+    input_fn = input if input_fn is None else input_fn
     print(
         f"\n*** {utility} is about to WRITE TO PRODUCTION ***\n"
         f"Type the environment name to continue, anything else to abort.",

@@ -67,6 +67,21 @@ in the estate; do not lose it.**
 
 This module is the template the others should be refactored towards.
 
+**Ported** to `packages/trd365-data-purge/` (session 4), `account` first. The
+engine's own docstring is accurate — "This module is entity-agnostic… Nothing
+here knows what an 'account' or a 'case' is" — so it was a port, not a rewrite.
+Read that package's README for the deliberate deviations.
+
+One real bug found while reading it, fixed in the port and **still present in
+`legacy/`**: `engine/core.py` caches column and foreign-key metadata in
+module-level dicts keyed by `(schema, table)` — not by database — and the
+`clear_caches()` it defines is never called anywhere in the tree. In a one-shot
+CLI that is nearly harmless. Under a long-running service running many purges it
+means metadata read from one database can be served for another that happens to
+share a schema and table name, and a schema change between jobs is never
+noticed. `orgdb` and `maindb` do share table names (`meeting_summary`,
+`notes`, `attachments`), so this is reachable, not theoretical.
+
 ### `project_fiscal_year_deletion/` — **duplicate, delete it**
 
 Byte-identical to `data_purge/project_fiscal/`:
@@ -190,6 +205,12 @@ Key Vault (`docs/secrets.md`) + a per-environment config resolver.
 
 Zero test files across 58 Python modules. Anything refactored needs
 characterisation tests written *first*, from observed behaviour.
+
+The ported packages carry their own (371 tests across the three so far). Because
+no Claude session can reach the databases, they run against in-memory fakes with
+real transaction semantics — see `packages/trd365-data-purge/tests/fakes.py`.
+That proves the logic, not the SQL: **integration testing against a real
+database is still outstanding**, and is the first thing to do on the VM.
 
 ## 4. Mapping to the Key Vault secrets
 
