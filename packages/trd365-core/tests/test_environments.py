@@ -148,3 +148,25 @@ class TestRedaction:
         assert redacted.ssh_tunnel.ssh_password == "***"
         assert redacted.host == "main.example.internal"
         assert redacted.ssh_tunnel.ssh_user == "devops"
+
+
+class TestPlatformWorkspace:
+    """
+    The platform's Terraform does not spell environments the way we do, and a
+    resource name built from the wrong spelling points at the wrong estate.
+    """
+
+    def test_stage_is_preprod_on_the_platform(self):
+        # Confirmed by the owner, 2026-08-20. This is the one that surprises.
+        assert Environment.STAGE.platform_workspace == "preprod"
+
+    def test_dev_is_development(self):
+        assert Environment.DEV.platform_workspace == "development"
+
+    @pytest.mark.parametrize("env", [Environment.QA, Environment.PROD])
+    def test_the_others_are_spelled_the_same(self, env):
+        assert env.platform_workspace == env.value
+
+    def test_every_environment_has_a_workspace(self):
+        # A new environment must not silently have no platform name.
+        assert all(e.platform_workspace for e in Environment)

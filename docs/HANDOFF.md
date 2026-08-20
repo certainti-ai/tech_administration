@@ -3,7 +3,7 @@
 **Read this first.** It is the resume point for anyone — human or another Claude
 session — picking this work up cold.
 
-Last updated: 2026-08-20, session 4.
+Last updated: 2026-08-20, session 5.
 Branch: `claude/certainti-tech-admin-y4c4ul`.
 
 ---
@@ -49,6 +49,9 @@ Supporting: `docs/secrets.md` (Key Vault, already built and working).
 - **`packages/trd365-data-purge`** — the engine plus `purge-account`. 132 tests.
   See its README for the port's deliberate deviations from the original.
   **Never run against a real database.**
+- **`packages/trd365-analysis`** — `data-model-analysis`, the producer of the
+  shared model snapshot, plus orphan detection and cross-schema deviation
+  classification. 73 tests. **Never run against a real database.**
 
 ### Vendored, untouched
 
@@ -117,25 +120,22 @@ Also settled earlier in the session:
 
 ## 4. Next task — start here
 
-**`trd365-core`, the orchestrator, and the first utility are done.** The account
-purge is registered, discoverable and invocable through the API.
+The producer/consumer loop is closed: `data-model-analysis --apply` publishes a
+snapshot and `purge-account --apply` accepts it. Both are discovered by the
+service through their entry points and invocable through the API.
 
-### Step 1 — `data_model_analysis`, the producer of the shared model
+### Step 1 — `remediate_orphans`
 
-This is now the highest-value port, because everything downstream already
-depends on its output and nothing produces it yet. Today `purge-account`
-refuses to `--apply` without a snapshot, and there is no way to make one.
+The destructive counterpart to the analysis, and the natural next utility: the
+analysis now finds orphan rows and nothing removes them.
 
-- Port `legacy/trd365_maintenance/data_model_analysis/` onto
-  `trd365_core.datamodel`, which already holds all of its conventions.
-- Every run must call `build_snapshot()` and `FileModelStore().save()`. That
-  save is what propagates a refreshed model to every other utility
-  (FR-1.9/1.10) — the purge reads it through `require_model()`.
-- Its orphan and deviation counts are the health metrics the Phase-3 dashboard
-  needs (FR-4.5); `diff_snapshots()` gives the drift signal.
-- Register it with `Impact.READ_ONLY` and declare the entry point in its
-  `pyproject.toml` (`[project.entry-points."trd365.utilities"]`) so the service
-  picks it up — see `packages/trd365-data-purge/pyproject.toml`.
+- It should **reuse `trd365_data_purge.engine`** rather than repeat it. The
+  legacy tool has its own backup/delete/validate loop with the same shape —
+  back up and delete in one transaction, verify only the intended rows went —
+  and there is no reason for two of those.
+- Its input is the analysis output: scope each delete to the captured orphan
+  rids, exactly as the legacy tool does.
+- `Impact.DESTRUCTIVE`, dry run by default, and it must `require_model()`.
 
 ### Step 2 — the remaining purge entities
 
@@ -150,21 +150,31 @@ agnostic and already built: each entity needs only a `manifest.py`, a
   `--concurrency`, `--heartbeat`, `--backup-schema`, `--limit`). Port them or
   consciously drop them; do not lose them silently.
 
-### Step 3 — the remaining modules
+### Step 3 — validate the conventions against the real DDL
 
-3. `reference_table_corrections`, `sharepoint_migration`,
+`certainti-ai/rdcredits_platform_db_scripts` is attached and cloned (§9). A test
+that parses its baseline DDL and asserts `trd365_core.datamodel`'s conventions
+— `rid` primary keys, `_rid` foreign keys, the `trd365` main schema, the tenant
+schema pattern — would turn the largest standing assumption in this repo into a
+check, without waiting for the VM. Cheap, and high value.
+
+### Step 4 — the remaining modules
+
+1. `schema_orphan_report` — adds a **main-side** orphan check the sweep does not
+   do. Fold it into `trd365-analysis` rather than porting it standalone.
+2. `reference_table_corrections`, `sharepoint_migration`,
    `interactions_dashboard`.
-4. `account_deletion` — **keep it**, alongside `data_purge/account`. The owner
+3. `account_deletion` — **keep it**, alongside `data_purge/account`. The owner
    has deferred the decision; `PURGE_ACCOUNT.supersedes` already records the
    relationship so the UI can show it without either being deleted.
-5. `project_fiscal_year_deletion` — delete **only** after confirming its flags
+4. `project_fiscal_year_deletion` — delete **only** after confirming its flags
    exist in the `data_purge` equivalent (see Step 2).
-6. Port `manual-rd-percent-update` JS → Python. Write characterisation tests
+5. Port `manual-rd-percent-update` JS → Python. Write characterisation tests
    from the JS behaviour *first*. It touches money. Its `index.js` header cites
    file and line references into `entity-module`, which lives in
-   `certainti-ai/rdcredits_platform_be` — read that repo before porting.
+   `certainti-ai/rdcredits_platform_be` — attach that repo before porting.
 
-### Step 4 — flip the three destructive-by-default tools
+### Step 5 — flip the three destructive-by-default tools
 
 `account_deletion/run.py`, `project_fiscal_year_deletion/run.py` and
 `sharepoint_migration/migrate.py` currently write by default. Once on
@@ -194,9 +204,10 @@ error that explains the change. Announce this to operators before it ships.
 - **Secrets:** all 33 live in the Claude Code environment config today. Key
   Vault tooling is built but the migration has not been run. Until it is, the
   vault is not yet the source of truth.
-- **Nothing produces a data-model snapshot yet.** `purge-account --apply`
-  refuses without one, by design. Porting `data_model_analysis` unblocks it;
-  until then, dry runs work and `--ignore-model` is the deliberate escape hatch.
+- **A new environment must be analysed before it can be written to.**
+  `data-model-analysis --env X --apply` publishes the snapshot that every
+  destructive utility requires. Until that has run against X, dry runs work
+  there and `--apply` refuses. That is the design, not a gap.
 - **The product repos are attached to this session and answer several open
   questions.** `certainti-ai/rdcredits_platform_iac` and
   `certainti-ai/rdcredits_platform_db_scripts` are cloned under `/workspace/`;
@@ -226,15 +237,24 @@ Ask these before building past them:
 6. **AWS credentials are broken** — `AWS_ACCESS_KEY_ID` and
    `AWS_SECRET_ACCESS_KEY` hold the same 14-character value with no `AKIA`
    prefix. What were they for? Fix or drop.
-7. ~~**Maintenance VM**~~ — **effectively closed.** The Terraform now creates
-   the resource group, Key Vault and SSH key, and takes auth, subscription and
-   region from the environment. **One input remains: `subnet_id`**, which must
-   reach the bastion and trd365ai — there is nothing sensible to guess, and a
-   wrong subnet means a VM that sees nothing. The Terraform identity also needs
-   User Access Administrator alongside Contributor, since two RBAC role
-   assignments are created. See `infra/terraform/PREFLIGHT.md` and
-   `SECURITY.md`.
-8. **Entra ID** — which tenant and app registration should the SPA use, and
+7. **Maintenance VM — one question left, and it changed shape.** The Terraform
+   creates the resource group, Key Vault and SSH key and takes auth,
+   subscription and region from the environment. `subnet_id` was the blocking
+   input; `rdcredits_platform_iac` (§9) now shows where it comes from — the
+   platform's own `<workspace>-thinkrd365-vnet`, with Postgres in a separate
+   peered VNet. What remains is a **decision, not a lookup**: add a
+   `maintenance` subnet to the platform's VNet (a change to *their* repo, so it
+   needs the owner's agreement) or stand up a peered one of our own.
+   **Also unresolved: region.** The platform is `eastus`; our Terraform defaults
+   to `centralus`, inferred from the production database hostnames. These
+   disagree and a VM in the wrong region cannot peer cheaply. The Terraform
+   identity also needs User Access Administrator alongside Contributor, since
+   two RBAC role assignments are created. See `infra/terraform/PREFLIGHT.md`.
+8. ~~**Which platform workspace is Stage?**~~ **Answered 2026-08-20: `preprod`.**
+   Recorded as `Environment.platform_workspace` in `trd365_core.environments`,
+   with a test, rather than only in prose — anything naming a platform resource
+   has to translate, and Dev is `development` there too.
+9. **Entra ID** — which tenant and app registration should the SPA use, and
    which groups map to `viewer`/`operator`/`approver`/`admin`?
 
 ## 7. Working agreements for this repo
@@ -395,3 +415,37 @@ would turn assumptions into checks. Worth doing before the VM exists.
 Contains `entity-module`, which the `manual-rd-percent-update` JS tool cites by
 file and line. That is the specification for the port (§4 Step 3.6). Attach it
 when that port starts, not before — it is large and the port is not next.
+
+### Session 5 — 2026-08-20
+
+Built `packages/trd365-analysis` — `data-model-analysis`, the producer of the
+shared model snapshot. 73 tests, ruff clean. **The producer/consumer loop is
+closed**: verified end to end against fakes that `--apply` publishes a snapshot
+and `purge-account --apply` then picks up that exact fingerprint and proceeds,
+where before it refused.
+
+- **A whole legacy script was folded in rather than ported.**
+  `reclassify_deviations.py` existed because the per-schema classifier mislabels
+  a shared entity as a typo when it appears in one or two tables per schema.
+  That is a scope problem, not a post-processing one: a snapshot already holds
+  every schema, so the classification now runs across the whole snapshot before
+  it is saved. Consumers read the good answer and there is no second script to
+  remember. It counts distinct `(schema, table)` pairs, not rows — forty tenants
+  carrying the same table is one fact repeated, and counting it forty times
+  would make every rare prefix look global as the estate grows.
+- **The global-lookup exclusion was carried over verbatim.** Some parent tables
+  are empty per tenant because the rows live in a master in main
+  (`interaction_type`), so every child looks orphaned. Without the exclusion,
+  `--all-entities` reports thousands of orphans that are all fine. The original
+  found this the hard way; there was no reason to find it again.
+- **`--apply` publishes rather than writes.** The utility is read-only against
+  the databases, but replacing the model every other tool trusts is
+  consequential, so it takes the same gate. A run whose orphan scan broke still
+  publishes the model and exits 1: the structure is complete and consumers need
+  it, but reporting the orphan counts as fact would be a lie.
+- **Stage maps to `preprod`** on the platform (owner, this session), and Dev to
+  `development`. Recorded as `Environment.platform_workspace` with a test.
+
+**Resume at §4 Step 1 — `remediate_orphans`**, reusing the purge engine rather
+than repeating it. Step 3 (validating the datamodel conventions against the real
+DDL, now that the repo is attached) is cheap and worth doing early.

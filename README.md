@@ -18,7 +18,7 @@ the databases they operate on, and the internal portal that runs them.
 
 ```
 apps/web/       Next.js portal (Phase 0; ports into the Phase 3 SPA)
-packages/       Python maintenance packages (core, orchestrator, data-purge)
+packages/       Python maintenance packages (core, orchestrator, data-purge, analysis)
 infra/          Terraform for the maintenance VM, and deploy scripts
 legacy/         Original operator scripts, vendored verbatim. Reference only.
 scripts/        Repo-wide tooling (Key Vault secrets management)
@@ -42,7 +42,8 @@ Python packages:
 ```bash
 pip install -e packages/trd365-core \
             -e "packages/trd365-orchestrator[dev]" \
-            -e "packages/trd365-data-purge[dev]"
+            -e "packages/trd365-data-purge[dev]" \
+            -e "packages/trd365-analysis[dev]"
 
 ruff check packages/
 for pkg in packages/*/; do (cd "$pkg" && pytest -q); done
@@ -56,6 +57,7 @@ own config (`asyncio_mode`, `testpaths`) and a repo-root rootdir ignores it.
 | `trd365-core` | Environments, connections, data model, CLI conventions, audit, registry | 168 |
 | `trd365-orchestrator` | FastAPI service: jobs, approvals, execution, health | 71 |
 | `trd365-data-purge` | Purge engine and `purge-account` | 132 |
+| `trd365-analysis` | `data-model-analysis` — produces the shared model, finds orphans | 73 |
 
 Utilities are discovered through the `trd365.utilities` entry-point group, so
 installing a package makes it appear in the API — there is no list to edit.
@@ -72,7 +74,7 @@ source scripts/secrets/load.sh
 | Phase | Contents | State |
 |---|---|---|
 | 0 | Web scaffold, Key Vault tooling, monorepo restructure | **Done** |
-| 1 | `trd365-core` and `trd365-data-purge` **done**; remaining utility packages, JS→Python port | **In progress** |
+| 1 | `trd365-core`, `trd365-data-purge`, `trd365-analysis` **done**; remaining utility packages, JS→Python port | **In progress** |
 | 2 | FastAPI orchestrator, job execution, audit log | **Done** |
 | 3 | React SPA — invocation, health dashboard, audit, SSO | Not started |
 | 4 | Maintenance VM, Terraform, deployment | **Terraform written, never applied** |

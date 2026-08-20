@@ -55,6 +55,29 @@ class Environment(StrEnum):
                 f'Unknown environment "{value}". Expected one of: {valid}.'
             ) from None
 
+    @property
+    def platform_workspace(self) -> str:
+        """
+        What the platform's own Terraform calls this environment.
+
+        ``rdcredits_platform_iac`` names its resources
+        ``<workspace>-thinkrd365-*``, and its workspaces are not spelled the way
+        ours are: **Stage is ``preprod`` there** (confirmed by the owner,
+        2026-08-20), and Dev is ``development``. Anything that has to name a
+        platform resource — a VNet, a resource group, an AD group — has to
+        translate, and this is the one place that translation lives.
+        """
+        return PLATFORM_WORKSPACE[self]
+
+
+#: Our environment name -> the platform Terraform's workspace name.
+PLATFORM_WORKSPACE: dict[Environment, str] = {
+    Environment.DEV: "development",
+    Environment.QA: "qa",
+    Environment.STAGE: "preprod",
+    Environment.PROD: "prod",
+}
+
 
 #: Logical database keys. Every utility refers to databases by these names.
 DB_KEYS: tuple[str, ...] = ("maindb", "orgdb", "trd365ai")
