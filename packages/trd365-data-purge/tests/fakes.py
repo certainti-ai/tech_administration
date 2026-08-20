@@ -74,6 +74,8 @@ def matches(row: dict[str, Any], where: str, params) -> bool:
         return row.get("account_rid") == list(params)[0]
     if where == "account_rid=%s":
         return row.get("account_rid") == list(params)[0]
+    if where == "rid = %s":
+        return row.get("rid") == list(params)[0]
     raise NotImplementedError(
         f"The fake database does not evaluate {where!r}. Assert on the generated "
         f"SQL instead, or add the shape here deliberately."
@@ -332,21 +334,29 @@ def silent(_message: str) -> None:
 
 class AccountDirectory(FakeConnection):
     """
-    Answers the one bespoke query ``resolve_account`` issues.
+    A main database that also answers ``resolve_account``'s bespoke query.
 
-    Kept apart from the generic fake because account resolution reads three
-    named columns rather than the row shapes everything else deals in.
+    Account resolution reads three named columns in one statement rather than
+    the row shapes everything else deals in, so that query is special-cased.
+    Every other statement falls through to the ordinary fake, which is what
+    makes this usable for the whole main step and not just resolution.
     """
 
-    def __init__(self, accounts: dict[str, tuple]) -> None:
-        super().__init__({})
+    def __init__(
+        self,
+        accounts: dict[str, tuple],
+        tables: dict[tuple[str, str], FakeTable] | None = None,
+    ) -> None:
+        super().__init__(tables or {})
         self.accounts = accounts
 
     def cursor(self):
         outer = self
+        fallback = super().cursor()
 
         class Cursor:
             result = None
+            resolved = False
 
             def __enter__(self_inner):
                 return self_inner
@@ -354,11 +364,32 @@ class AccountDirectory(FakeConnection):
             def __exit__(self_inner, *_exc):
                 return False
 
+            def close(self_inner):
+                fallback.close()
+
             def execute(self_inner, sql, params=None):
-                assert "r_number" in sql, f"unexpected query on the account directory: {sql}"
-                self_inner.result = outer.accounts.get(list(params or [])[0])
+                # resolve_account issues two shapes: the full row for the target,
+                # and just the reference number when following a parent link.
+                if "r_number" in sql:
+                    self_inner.resolved = True
+                    record = outer.accounts.get(list(params or [])[0])
+                    self_inner.result = (
+                        record
+                        if record is None or "storage_type" in sql
+                        else (record[0],)
+                    )
+                    return
+                self_inner.resolved = False
+                fallback.execute(sql, params)
+
+            @property
+            def rowcount(self_inner):
+                return fallback.rowcount
 
             def fetchone(self_inner):
-                return self_inner.result
+                return self_inner.result if self_inner.resolved else fallback.fetchone()
+
+            def fetchall(self_inner):
+                return [] if self_inner.resolved else fallback.fetchall()
 
         return Cursor()

@@ -160,13 +160,23 @@ agnostic and already built: each entity needs only a `manifest.py`, a
   `--concurrency`, `--heartbeat`, `--backup-schema`, `--limit`). Port them or
   consciously drop them; do not lose them silently.
 
-### Step 3 — validate the conventions against the real DDL
+### Step 3 — validate the conventions against the live schema **on the VM**
 
-`certainti-ai/rdcredits_platform_db_scripts` is attached and cloned (§9). A test
-that parses its baseline DDL and asserts `trd365_core.datamodel`'s conventions
-— `rid` primary keys, `_rid` foreign keys, the `trd365` main schema, the tenant
-schema pattern — would turn the largest standing assumption in this repo into a
-check, without waiting for the VM. Cheap, and high value.
+`trd365_core.datamodel`'s conventions — `rid` primary keys, `_rid` foreign keys,
+the `trd365` main schema — were inferred from reading the maintenance scripts and
+have never been checked against a database. That is the largest standing
+assumption in this repository.
+
+`tools/extract_reference_schema.py --env <env> --schema trd365` reads the live
+catalog with the same query the analysis uses and writes a small fixture of table
+and column names, which a test can then assert against.
+
+**Take the DDL from the database, not from a checked-in dump.** The owner was
+explicit about this (2026-08-20), and it is right: `rdcredits_platform_db_scripts`
+holds a `pg_dump` that reflects what someone intended at some point, and the two
+drift. The tool has a `--from-dump` mode for reading one you already have, and it
+stamps `_authoritative: false` on the output so nothing downstream mistakes it
+for the real thing. **This step needs database access, so it runs on the VM.**
 
 ### Step 4 — the remaining modules
 
@@ -218,6 +228,11 @@ error that explains the change. Announce this to operators before it ships.
   `data-model-analysis --env X --apply` publishes the snapshot that every
   destructive utility requires. Until that has run against X, dry runs work
   there and `--apply` refuses. That is the design, not a gap.
+- **No preview means no deployment.** `tools/preview/` renders a page from real
+  utility output so the owner can see the system without one existing. It is
+  generated, never hand-written, and it states plainly that nothing has been
+  deployed or connected to a database. Regenerate it after any change that alters
+  what the utilities produce.
 - **The product repos are attached to this session and answer several open
   questions.** `certainti-ai/rdcredits_platform_iac` and
   `certainti-ai/rdcredits_platform_db_scripts` are cloned under `/workspace/`;

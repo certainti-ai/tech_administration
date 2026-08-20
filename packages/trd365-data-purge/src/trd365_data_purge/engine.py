@@ -388,10 +388,28 @@ def run_steps(
             for table in worklist:
                 try:
                     conn.rollback()
+                    if not cache.table_exists(conn, db_key, schema, table):
+                        # Checked before scoping, not after. A table that is not
+                        # in this schema has no columns, so asking the scoper
+                        # would return None and report it as needing manual
+                        # review — turning "the manifest covers releases this
+                        # tenant does not have" into eighty false review items.
+                        table_metrics = new_metrics(table, schema)
+                        table_metrics["status"] = "skipped"
+                        table_metrics["note"] = "table not present"
+                        log(f"    {table}: skip (not present)")
+                        metrics[step_key][table] = table_metrics
+                        if not dry_run:
+                            done.add(table)
+                            completed[step_key] = sorted(done)
+                        progressed = True
+                        continue
+
                     predicate = scoper.predicate(conn, schema, table, kind)
                     if predicate is None:
-                        # No way to tie this table to the entity. Reported for a
-                        # human, never guessed at.
+                        # The table is here, and nothing ties it to the entity.
+                        # That is a real finding: reported for a human, never
+                        # guessed at.
                         table_metrics = new_metrics(table, schema)
                         table_metrics["status"] = "unscoped"
                         table_metrics["note"] = "no scope column; NOT touched"

@@ -403,3 +403,56 @@ def test_audit_ignores_tables_it_never_touched():
         metrics, False, silent,
     )
     assert (findings, clean) == ([], True)
+
+
+def test_a_table_that_is_not_in_this_schema_is_skipped_not_flagged(tag):
+    # The manifest covers every release; a given tenant will not have all of it.
+    # Asking the scoper about an absent table gets None back — no columns means
+    # no scope — and reporting that as "needs manual review" buries the handful
+    # of tables that genuinely do.
+    class NeverScopes:
+        def predicate(self, _conn, _schema, _table, _kind):
+            return None
+
+    conn = FakeConnection({("s", "present"): table(["rid", "note"], [{"rid": "x"}])})
+    metrics: dict = {}
+    lines: list[str] = []
+
+    engine.run_steps(
+        FakePool({"orgdb": conn}), steps(["absent", "present"]), {"org": "s"}, NeverScopes(),
+        tag, engine.SchemaCache(), chunk_size=10, dry_run=False, log=lines.append,
+        metrics=metrics, completed={}, persist=lambda: None,
+    )
+
+    assert metrics["org_delete"]["absent"]["status"] == "skipped"
+    assert metrics["org_delete"]["absent"]["note"] == "table not present"
+    assert metrics["org_delete"]["present"]["status"] == "unscoped"
+    assert not any("absent: UNSCOPED" in line for line in lines)
+
+
+def test_an_absent_table_is_marked_done_so_a_resume_does_not_recheck_it(tag):
+    conn = FakeConnection({})
+    completed: dict = {}
+    engine.run_steps(
+        FakePool({"orgdb": conn}), steps(["gone"]), {"org": "s"}, account_predicate("A1"), tag,
+        engine.SchemaCache(), chunk_size=10, dry_run=False, log=silent,
+        metrics={}, completed=completed, persist=lambda: None,
+    )
+    assert completed["org_delete"] == ["gone"]
+
+
+def test_an_absent_table_is_never_asked_for_a_predicate(tag):
+    asked: list[str] = []
+
+    class Recording:
+        def predicate(self, _conn, _schema, table_name, _kind):
+            asked.append(table_name)
+            return "account_rid = %s", ["A1"]
+
+    conn = FakeConnection({("s", "here"): table(["rid", "account_rid"], [])})
+    engine.run_steps(
+        FakePool({"orgdb": conn}), steps(["gone", "here"]), {"org": "s"}, Recording(), tag,
+        engine.SchemaCache(), chunk_size=10, dry_run=False, log=silent,
+        metrics={}, completed={}, persist=lambda: None,
+    )
+    assert asked == ["here"]
