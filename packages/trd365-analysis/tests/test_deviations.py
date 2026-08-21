@@ -10,7 +10,7 @@ entity once you look at all forty schemas at once.
 from __future__ import annotations
 
 import pytest
-from trd365_core.datamodel import SchemaCatalog
+from trd365_core.datamodel import Reference, SchemaCatalog
 from trd365_core.model_snapshot import ModelSnapshot, SchemaModel
 
 from trd365_analysis import deviations as dev
@@ -175,3 +175,58 @@ def test_only_typos_are_treated_as_actionable():
     # The other three classifications explain a name; they are not defects, and
     # presenting them as such is how a report gets ignored.
     assert dev.ACTIONABLE == (dev.TYPO,)
+
+
+class TestSharedLookupsAreNotDeviations:
+    """
+    The report must not present correct cross-database references as problems.
+
+    Against production this pass reported 1,650 deviations, 1,165 of them
+    "unknown", while the snapshot itself had already resolved those columns into
+    the main schema. status appeared 691 times, country 461, currency 323 — all
+    real tables in maindb.trd365. A health signal that is mostly correct
+    references is not a health signal, and the genuine problems were invisible
+    underneath them.
+    """
+
+    @staticmethod
+    def with_shared_lookup():
+        """A snapshot whose only unresolved-looking column resolves into main."""
+        model = snapshot({"trd365_1": {"project": ["rid", "status_rid", "projekt_rid"]}})
+        schema = model.schemas["trd365_1"]
+        schema.references = [
+            Reference(
+                from_table="project",
+                column="status_rid",
+                to_entity=None,
+                to_db="maindb",
+                to_schema=model.main_schema,
+                to_table="status",
+                cross_db=True,
+                note="cross-DB shared lookup",
+            )
+        ]
+        return model
+
+    def test_the_main_tables_come_from_the_snapshots_own_edges(self):
+        model = self.with_shared_lookup()
+        assert dev.main_schema_tables(model) == {"status"}
+
+    def test_a_shared_lookup_is_not_classified_at_all(self):
+        model = self.with_shared_lookup()
+        classified = dev.classify_all(model)["trd365_1"]
+
+        assert "status" not in classified, (
+            "status resolves into the main schema; reporting it as a deviation "
+            "is what buried the real findings"
+        )
+        assert "projekt" in classified, "a genuine typo must still be reported"
+
+    def test_the_footprint_excludes_shared_lookups(self):
+        assert "status" not in dev.footprint(self.with_shared_lookup())
+
+    def test_a_snapshot_with_no_cross_db_edges_behaves_as_before(self):
+        # An older snapshot, or one built without a main catalog.
+        model = snapshot({"trd365_1": {"project": ["rid", "status_rid"]}})
+        assert dev.main_schema_tables(model) == set()
+        assert "status" in dev.classify_all(model)["trd365_1"]

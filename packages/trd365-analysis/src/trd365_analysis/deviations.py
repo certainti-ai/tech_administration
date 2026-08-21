@@ -65,6 +65,35 @@ class Reclassification:
         return self.was in ACTIONABLE and self.now not in ACTIONABLE
 
 
+def main_schema_tables(snapshot: ModelSnapshot) -> set[str]:
+    """
+    The main-schema tables this snapshot actually references.
+
+    Derived from the snapshot's own cross-database edges rather than plumbed in,
+    so no extra argument has to reach every caller and an older snapshot without
+    those edges simply yields an empty set and the previous behaviour.
+    """
+    return {
+        ref.to_table
+        for model in snapshot.schemas.values()
+        for ref in model.references
+        if ref.cross_db and ref.to_schema == snapshot.main_schema
+    }
+
+
+def unresolved_in(model, main_tables: set[str] | frozenset[str] = frozenset()):
+    """
+    A schema's unresolved prefixes and the tables they appear in.
+
+    ``main_tables`` is what keeps this honest. The catalog knows only its own
+    schema, so on its own it reports every reference to a shared lookup — status,
+    country, currency and dozens more, which live in the main schema — as a
+    prefix with no parent. Against production that was 1,165 prefixes presented
+    as model problems when each one is a correct cross-database reference.
+    """
+    return unresolved_columns(model.catalog, main_tables)
+
+
 def footprint(snapshot: ModelSnapshot) -> dict[str, set[tuple[str, str]]]:
     """
     Unresolved prefix -> the ``(schema, table)`` pairs it appears in.
@@ -75,8 +104,9 @@ def footprint(snapshot: ModelSnapshot) -> dict[str, set[tuple[str, str]]]:
     evidence that the prefix is a real shared entity.
     """
     seen: dict[str, set[tuple[str, str]]] = defaultdict(set)
+    main_tables = main_schema_tables(snapshot)
     for schema_name, model in snapshot.schemas.items():
-        for prefix, tables in unresolved_columns(model.catalog).items():
+        for prefix, tables in unresolved_in(model, main_tables).items():
             for table in tables:
                 seen[prefix].add((schema_name, table))
     return dict(seen)
@@ -124,12 +154,13 @@ def classify_all(
     """``{schema: {prefix: classification}}`` using cross-schema evidence."""
     counts = footprint(snapshot)
     known = known_table_names(snapshot)
+    main_tables = main_schema_tables(snapshot)
 
     result: dict[str, dict[str, str]] = {}
     for schema_name, model in snapshot.schemas.items():
         result[schema_name] = {
             prefix: classify(prefix, counts.get(prefix, set()), known, min_tables=min_tables)
-            for prefix in unresolved_columns(model.catalog)
+            for prefix in unresolved_in(model, main_tables)
         }
     return result
 
