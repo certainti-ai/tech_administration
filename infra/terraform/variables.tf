@@ -128,6 +128,46 @@ variable "demo_username" {
   default     = "demo"
 }
 
+variable "entra_tenant_id" {
+  description = <<-EOT
+    The Entra ID (Azure AD) tenant users sign in from. Set all three of
+    `entra_tenant_id`, `entra_client_id` and `public_hostname` to turn on SSO
+    (PRD FR-4.1); leave them unset and the deployment behaves exactly as before.
+
+    Turning SSO on replaces both temporary measures at once: the shared Caddy
+    password, and the development header authenticator that trusts whatever roles a
+    request claims. The application verifies the ID token's signature against this
+    tenant's published keys, so identity stops being something the network path
+    asserts.
+
+    Two secrets are needed and neither goes here — put them in the Key Vault as
+    `entra-client-secret` (the app registration's client secret) and
+    `session-signing-secret` (32 random bytes; nobody types it).
+  EOT
+  type        = string
+  default     = ""
+}
+
+variable "entra_client_id" {
+  description = "Application (client) ID of the app registration. See entra_tenant_id."
+  type        = string
+  default     = ""
+}
+
+variable "entra_group_roles" {
+  description = <<-EOT
+    Optional `<group-object-id>=<role>` pairs, comma separated, for tenants that
+    would rather assign an existing security group than create app roles.
+
+    App roles are the better default: the assignment lives in Entra where it can be
+    audited and delegated, and no group ids have to be maintained here. This exists
+    because "we already have a group for the DBA team" is a common and reasonable
+    position, and it should not be a reason to stay on a shared password.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "demo_roles" {
   description = <<-EOT
     The roles Caddy injects for whoever gets through the login.

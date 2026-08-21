@@ -89,10 +89,37 @@ locals {
   # and still lets Caddy obtain a real certificate — so a password is not typed
   # into a page sitting behind a browser warning.
   allocated_ip = local.public_ip ? azurerm_public_ip.vm[0].ip_address : ""
-  caddy_site = (
+  # Whether the application authenticates for itself.
+  entra_enabled = var.entra_tenant_id != ""
+
+  # The Caddyfile's authentication stanza, or nothing. Assembled here rather than
+  # conditionally inside the template because these are multi-line and an HCL
+  # string literal cannot span lines.
+  caddy_auth_block = local.entra_enabled ? "" : <<-EOT
+        basic_auth {
+          {$TRD365_DEMO_USER} {$TRD365_DEMO_HASH}
+        }
+  EOT
+
+  caddy_identity_headers = local.entra_enabled ? "" : <<-EOT
+          header_up X-Dev-User {http.auth.user.id}
+          header_up X-Dev-Roles ${var.demo_roles}
+  EOT
+
+  # Where Entra sends the browser back. Derived from the site Caddy serves rather
+  # than configured separately, because the two disagreeing is a sign-in that fails
+  # with a redirect-URI mismatch and no obvious cause.
+  entra_redirect_uri = (
+    local.entra_enabled && local.caddy_site_computed != ""
+    ? "https://${local.caddy_site_computed}/auth/callback"
+    : ""
+  )
+
+  caddy_site_computed = (
     var.public_hostname != "" ? var.public_hostname :
     local.allocated_ip != "" ? "${replace(local.allocated_ip, ".", "-")}.nip.io" : ""
   )
+  caddy_site = local.caddy_site_computed
 }
 
 resource "azurerm_public_ip" "vm" {

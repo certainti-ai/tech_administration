@@ -14,6 +14,7 @@ console, read-only, and a demonstration posture only. See `docs/HANDOFF.md` §13
 |---|---|
 | [`docs/HANDOFF.md`](docs/HANDOFF.md) | **Start here.** Current state, next task, gotchas, open questions |
 | [`docs/PRD.md`](docs/PRD.md) | Requirements, settled architecture decisions, phasing |
+| [`docs/SSO.md`](docs/SSO.md) | Entra ID sign-in: how access is controlled, and the setup checklist |
 | [`docs/knowledge-base.md`](docs/knowledge-base.md) | The maintenance scripts, the databases, and the traps |
 | [`docs/secrets.md`](docs/secrets.md) | Azure Key Vault as the credential source of truth |
 

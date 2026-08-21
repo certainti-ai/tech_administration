@@ -41,18 +41,23 @@ resource "azurerm_linux_virtual_machine" "maintenance" {
   boot_diagnostics {}
 
   custom_data = base64encode(templatefile("${path.module}/cloud-init.yaml.tftpl", {
-    admin_username       = var.admin_username
-    app_port             = var.app_port
-    auto_deploy_schedule = var.auto_deploy_schedule
-    expose_publicly      = var.expose_publicly
-    caddy_site           = local.caddy_site
-    demo_username        = var.expose_publicly ? var.demo_username : ""
-    demo_password        = var.expose_publicly ? coalesce(var.demo_password, "") : ""
-    demo_roles           = var.demo_roles
-    key_vault_name       = local.key_vault_name
-    client_id            = azurerm_user_assigned_identity.vm.client_id
-    repository_url       = var.app_repository_url
-    branch               = var.app_branch
+    admin_username         = var.admin_username
+    app_port               = var.app_port
+    auto_deploy_schedule   = var.auto_deploy_schedule
+    expose_publicly        = var.expose_publicly
+    caddy_site             = local.caddy_site
+    demo_username          = var.expose_publicly ? var.demo_username : ""
+    demo_password          = var.expose_publicly ? coalesce(var.demo_password, "") : ""
+    entra_tenant_id        = var.entra_tenant_id
+    entra_client_id        = var.entra_client_id
+    entra_group_roles      = var.entra_group_roles
+    entra_redirect_uri     = local.entra_redirect_uri
+    caddy_auth_block       = local.caddy_auth_block
+    caddy_identity_headers = local.caddy_identity_headers
+    key_vault_name         = local.key_vault_name
+    client_id              = azurerm_user_assigned_identity.vm.client_id
+    repository_url         = var.app_repository_url
+    branch                 = var.app_branch
   }))
 
   lifecycle {

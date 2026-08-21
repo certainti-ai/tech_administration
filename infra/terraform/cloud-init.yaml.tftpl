@@ -57,7 +57,23 @@ write_files:
       # Turns on the header authenticator the service ships for development.
       # Only ever set when Caddy is in front: Caddy does the authenticating and
       # then injects the identity, and 8080 is never opened to the network.
+      # Ignored entirely once Entra is configured below — the service prefers a
+      # verified token over a header, so a host with both cannot be signed into by
+      # naming your own roles.
       TRD365_DEV_AUTH=${expose_publicly ? "1" : "0"}
+
+      # Entra ID sign-in (PRD FR-4.1). Empty unless entra_tenant_id is set, and the
+      # service treats all-empty as "not configured" and anything half-set as an
+      # error — a partial configuration that behaved like no configuration would be
+      # the worst of the three.
+      #
+      # The two secrets are deliberately absent: they come from the Key Vault as
+      # entra-client-secret and session-signing-secret, read through the managed
+      # identity, so neither is in a unit file or a process listing.
+      TRD365_ENTRA_TENANT_ID=${entra_tenant_id}
+      TRD365_ENTRA_CLIENT_ID=${entra_client_id}
+      TRD365_ENTRA_REDIRECT_URI=${entra_redirect_uri}
+      TRD365_ENTRA_GROUP_ROLES=${entra_group_roles}
 
   # Caddy: TLS, a login, and a deliberately powerless identity upstream.
   #
@@ -89,14 +105,16 @@ write_files:
       ${caddy_site} {
         encode zstd gzip
 
-        basic_auth {
-          {$TRD365_DEMO_USER} {$TRD365_DEMO_HASH}
-        }
-
+        # The shared password, and the identity it stands in for, exist only until
+        # Entra does the authenticating. With entra_tenant_id set both go: the
+        # application redirects to Microsoft itself, so a basic_auth prompt here
+        # would be a second login in front of the real one, and injecting a role
+        # would be an unverified claim in front of a verified token. Both blocks are
+        # built in locals.tf, because a Caddyfile stanza is multi-line and an HCL
+        # string is not.
+${caddy_auth_block}
         reverse_proxy 127.0.0.1:${app_port} {
-          header_up X-Dev-User {http.auth.user.id}
-          header_up X-Dev-Roles ${demo_roles}
-        }
+${caddy_identity_headers}        }
 
         header {
           Strict-Transport-Security "max-age=31536000"

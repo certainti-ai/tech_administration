@@ -415,14 +415,21 @@ function renderNav() {
 /* ---------------------------------------------------------------- who am I */
 
 async function loadMe() {
+  const info = await api("/api").catch(() => ({}));
+  const sso = info.authentication === "entra id";
   try {
     state.me = await api("/api/me");
     const roles = state.me.roles.length ? state.me.roles.join(", ") : "none";
     $("who").innerHTML =
       `<strong>${esc(state.me.display_name)}</strong><br>` +
-      `<span class="roles">${esc(roles)}</span>`;
+      `<span class="roles">${esc(roles)}</span>` +
+      (sso ? `<br><a href="/auth/logout">sign out</a>` : "");
   } catch (error) {
-    $("who").innerHTML = `<span class="muted">${esc(error.message)}</span>`;
+    // With SSO on, "not signed in" is the ordinary state on a first visit, not a
+    // fault — so it gets a way forward rather than an error message.
+    $("who").innerHTML = sso
+      ? `<a href="/auth/login?next=${encodeURIComponent(location.hash || "#/overview")}">Sign in with Microsoft</a>`
+      : `<span class="muted">${esc(error.message)}</span>`;
   }
 }
 
@@ -616,6 +623,12 @@ function runPanel() {
        vendor's delete-and-recompute SQL inside a transaction it then rolls back — the
        same locks, the same work, the result discarded. In production a preview needs an
        approver for that reason.`]);
+  }
+  if (state.me && state.me.roles.length === 0) {
+    warnings.push(["warn",
+      `<strong>No role assigned.</strong> You are signed in, but nobody has assigned
+       you a role for this application yet. Ask an administrator to assign one in
+       Entra ID; being known is not the same as being permitted.`]);
   }
   if (!canRun) {
     warnings.push(["info",

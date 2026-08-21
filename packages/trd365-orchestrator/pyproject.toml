@@ -13,6 +13,10 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
     "pydantic>=2.9",
+    # ID-token verification for Entra sign-in. PyJWT rather than hand-rolled
+    # signature checking, and [crypto] because RS256 needs it — without the extra,
+    # PyJWT silently supports only HMAC and every Entra token fails to verify.
+    "pyjwt[crypto]>=2.9",
 ]
 
 [project.optional-dependencies]
