@@ -58,23 +58,12 @@ def resolve(ctx: cli.ResolverContext) -> cli.PurgePlan:
     case = scoping.resolve_case(ctx.pool, ctx.cache, account_ref, rid)
 
     if not case.exists:
-        # Unlike an account purge, a case purge deletes its anchor row in the
-        # *first* step, so a run interrupted after that point cannot re-resolve
-        # itself. The checkpoint carries the org schema, which is the only thing
-        # resolution contributes, so a resume needs nothing else.
-        saved = ctx.saved
-        if saved is not None and saved.resolved.get("org_schema"):
-            case = scoping.ResolvedCase(
-                rid=rid,
-                exists=True,
-                account=scoping.ResolvedAccount(
-                    rid=saved.resolved.get("account_rid", ""),
-                    exists=True,
-                    r_number=saved.resolved.get("r_number"),
-                    org_schema=saved.resolved["org_schema"],
-                ),
-                org_schema=saved.resolved["org_schema"],
-            )
+        # `cases` is the last table of the FIRST step, so a run interrupted after
+        # it cannot re-resolve itself. The checkpoint carries the org schema, which
+        # is the only thing resolution contributes.
+        resumed = scoping.resumed_from(ctx.saved, rid)
+        if resumed is not None:
+            case = resumed
             ctx.log("  the case row is already deleted; resuming the remaining steps")
         elif not case.account.exists:
             raise cli.TargetNotFound(

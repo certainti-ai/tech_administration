@@ -114,11 +114,49 @@ PURGE_CASE = Utility(
 )
 
 
+PURGE_INTERACTION = Utility(
+    id="purge-interaction",
+    title="Purge interaction",
+    description=(
+        "Delete one interaction and the subtree it owns: its rows in the account's "
+        "org schema, then the interaction-owned rows in the shared main schema. A "
+        "pure subtree delete, with no recompute."
+    ),
+    module="trd365_data_purge.interaction",
+    impact=Impact.DESTRUCTIVE,
+    databases=("maindb", "orgdb"),
+    parameters=(
+        Parameter(
+            name="account_id",
+            type=ParameterType.STRING,
+            help=(
+                "The account the interaction belongs to, as its reference number "
+                "(ACC-00459) or its rid."
+            ),
+            required=True,
+        ),
+        Parameter(
+            name="interaction_rid",
+            type=ParameterType.STRING,
+            help="The rid of the interaction to purge, from the org schema's interactions table.",
+            required=True,
+        ),
+        *COMMON_PARAMETERS,
+    ),
+    notes=(
+        "Dry run by default; --apply writes. chat_sessions is never touched: it "
+        "carries an interaction_rid without being owned by the interaction, and a "
+        "conversation outlives the interaction it was started from."
+    ),
+)
+
+
 def register(registry: Registry | None = None) -> Registry:
     """Add the purge utilities to a registry (the shared one by default)."""
     target = default_registry if registry is None else registry
     target.register(PURGE_ACCOUNT)
     target.register(PURGE_CASE)
+    target.register(PURGE_INTERACTION)
     return target
 
 
