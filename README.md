@@ -5,6 +5,9 @@ the databases they operate on, and the internal portal that runs them.
 
 **New here? Read [`docs/HANDOFF.md`](docs/HANDOFF.md) first.**
 
+**Live:** <https://52-173-109-182.nip.io/> (`demo` / `admin`) — read-only, and a
+demonstration posture only. See `docs/HANDOFF.md` §13.
+
 ## Documentation
 
 | Document | Contents |

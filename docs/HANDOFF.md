@@ -985,3 +985,65 @@ Plus two ordering faults: the packages depend on each other, so installing them
 one at a time in directory order sent pip to PyPI for `trd365-core`; and the
 "already at this revision" fast path skipped install and tests on a fresh box
 where cloud-init had cloned the same commit.
+
+---
+
+## 13. The live site
+
+**https://52-173-109-182.nip.io/** — `demo` / `admin`.
+
+Real Let's Encrypt certificate (`CN=52-173-109-182.nip.io`, expires 2026-11-19),
+no browser warning. `/docs` is FastAPI's interactive Swagger UI against the live
+service, which is the closest thing to a user interface that exists — **the
+React operator console is Phase 3 and has not been started.**
+
+Provisioned by `terraform apply -var expose_publicly=true -var demo_password=…`.
+
+### Why exposing this host is defensible
+
+Not because of the login. Because of what the login is allowed to become.
+
+Caddy authenticates and then injects `X-Dev-Roles: viewer` and nothing else. The
+service requires operator or admin to start any utility that writes, and every
+registered utility writes. Verified against the live site:
+
+```
+GET  /                     -> 200, with credentials; 401 without
+GET  /api/utilities        -> 200, the real catalogue
+GET  /api/audit            -> 200
+POST /api/jobs (purge)     -> "demo needs the operator role to run purge-account."
+:8080 from the internet    -> refused; only 80 and 443 are open, Caddy proxies
+                              over loopback and uvicorn binds 127.0.0.1
+```
+
+So the exposed surface reads everything and runs nothing, by construction rather
+than by trusting a shared password.
+
+**It is still a demonstration posture, and should be turned off when the demo is
+over.** One shared secret, no record of who used it, and an authenticator the
+service ships for development. Entra ID SSO (FR-3.x) is the real answer. To
+close it: `terraform apply` with `expose_publicly=false`, which removes the
+public IP and the inbound rules.
+
+### Four failures getting Caddy up, all environmental
+
+Each one is the kind that only appears on a real host.
+
+1. **A dpkg conffile prompt.** cloud-init wrote `/etc/caddy/Caddyfile` before the
+   package existed. `apt-get install caddy` asked whether to keep it, found no
+   stdin, and dpkg aborted — binary unpacked, package unconfigured, unit never
+   enabled. The config is now staged at `/etc/trd365/Caddyfile` and installed
+   after the package, with `--force-confold` as a second guard.
+2. **`$` in a bcrypt hash.** The setup script sourced the credential file under
+   `set -u`; a hash is literally `$2a$14$…`, so bash tried to expand `$2a` and
+   aborted. The values are passed to `caddy validate` directly and nothing is
+   sourced. systemd's `EnvironmentFile` does no expansion, so the file was never
+   the problem.
+3. **A log file it could not open.** The packaged unit sandboxes the filesystem,
+   so `/var/log/caddy/access.log` was "permission denied" no matter who owned it.
+   Access logs go to the journal now: `journalctl -u caddy -f`.
+4. **A hundred round trips for nothing.** The first call to
+   `/api/health/environments` timed out. Readiness across four environments and
+   three databases asks for well over a hundred secret names, and dev, QA and
+   stage have no credentials, so nearly all were absent — each its own request.
+   The vault is listed once now; that endpoint answers in about 8 seconds.
