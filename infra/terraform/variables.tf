@@ -316,9 +316,17 @@ variable "app_repository_url" {
 }
 
 variable "app_branch" {
-  description = "Branch the VM deploys from."
+  description = <<-EOT
+    Branch the VM deploys from.
+
+    Defaults to the branch this work actually lives on, because that is the one
+    that exists: the repository has no `main` yet, and cloud-init's clone fails
+    outright against a branch that is not there. **Change this to `main` when
+    this branch merges** — a default naming a feature branch is a temporary
+    state, not the intended one.
+  EOT
   type        = string
-  default     = "main"
+  default     = "claude/certainti-tech-admin-y4c4ul"
 }
 
 variable "tags" {

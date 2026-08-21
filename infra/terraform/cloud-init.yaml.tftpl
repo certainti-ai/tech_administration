@@ -1,10 +1,15 @@
 #cloud-config
 # Bootstrap for the trd365 maintenance VM.
 #
-# Installs the runtime, creates a dedicated service account, and lays out the
-# directories the application writes to. It deliberately does NOT start the
-# application: the Phase-2 service does not exist yet, so the unit is installed
-# and left disabled until `deploy.sh` finds something to run.
+# Installs the runtime, creates a dedicated service account, lays out the
+# directories the application writes to, clones the repository, and runs the
+# first deploy.
+#
+# The clone happens here rather than in deploy.sh because deploy.sh *lives in the
+# repository*. Leaving it to the deploy script is circular — the script cannot
+# fetch the tree that contains it — and the result is a VM whose deploy unit
+# points at a file that will never exist. So cloud-init makes the first clone,
+# and deploy.sh maintains it from then on.
 
 package_update: true
 package_upgrade: true
@@ -32,6 +37,9 @@ users:
     system: true
     shell: /usr/sbin/nologin
     homedir: /opt/trd365
+    # systemd-journal so deploy.sh can read the service's own log when a restart
+    # fails, without being root.
+    groups: [systemd-journal]
 
 write_files:
   # Environment shared by the service and by interactive utility runs. It holds
@@ -46,6 +54,15 @@ write_files:
       TRD365_APP_PORT=${app_port}
       TRD365_REPO_URL=${repository_url}
       TRD365_BRANCH=${branch}
+
+  # The service account is unprivileged, but the deploy has to restart the
+  # application unit. Exactly those two verbs on exactly that unit — not
+  # NOPASSWD:ALL, on a host that can purge production.
+  - path: /etc/sudoers.d/trd365-deploy
+    permissions: "0440"
+    content: |
+      trd365 ALL=(root) NOPASSWD: /usr/bin/systemctl restart trd365-admin.service
+      trd365 ALL=(root) NOPASSWD: /usr/bin/systemctl start trd365-admin.service
 
   # Self-updating deploys. The timer runs deploy.sh, which fetches the deployed
   # branch, installs it, and restarts the service only if the test suite passes —
@@ -65,7 +82,9 @@ write_files:
       User=trd365
       Group=trd365
       EnvironmentFile=/etc/trd365/environment
-      ExecStart=/opt/trd365/deploy.sh
+      # The repository's own copy, so a change to the deploy script ships with
+      # the change that needs it. /opt/trd365/deploy.sh is a symlink to this.
+      ExecStart=/opt/trd365/app/infra/deploy/deploy.sh
       # A deploy that hangs must not block every later one.
       TimeoutStartSec=1800
       StandardOutput=journal
@@ -140,11 +159,19 @@ runcmd:
   - /opt/trd365/venv/bin/pip install --upgrade pip
   - chown -R trd365:trd365 /opt/trd365/venv
   - git config --system --add safe.directory /opt/trd365/app
+  # The first clone. deploy.sh takes over from here, and hard-resets to the
+  # deployed branch on every run, so this only has to be good enough to start.
+  - sudo -u trd365 git clone --branch ${branch} ${repository_url} /opt/trd365/app
+  - ln -sfn /opt/trd365/app/infra/deploy/deploy.sh /opt/trd365/deploy.sh
+  - ln -sfn /opt/trd365/app/infra/deploy/verify.sh /opt/trd365/verify.sh
   - systemctl daemon-reload
+  - systemctl enable trd365-admin.service
   # Enabled only when a schedule was configured; deploy.sh still runs by hand.
   - test -z "${auto_deploy_schedule}" || systemctl enable --now trd365-deploy.timer
-  # Enabled but not started: nothing to run until Phase 2 lands and deploy.sh
-  # has installed it. Starting now would produce a restart loop in the journal.
-  - systemctl enable trd365-admin.service
+  # Deploy now rather than at the next slot. Without this a VM built at 06:05
+  # sits with no application until 09:00, and the operator has no way to tell
+  # a slow bootstrap from a broken one. --no-block so cloud-init finishes while
+  # the install and the test suite run.
+  - systemctl start --no-block trd365-deploy.service
 
-final_message: "trd365 maintenance VM ready after $UPTIME seconds. Run deploy.sh to install the application."
+final_message: "trd365 maintenance VM ready after $UPTIME seconds. The first deploy is running: journalctl -u trd365-deploy -f"
