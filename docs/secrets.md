@@ -74,6 +74,20 @@ cp environment.env.example qa.env     # fill in the blanks
 rm qa.env
 ```
 
+If the credentials are already in the environment — a session configured with
+them, or CI — there is no file to write or delete:
+
+```bash
+./set-environment.sh qa --from-env
+./set-environment.sh qa --from-env --apply
+```
+
+That reads **only** the fully scoped names (`TRD365_QA_MAINDB_PASSWORD`). A bare
+`MAINDB_PASSWORD` in a shell does not say which environment it belongs to, and
+storing it under a scoped vault name would attribute one environment's password to
+another with nothing to show it had happened — so it is ignored and reported
+missing, and there is a test for exactly that.
+
 The plain names in the file (`MAINDB_PASSWORD`) become environment-scoped secrets
 (`trd365-qa-maindb-password`). That prefix is the point: it is what stops a QA
 credential from ever being served to a utility running against prod. Prod also

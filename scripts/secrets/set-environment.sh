@@ -3,6 +3,15 @@
 #
 #   ./set-environment.sh <dev|qa|stage|prod> <file>            # dry run
 #   ./set-environment.sh <dev|qa|stage|prod> <file> --apply
+#   ./set-environment.sh <dev|qa|stage|prod> --from-env [--apply]
+#
+# `--from-env` reads the values from this process's environment instead of a
+# file, for a context that already has them — a session whose environment
+# carries them, or CI. It reads **only** the fully scoped names
+# (`TRD365_QA_MAINDB_PASSWORD`), never the unscoped ones: a bare
+# `MAINDB_PASSWORD` in a shell is exactly the ambiguity the prefix exists to
+# remove, and storing it under a scoped vault name would attribute one
+# environment's password to another with nothing to show it had happened.
 #
 # Dry run by default. It prints every secret name it would write and a short
 # digest of each value — enough to confirm a value is the one you meant without
@@ -26,9 +35,17 @@
 
 set -Eeuo pipefail
 
-ENVIRONMENT=${1:?usage: set-environment.sh <dev|qa|stage|prod> <file> [--apply]}
-SOURCE=${2:?usage: set-environment.sh <dev|qa|stage|prod> <file> [--apply]}
+USAGE="usage: set-environment.sh <dev|qa|stage|prod> <file|--from-env> [--apply]"
+
+ENVIRONMENT=${1:?$USAGE}
+SOURCE=${2:?$USAGE}
 APPLY=${3:-}
+
+FROM_ENV=false
+if [[ "$SOURCE" == "--from-env" ]]; then
+  FROM_ENV=true
+  SOURCE="the environment"
+fi
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 CORE_SRC="$HERE/../../packages/trd365-core/src"
@@ -41,7 +58,7 @@ case "$ENVIRONMENT" in
   dev|qa|stage|prod) ;;
   *) fail "'$ENVIRONMENT' is not one of dev, qa, stage, prod" ;;
 esac
-[[ -r "$SOURCE" ]] || fail "cannot read $SOURCE"
+[[ "$FROM_ENV" == true || -r "$SOURCE" ]] || fail "cannot read $SOURCE"
 [[ -z "$APPLY" || "$APPLY" == "--apply" ]] || fail "unexpected argument '$APPLY'"
 [[ -d "$CORE_SRC" ]] || fail "cannot find trd365-core at $CORE_SRC; run this from a checkout"
 
@@ -93,9 +110,29 @@ PY
 
 # --------------------------------------------------------------- what we have
 
-# Read the file without sourcing it. A password containing `$`, backticks or a
-# space would otherwise be expanded, mangled, or executed.
-python3 - "$SOURCE" > "$WORK/parsed" <<'PY'
+if [[ "$FROM_ENV" == true ]]; then
+  # Only the fields this environment actually wants, looked up by their scoped
+  # name. Nothing else in the environment is read, so an unrelated variable that
+  # happens to match a field name cannot become a credential.
+  # The wanted list is passed as an argument, not on stdin: stdin is the
+  # heredoc that carries this script.
+  python3 - "$ENVIRONMENT" "$WORK/wanted" > "$WORK/parsed" <<'PY'
+import os
+import sys
+
+environment, wanted = sys.argv[1:3]
+prefix = f"TRD365_{environment.upper()}_"
+
+for line in open(wanted, encoding="utf-8"):
+    db_key, field, _requirement = line.rstrip("\n").split("\t")
+    value = os.environ.get(f"{prefix}{db_key.upper()}_{field}")
+    if value:
+        print(f"{db_key.upper()}_{field}\t{value}")
+PY
+else
+  # Read the file without sourcing it. A password containing `$`, backticks or a
+  # space would otherwise be expanded, mangled, or executed.
+  python3 - "$SOURCE" > "$WORK/parsed" <<'PY'
 import sys
 
 for raw in open(sys.argv[1], encoding="utf-8"):
@@ -105,6 +142,7 @@ for raw in open(sys.argv[1], encoding="utf-8"):
     key, _, value = line.partition("=")
     print(f"{key.strip()}\t{value}")
 PY
+fi
 
 lookup() {
   awk -F'\t' -v want="$1" '$1 == want { sub(/^[^\t]*\t/, ""); print; found = 1 } END { exit !found }' \
@@ -145,6 +183,7 @@ fi
 # but worth saying, because a password typed into a field nothing reads is a
 # password somebody believes is in place.
 while IFS=$'\t' read -r key _; do
+  [[ "$FROM_ENV" == true ]] && break
   if ! awk -F'\t' -v k="$key" '
       { want = toupper($1 "_" $2); if (want == k) found = 1 }
       END { exit !found }' "$WORK/wanted"; then
@@ -182,7 +221,11 @@ for i in "${!NAMES[@]}"; do
 done
 
 log ""
-log "Wrote ${#NAMES[@]} secrets. Now delete $SOURCE — it still holds the passwords."
+if [[ "$FROM_ENV" == true ]]; then
+  log "Wrote ${#NAMES[@]} secrets, read from this process's environment."
+else
+  log "Wrote ${#NAMES[@]} secrets. Now delete $SOURCE — it still holds the passwords."
+fi
 log ""
 log "Then check it from the VM, which reads the vault with its managed identity."
 log "This is the only check that means anything: a secret written under a name"

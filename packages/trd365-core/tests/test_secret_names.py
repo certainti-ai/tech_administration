@@ -20,6 +20,7 @@ than a restatement of one of them.
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -178,3 +179,84 @@ class TestTheGuards:
         assert result.returncode == 0, result.stdout + result.stderr
         assert "hunter2" not in result.stdout + result.stderr
         assert "swordfish" not in result.stdout + result.stderr
+
+
+class TestReadingFromTheEnvironment:
+    """
+    ``--from-env``, for a context that already holds the credentials.
+
+    The interesting property is what it refuses to read. A bare
+    ``MAINDB_PASSWORD`` in a shell does not say which environment it belongs to,
+    and storing it under a scoped vault name would attribute one environment's
+    password to another with nothing to show it had happened.
+    """
+
+    def _run(self, env_value: str, extra_env: dict[str, str]):
+        return subprocess.run(
+            ["bash", str(LOADER), env_value, "--from-env"],
+            capture_output=True,
+            text=True,
+            check=False,
+            env={"PATH": os.environ["PATH"], "HOME": os.environ.get("HOME", "/tmp"), **extra_env},
+        )
+
+    def test_scoped_names_are_read(self):
+        result = self._run(
+            "qa",
+            {
+                "TRD365_QA_MAINDB_PASSWORD": "main-pw",
+                "TRD365_QA_ORGDB_PASSWORD": "org-pw",
+            },
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "trd365-qa-maindb-password" in result.stdout
+        assert "trd365-qa-orgdb-password" in result.stdout
+        assert "Dry run" in result.stdout
+
+    def test_unscoped_names_are_not_read(self):
+        # The whole reason the prefix exists. These must not satisfy anything.
+        result = self._run("qa", {"MAINDB_PASSWORD": "pw", "ORGDB_PASSWORD": "pw"})
+        assert result.returncode != 0
+        assert "MAINDB_PASSWORD" in result.stdout  # reported as missing
+        assert "required field" in result.stderr
+
+    def test_another_environments_variables_do_not_satisfy_this_one(self):
+        result = self._run(
+            "qa",
+            {
+                "TRD365_DEV_MAINDB_PASSWORD": "dev-pw",
+                "TRD365_DEV_ORGDB_PASSWORD": "dev-pw",
+            },
+        )
+        assert result.returncode != 0
+        assert "required field" in result.stderr
+
+    def test_the_value_is_taken_byte_for_byte(self):
+        import hashlib
+
+        password = "qa$org pw`x`"
+        result = self._run(
+            "qa",
+            {
+                "TRD365_QA_MAINDB_PASSWORD": password,
+                "TRD365_QA_ORGDB_PASSWORD": "other",
+            },
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        row = next(
+            line for line in result.stdout.splitlines() if "trd365-qa-maindb-password" in line
+        )
+        assert hashlib.sha256(password.encode()).hexdigest()[:12] in row
+
+    def test_stage_still_wants_the_bastion_password(self):
+        result = self._run(
+            "stage",
+            {
+                "TRD365_STAGE_MAINDB_PASSWORD": "a",
+                "TRD365_STAGE_ORGDB_PASSWORD": "b",
+                "TRD365_STAGE_MAINDB_SSH_PASSWORD": "c",
+                # orgdb's bastion password left out
+            },
+        )
+        assert result.returncode != 0
+        assert "ORGDB_SSH_PASSWORD" in result.stdout
