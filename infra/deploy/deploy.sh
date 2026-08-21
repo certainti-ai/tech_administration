@@ -22,6 +22,27 @@
 
 set -Eeuo pipefail
 
+# Re-exec from a snapshot before doing anything else.
+#
+# This script lives in the repository it updates, and it hard-resets that
+# repository partway through. Bash does not read a script into memory up front —
+# it reads incrementally as it executes — so once `git reset` rewrites this file,
+# bash carries on reading the *new* bytes from the *old* byte offset. The result
+# is a spliced script: some commands from the old version, some from the new,
+# some from the middle of a line. That is exactly how a fixed install step kept
+# failing with the pre-fix error message on a VM that had already fetched the fix.
+#
+# Copying to /tmp and exec-ing that copy makes the running text immutable. The
+# snapshot is left behind deliberately — deleting the file bash is still reading
+# reintroduces the same class of bug — and systemd-tmpfiles clears /tmp.
+if [[ "${TRD365_DEPLOY_SNAPSHOT:-}" != "1" ]]; then
+  snapshot="/tmp/trd365-deploy.$$.sh"
+  cat "$0" >"$snapshot"
+  chmod 0700 "$snapshot"
+  export TRD365_DEPLOY_SNAPSHOT=1
+  exec "$snapshot" "$@"
+fi
+
 ENV_FILE=/etc/trd365/environment
 APP_DIR=/opt/trd365/app
 VENV=/opt/trd365/venv
