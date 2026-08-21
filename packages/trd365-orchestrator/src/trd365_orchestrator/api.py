@@ -264,6 +264,10 @@ def model(
             "generated_by": snapshot.generated_by,
             "fingerprint": snapshot.fingerprint,
             "summary": snapshot.summary(),
+            # The breakdown behind the deviation total. Without it the console can
+            # show how many there are and not what kind, which is the only part
+            # that tells an operator whether to care.
+            "deviations": snapshot.deviation_counts(),
             "schemas": snapshot.tenant_schemas,
         }
     except HTTPException:

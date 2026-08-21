@@ -30,6 +30,9 @@ def client():
         registry=registry, authenticator=header_authenticator, orchestrator=orchestrator
     )
     with TestClient(app) as test_client:
+        # Handy for the few tests that need to seed the audit trail rather than
+        # produce it by running something.
+        test_client.audit = audit
         yield test_client
 
 
@@ -324,6 +327,54 @@ class TestConsole:
 
         assert emitted, "EnvironmentHealth.status no longer returns literals"
         assert emitted <= known, f"the console has no tone for {sorted(emitted - known)}"
+
+
+    def test_the_console_only_reads_audit_fields_the_api_sends(self, client):
+        # This test exists because it was wrong in production. The console rendered
+        # the audit trail's mode from `record.applied`, which the API does not
+        # serialise — it sends `mode` ("apply" / "dry-run"). `undefined` is falsy,
+        # so every applied run in the audit trail was labelled "dry run". An audit
+        # trail that mislabels writes as dry runs is worse than no audit trail.
+        import re
+
+        from trd365_core.audit import RunRecord
+
+        from trd365_orchestrator.app import CONSOLE
+
+        client.audit.write(
+            RunRecord(
+                run_id="r1",
+                utility="data-model-analysis",
+                environment="prod",
+                actor="someone",
+                host="test",
+                applied=True,
+                started_at="2026-08-21T10:24:10+00:00",
+                outcome="success",
+            )
+        )
+        payload = as_(client, "v", "viewer").get("/api/audit").json()
+        assert payload["records"], "the seeded record did not come back"
+        sent = set(payload["records"][0])
+
+        body = re.search(
+            r"async function loadAudit\(\) \{(.*?)\nloadAudit", CONSOLE.read_text(), re.S
+        )
+        assert body, "the console no longer has a loadAudit function"
+        read = set(re.findall(r"\br\.(\w+)", body.group(1)))
+
+        assert read, "found no audit fields being read"
+        unknown = sorted(read - sent)
+        assert not unknown, f"the console reads {unknown}, which /api/audit does not send"
+
+    def test_an_applied_run_is_not_shown_as_a_dry_run(self):
+        # The specific regression, pinned separately from the contract check above
+        # so a rename of `mode` cannot make both pass by making both vacuous.
+        from trd365_orchestrator.app import CONSOLE
+
+        console = CONSOLE.read_text()
+        assert 'r.mode === "apply"' in console
+        assert "r.applied" not in console
 
 
 class TestWhoAmI:

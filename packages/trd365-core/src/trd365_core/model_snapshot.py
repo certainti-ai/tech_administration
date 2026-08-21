@@ -236,6 +236,21 @@ class ModelSnapshot:
             "deviations": sum(len(m.deviations) for m in self.schemas.values()),
         }
 
+    def deviation_counts(self) -> dict[str, int]:
+        """
+        How many deviations of each classification, across every schema.
+
+        Here rather than in the analysis package because the orchestrator needs it
+        too — it shows the breakdown — and the orchestrator must not import a
+        utility package: it discovers utilities through entry points precisely so
+        that it does not depend on any of them.
+        """
+        counts: dict[str, int] = {}
+        for model in self.schemas.values():
+            for classification in model.deviations.values():
+                counts[classification] = counts.get(classification, 0) + 1
+        return dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
+
     # --------------------------------------------------------- serialisation
 
     def to_dict(self) -> dict[str, Any]:

@@ -429,7 +429,7 @@ async function loadAudit() {
       <thead><tr><th>Utility</th><th>Env</th><th>Mode</th><th>Outcome</th><th>Actor</th><th>Started</th></tr></thead>
       <tbody>${data.records.map((r) => `<tr>
         <td><code>${esc(r.utility)}</code></td><td>${esc(r.environment)}</td>
-        <td>${r.applied ? pill("warn", "apply") : pill("idle", "dry run")}</td>
+        <td>${r.mode === "apply" ? pill("warn", "apply") : pill("idle", "dry run")}</td>
         <td>${pill(OUTCOME[r.outcome] ?? "idle", r.outcome ?? "—")}</td>
         <td>${esc(r.actor)}</td>
         <td class="num">${esc((r.started_at ?? "").slice(0, 19).replace("T", " "))}</td>

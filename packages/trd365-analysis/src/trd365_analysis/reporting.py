@@ -66,11 +66,8 @@ def write_deviations_csv(snapshot: ModelSnapshot, path: Path) -> Path:
 
 
 def deviation_counts(snapshot: ModelSnapshot) -> dict[str, int]:
-    counts: dict[str, int] = {}
-    for model in snapshot.schemas.values():
-        for classification in model.deviations.values():
-            counts[classification] = counts.get(classification, 0) + 1
-    return counts
+    """Kept as a name in this module; the implementation lives on the snapshot."""
+    return snapshot.deviation_counts()
 
 
 def summary(
