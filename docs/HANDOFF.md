@@ -335,10 +335,16 @@ Ask these before building past them:
    **Dev and QA connect, verified from the VM 2026-08-21:**
 
    ```
-   dev    ok maindb: thinkrd365_main as adminUser    ok orgdb: thinkrd365_org as adminUser
-   qa     ok maindb: thinkrd365_main as adminUser    ok orgdb: thinkrd365_org as adminUser
+   dev    ok maindb: thinkrd365_main as adminUser     ok orgdb: thinkrd365_org as adminUser
+   qa     ok maindb: thinkrd365_main as adminUser     ok orgdb: thinkrd365_org as adminUser
+   stage  ok maindb: thinkrd365_pvt_main as adminUser ok orgdb: thinkrd365_pvt_org as adminUser
    prod   ok maindb: thinkrd365_pvt_main             ok orgdb: thinkrd365_pvt_org
    ```
+
+   All four, `maindb` and `orgdb`, through their own bastion where there is one.
+   Stage's is `172.191.201.111` as `preprod_DevOps` — a different host *and* a
+   different account from production's, which is why the first attempt looked
+   like a wrong password rather than the wrong machine.
 
    Two things were wrong on the first attempt, and both failed *after* the
    credential was accepted — the failure mode worth internalising, because a
@@ -351,7 +357,7 @@ Ask these before building past them:
      check and came back as `FATAL: database "thinkrd365_pvt_main" does not
      exist`. Read off the servers with `SELECT datname FROM pg_database` rather
      than inferred, and now pinned by a test that ties the two names together.
-   * **Stage's bastion.** It is not the production one. Every environment has its
+   * **Stage's bastion.** It is not the production one — resolved 2026-08-21. Every environment has its
      own private DNS zone, all four named
      `privatelink.postgres.database.azure.com`, and a virtual network can link to
      only one zone of a given name — so the production bastion resolves
