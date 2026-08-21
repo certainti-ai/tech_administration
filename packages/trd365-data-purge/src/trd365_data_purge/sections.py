@@ -129,20 +129,39 @@ def discover(base_sql: Path) -> list[Section]:
 # substitution
 # ---------------------------------------------------------------------------
 
-#: Declaration name -> the field of the run's parameters that fills it. Several
-#: differently-named variables carry the same project-fiscal identifier; that is
-#: the vendor's naming, reproduced rather than tidied.
-TEXT_VARIABLES: dict[str, str] = {
-    "v_schema_name": "schema_name",
-    "v_account_rid": "account_rid",
-    "v_project_rid": "project_rid",
-    "v_project_fiscal_id": "project_fiscal_id",
-    "v_project_fiscal_rid": "project_fiscal_id",
-    "v_lookup_project_fiscal_id": "project_fiscal_id",
-    "v_lookup_project_fiscal_rid": "project_fiscal_id",
-}
-INTEGER_VARIABLES: dict[str, str] = {"v_fiscal_year": "fiscal_year"}
-BOOLEAN_VARIABLES: dict[str, str] = {"v_is_last_fiscal": "is_last_fiscal"}
+@dataclass(frozen=True)
+class Variables:
+    """
+    Which declarations a family of section files has, and what fills each.
+
+    Per family rather than one global table, because the families do not share a
+    vocabulary: the project sections declare ``v_schema_name`` and the milestone
+    script declares ``v_schema``. A single table would let one utility's variables
+    be substituted into another's SQL, which is the kind of thing that works right
+    up until two families use the same name to mean different things.
+    """
+
+    text: dict[str, str]
+    integer: dict[str, str] = field(default_factory=dict)
+    boolean: dict[str, str] = field(default_factory=dict)
+
+
+#: The project / project-fiscal family. Several differently-named variables carry
+#: the same project-fiscal identifier; that is the vendor's naming, reproduced
+#: rather than tidied.
+PROJECT_VARIABLES = Variables(
+    text={
+        "v_schema_name": "schema_name",
+        "v_account_rid": "account_rid",
+        "v_project_rid": "project_rid",
+        "v_project_fiscal_id": "project_fiscal_id",
+        "v_project_fiscal_rid": "project_fiscal_id",
+        "v_lookup_project_fiscal_id": "project_fiscal_id",
+        "v_lookup_project_fiscal_rid": "project_fiscal_id",
+    },
+    integer={"v_fiscal_year": "fiscal_year"},
+    boolean={"v_is_last_fiscal": "is_last_fiscal"},
+)
 
 #: SECTION 1 announces the backup schema it created on this line. Every later
 #: section needs the same value, which a human used to copy across by hand.
@@ -156,6 +175,51 @@ _ANNOUNCED_BACKUP_SCHEMA = re.compile(r"backup schema for this run\s*=\s*([^\s=]
 _IDENTIFIER_LITERAL = re.compile(r"'([A-Z]\d{3}-[0-9a-fA-F][0-9a-fA-F-]{7,}|trd365_\d+)'")
 
 _TRUTHY = {"1", "true", "t", "yes", "y"}
+
+
+def strip_comments(sql: str) -> str:
+    """
+    Blank out SQL comments, leaving the code in place.
+
+    Used only by the surviving-identifier scan, never on the SQL that runs. The
+    milestone script documents its variables with examples — ``-- v_schema (e.g.
+    'trd365_000001')`` — and an example in a comment cannot execute, so treating it
+    as a live identifier is a false alarm that would make the check something
+    people route around.
+
+    Quote-aware, because a ``--`` inside a string literal is not a comment. Naive
+    stripping there would delete real code from the text being scanned, which
+    turns a false alarm into a missed one — the wrong direction entirely.
+    """
+    out: list[str] = []
+    i, n = 0, len(sql)
+    in_string = False
+    while i < n:
+        char = sql[i]
+        if in_string:
+            out.append(char)
+            if char == "'":
+                # '' is an escaped quote, not the end of the string.
+                if i + 1 < n and sql[i + 1] == "'":
+                    out.append("'")
+                    i += 2
+                    continue
+                in_string = False
+            i += 1
+        elif char == "'":
+            in_string = True
+            out.append(char)
+            i += 1
+        elif sql.startswith("--", i):
+            end = sql.find("\n", i)
+            i = n if end == -1 else end
+        elif sql.startswith("/*", i):
+            end = sql.find("*/", i + 2)
+            i = n if end == -1 else end + 2
+        else:
+            out.append(char)
+            i += 1
+    return "".join(out)
 
 
 def as_bool(value: object) -> bool:
@@ -208,7 +272,12 @@ class Prepared:
     applied: dict[str, object] = field(default_factory=dict)
 
 
-def prepare(section: Section, params: Mapping[str, object], backup_schema: str) -> Prepared:
+def prepare(
+    section: Section,
+    params: Mapping[str, object],
+    backup_schema: str,
+    variables: Variables = PROJECT_VARIABLES,
+) -> Prepared:
     """
     Substitute this run's values into one section, and refuse to return SQL that
     still contains any of the vendor's.
@@ -241,16 +310,16 @@ def prepare(section: Section, params: Mapping[str, object], backup_schema: str) 
         if count:
             applied[name] = record if record is not None else value
 
-    for name, field_name in TEXT_VARIABLES.items():
+    for name, field_name in variables.text.items():
         value = params.get(field_name)
         substitute(name, "TEXT", field_name, value)
         if value is not None and str(value).strip() != "":
             supplied.add(str(value))
 
-    for name, field_name in INTEGER_VARIABLES.items():
+    for name, field_name in variables.integer.items():
         substitute(name, "INT", field_name, params.get(field_name))
 
-    for name, field_name in BOOLEAN_VARIABLES.items():
+    for name, field_name in variables.boolean.items():
         value = params.get(field_name)
         # Recorded as a real bool, not as whatever spelling arrived: this flag
         # decides whether the project row itself is deleted, and "False" as a
@@ -273,7 +342,11 @@ def prepare(section: Section, params: Mapping[str, object], backup_schema: str) 
         raise SectionError(f"{section.name}: no value supplied for " + "; ".join(missing))
 
     survivors = sorted(
-        {found for found in _IDENTIFIER_LITERAL.findall(sql) if found not in supplied}
+        {
+            found
+            for found in _IDENTIFIER_LITERAL.findall(strip_comments(sql))
+            if found not in supplied
+        }
     )
     if survivors:
         raise SectionError(

@@ -223,23 +223,46 @@ drift. The tool has a `--from-dump` mode for reading one you already have, and i
 stamps `_authoritative: false` on the output so nothing downstream mistakes it
 for the real thing. **This step needs database access, so it runs on the VM.**
 
-### Step 4 — the remaining modules
+### Step 4 — the remaining modules: decided
 
-1. `schema_orphan_report` — adds a **main-side** orphan check the sweep does not
-   do. Fold it into `trd365-analysis` rather than porting it standalone.
-2. `reference_table_corrections`, `sharepoint_migration`,
-   `interactions_dashboard`.
-3. `account_deletion` — **keep it**, alongside `data_purge/account`. The owner
-   has deferred the decision; `PURGE_ACCOUNT.supersedes` already records the
-   relationship so the UI can show it without either being deleted.
-4. `project_fiscal_year_deletion` — its `base_sql/` is **byte-identical** to
-   `data_purge/project_fiscal/base_sql/` (verified with `diff -rq`), so it is a
-   CSV batch runner over the same SQL and nothing else. Its flags are decided in
-   the table above. Delete it once `project_fiscal` ships.
-5. Port `manual-rd-percent-update` JS → Python. Write characterisation tests
-   from the JS behaviour *first*. It touches money. Its `index.js` header cites
-   file and line references into `entity-module`, which lives in
-   `certainti-ai/rdcredits_platform_be` — attach that repo before porting.
+**Eight utilities are registered and this list is closed.** What is left in
+`legacy/` is there because a decision was taken, not because nobody looked.
+
+| Legacy module | Decision |
+|---|---|
+| `data_purge/{account,case,interaction,project,project_fiscal}` | **Ported.** `purge-account`, `purge-case`, `purge-interaction`, `purge-project`, `purge-project-fiscal`. |
+| `data_model_analysis` | **Ported** as `trd365-analysis` / `data-model-analysis`. |
+| `manual-rd-percent-update` | **Ported** as `trd365-rd-percent` / `rd-percent-update`, with two of its money bugs fixed — see below. |
+| `task_deletion_by_milestone` | **Ported** as `purge-milestone-tasks`. It was 18 KB of SQL with no runner; `sections.py` was already a runner, so the SQL moved unchanged and got driven properly. |
+| `account_deletion` | **Kept**, alongside `purge-account`. The owner deferred the decision; `PURGE_ACCOUNT.supersedes` records the relationship so the UI can show it without either being deleted. |
+| `project_fiscal_year_deletion` | **Superseded.** Its `base_sql/` is byte-identical to the ported copy (`diff -rq`), so it is a CSV batch runner over the same SQL. `PURGE_PROJECT.supersedes` records it. Safe to delete. |
+| `reference_table_corrections` | **Not ported.** `correct.py` describes itself as "the reusable plumbing only" and the three `discover*.py` files are scratch exploration. There is no finished tool here to port — only connection handling the core package already has. |
+| `sharepoint_migration` | **Not ported.** Cross-tenant Microsoft Graph file copying between two Azure AD tenants. Nothing to do with the database estate this platform administers, and untestable without two sets of live tenant credentials. If it is still needed it belongs somewhere else. |
+| `interactions_dashboard` | **Not ported, worth revisiting.** A read-only reporting tool that renders interaction metrics as a self-contained HTML page. Genuinely useful and genuinely safe, but it is *reporting*, and the console is now the place reporting belongs — port it as a view rather than as a utility. |
+| `schema_orphan_report` | **Folded in.** The orphan sweep in `trd365-analysis` covers it; the main-side check it added is in `orphans.py`. |
+
+### What porting the R&D percentage tool found
+
+Two disagreements with the application, both overstating money, both now fixed
+and pinned as tests. Read `packages/trd365-rd-percent/src/trd365_rd_percent/
+calculation.py` before touching that utility.
+
+1. **The sub-contractor cap was missing.** The application caps sub-contractor QRE
+   at the project's jurisdiction percentage (TRDV2-451). The legacy tool omitted
+   the factor entirely, writing ~1/0.65 — half again — too much at the default cap.
+2. **`qre_final` came from the wrong column.** The application sums the three
+   components it just computed; the legacy tool used `total_cost_prj`.
+
+### And what porting the SECTION SQL found
+
+**The vendor SQL is not a template.** Both families of section files ship with real
+production identifiers in the variables a human was told to edit — tenant
+`trd365_01379` and live rids in the project sections, tenant `trd365_00414` and a
+live case rid in the milestone script. A substitution that fails to match does not
+error: it runs against whoever those identifiers belong to. `sections.prepare()`
+refuses to return SQL where any identifier-shaped literal it did not put there
+survives, scanning with comments stripped so a documented example is not a false
+alarm. **Do not relax that check.**
 
 ### Step 5 — flip the three destructive-by-default tools
 

@@ -262,6 +262,54 @@ PURGE_PROJECT = Utility(
 )
 
 
+PURGE_MILESTONE_TASKS = Utility(
+    id="purge-milestone-tasks",
+    title="Purge milestone tasks",
+    description=(
+        "Delete every task under one milestone of one case, and their children — "
+        "checklists, comments, attachments, collaborators, tags, history, the case "
+        "module's summary rows, and the dependency mappings that point at them. The "
+        "milestone itself is kept."
+    ),
+    module="trd365_data_purge.milestone_tasks",
+    impact=Impact.DESTRUCTIVE,
+    databases=("maindb", "orgdb"),
+    parameters=(
+        Parameter(
+            name="account_id",
+            type=ParameterType.STRING,
+            help="The account, as its reference number (ACC-00459) or its rid.",
+            required=True,
+        ),
+        Parameter(
+            name="case_rid",
+            type=ParameterType.STRING,
+            help="The case the milestone belongs to.",
+            required=True,
+        ),
+        Parameter(
+            name="milestone_rid",
+            type=ParameterType.STRING,
+            help="The milestone whose tasks are deleted.",
+            required=True,
+        ),
+        Parameter(
+            name="out_dir",
+            type=ParameterType.PATH,
+            help="Where to write the run report.",
+            default="reports",
+        ),
+    ),
+    supersedes="task_deletion_by_milestone",
+    notes=(
+        "Dry run by default, and a genuine one: the script has its own dry-run switch "
+        "and honours it, counting rows and deleting nothing. Previously this was SQL with "
+        "no runner — three variables edited by hand and pasted into psql, with no audit "
+        "record that it had happened."
+    ),
+)
+
+
 def register(registry: Registry | None = None) -> Registry:
     """Add the purge utilities to a registry (the shared one by default)."""
     target = default_registry if registry is None else registry
@@ -270,6 +318,7 @@ def register(registry: Registry | None = None) -> Registry:
     target.register(PURGE_INTERACTION)
     target.register(PURGE_PROJECT_FISCAL)
     target.register(PURGE_PROJECT)
+    target.register(PURGE_MILESTONE_TASKS)
     return target
 
 

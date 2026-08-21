@@ -235,3 +235,56 @@ class TestBackupSchemaAnnouncement:
     def test_nothing_announced_is_not_an_error(self):
         # The caller decides what to do; it has a name of its own to fall back on.
         assert sections.announced_backup_schema(["NOTICE: nothing to report"]) is None
+
+
+class TestStrippingComments:
+    """
+    Only the identifier scan uses this. It exists because the milestone script
+    documents its variables with example identifiers, and an example in a comment
+    cannot execute — treating it as live would make the check something people
+    route around rather than trust.
+    """
+
+    def test_a_line_comment_goes(self):
+        assert "secret" not in sections.strip_comments("SELECT 1; -- secret\nSELECT 2;")
+
+    def test_the_code_around_it_stays(self):
+        stripped = sections.strip_comments("SELECT 1; -- note\nSELECT 2;")
+        assert "SELECT 1;" in stripped
+        assert "SELECT 2;" in stripped
+
+    def test_a_block_comment_goes(self):
+        assert "hidden" not in sections.strip_comments("SELECT /* hidden */ 1;")
+
+    def test_an_unterminated_block_comment_takes_the_rest(self):
+        assert sections.strip_comments("SELECT 1; /* oops").strip() == "SELECT 1;"
+
+    def test_a_double_dash_inside_a_string_is_not_a_comment(self):
+        # The direction that matters. Stripping here would delete real code from
+        # the text being scanned, turning a false alarm into a missed one.
+        sql = "SELECT 'a--b', 'D001-aaaaaaaa-bbbb';"
+        stripped = sections.strip_comments(sql)
+        assert "'a--b'" in stripped
+        assert "D001-aaaaaaaa-bbbb" in stripped
+
+    def test_a_slash_star_inside_a_string_is_not_a_comment(self):
+        assert "/*" in sections.strip_comments("SELECT '/* not a comment */';")
+
+    def test_an_escaped_quote_does_not_end_the_string(self):
+        sql = "SELECT 'it''s -- fine', 'trd365_01379';"
+        stripped = sections.strip_comments(sql)
+        assert "it''s -- fine" in stripped
+        assert "trd365_01379" in stripped
+
+    def test_a_live_identifier_is_still_caught_after_stripping(self, tmp_path):
+        # The whole point: the stripper must not become a way past the guard.
+        sql = tmp_path / "01_x_ORGDB_SECTION1.sql"
+        # v_other is not in the variable map, so its literal is never substituted —
+        # which is exactly the renamed-declaration case the guard exists for.
+        sql.write_text(
+            "-- example: 'trd365_000001'\n"
+            "DO $$ DECLARE v_other TEXT := 'trd365_01379'; BEGIN END $$;\n"
+        )
+        section = sections.discover(tmp_path)[0]
+        with pytest.raises(sections.SectionError, match="trd365_01379"):
+            sections.prepare(section, PARAMS, BACKUP)
