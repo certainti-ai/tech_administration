@@ -92,14 +92,25 @@ fi
 
 REVISION=$(git -C "$APP_DIR" rev-parse HEAD)
 
-if [[ -n "$PREVIOUS" && "$PREVIOUS" == "$REVISION" ]]; then
-  log "already at ${REVISION:0:8}; nothing to deploy"
+installed() { "$VENV/bin/python" -c "import trd365_core" 2>/dev/null; }
+
+# "Same revision" is only the same if the packages from it are actually
+# installed. On a fresh VM cloud-init makes the first clone, so the first deploy
+# finds the revision unchanged while nothing is installed at all — and the fast
+# path below would skip the install, skip the tests, and try to start a service
+# with no code behind it. Check both.
+if [[ -n "$PREVIOUS" && "$PREVIOUS" == "$REVISION" ]] && installed; then
+  log "already at ${REVISION:0:8} and installed; nothing to deploy"
   # Still make sure the service is up — a timer run is also a health check.
   systemctl is-active --quiet "$SERVICE" || {
     log "service is not running; starting it"
     sudo systemctl start "$SERVICE"
   }
   exit 0
+fi
+
+if [[ -n "$PREVIOUS" && "$PREVIOUS" == "$REVISION" ]]; then
+  log "at ${REVISION:0:8} but the packages are not installed; installing"
 fi
 
 log "deploying ${REVISION:0:8}"
