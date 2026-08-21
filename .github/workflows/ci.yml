@@ -71,7 +71,10 @@ jobs:
       - name: Shell scripts
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
-          shellcheck infra/deploy/*.sh
+          # Named, not globbed: scripts/secrets/load.sh is meant to be *sourced*
+          # by either bash or zsh and uses a zsh-only expansion for its own path,
+          # which shellcheck cannot lint under any single shell directive.
+          shellcheck infra/deploy/*.sh scripts/secrets/set-environment.sh
 
   # Placeholder until packages/ is populated in Phase 1 — see docs/HANDOFF.md.
   # Kept in place so the job name is stable once Python lands.

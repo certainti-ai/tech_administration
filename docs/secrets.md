@@ -29,6 +29,63 @@ Vault is reachable from all of them with per-identity access control and an
 audit log, so it is the store; GitHub gets an OIDC federation and holds no
 long-lived secret at all.
 
+## Adding a deployment environment's databases
+
+Prod is in the vault. Dev, QA and Stage are not — they resolve to placeholders,
+and `connection_settings()` raises rather than returning one, so a
+half-configured environment fails loudly instead of connecting somewhere
+unintended.
+
+Each environment needs 26 values: ten for `maindb`, ten for `orgdb` (both
+through an SSH bastion) and six for `trd365ai` (direct). Twenty-one of those are
+topology — hosts, ports, database names, users, `sslmode` — and five are
+passwords. All 26 go in the vault together, because a name the resolver looks
+for and does not find falls back to a placeholder; there is no partial state.
+
+```bash
+cd scripts/secrets
+cp environment.env.example qa.env     # fill it in
+./set-environment.sh qa qa.env        # dry run: names and digests, no values
+./set-environment.sh qa qa.env --apply
+rm qa.env
+```
+
+The plain names in the file (`MAINDB_PASSWORD`) become environment-scoped secrets
+(`trd365-qa-maindb-password`). That prefix is the whole point: it is what stops a
+QA credential from ever being served to a utility running against prod. Prod is
+the one exception — it also answers to the unscoped names already in the vault,
+because those are what the original scripts used and renaming them would have
+been churn for no gain.
+
+**Why a script and not 26 `az keyvault secret set` commands.** The name is the
+contract. `trd365_core.environments` looks for
+`TRD365_<ENV>_<DBKEY>_<FIELD>`, lowercased with underscores turned to hyphens,
+and a name that is close but wrong does not error — the field silently falls back
+to a placeholder and the utility refuses to run, reporting a credential you are
+certain you supplied. Deriving the names from one list means they cannot be typed
+wrong, and a test asserts that list matches what the resolver reads.
+
+Values reach `az` through a mode-0600 file rather than an argument, because
+arguments are readable in `/proc` by anyone on the machine. The dry run prints a
+12-character digest per value — enough to confirm a value is the one you meant
+without it appearing on screen or in a shell history.
+
+### Checking it worked
+
+A secret written under a name nothing reads looks exactly like a secret that
+works, so check from the host that will use it:
+
+```bash
+az vm run-command invoke -g trd365-maintenance -n trd365-maint-vm \
+  --command-id RunShellScript \
+  --scripts "/opt/trd365/app/infra/deploy/verify.sh qa"
+```
+
+That opens each connection through the VM's managed identity and reports the
+database and user it reached. The console shows the same thing: the environment's
+card moves from "Credentials pending" to "Connected", and names any database
+still unreachable rather than just tinting the card.
+
 ## One-time setup
 
 ### 1. Create the vault

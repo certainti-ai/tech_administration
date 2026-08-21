@@ -32,6 +32,13 @@ yarn-error.log*
 .env*.local
 *.secrets.env
 secrets.env
+# Filled-in copies of scripts/secrets/environment.env.example. The example
+# itself is empty and tracked; anything named for an environment holds real
+# passwords and is not.
+dev.env
+qa.env
+stage.env
+prod.env
 
 # vercel
 .vercel

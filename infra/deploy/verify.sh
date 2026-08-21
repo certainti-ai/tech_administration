@@ -1,10 +1,21 @@
 #!/usr/bin/env bash
 # Post-deploy checks. Run on the VM; safe, read-only, no writes anywhere.
 #
+#   ./verify.sh          # prod, the default
+#   ./verify.sh qa       # or dev, stage
+#
 # This is the script that answers the question the sandbox never could: can this
-# host actually see the databases?
+# host actually see the databases? Which is also the only real check that a set
+# of credentials just added to the vault is the right set — a secret written
+# under a name nothing reads looks exactly like a secret that works.
 
 set -uo pipefail
+
+TARGET_ENV=${1:-prod}
+case "$TARGET_ENV" in
+  dev|qa|stage|prod) ;;
+  *) printf "usage: verify.sh [dev|qa|stage|prod]\n" >&2; exit 2 ;;
+esac
 
 ENV_FILE=/etc/trd365/environment
 VENV=/opt/trd365/venv
@@ -33,12 +44,12 @@ check "IMDS token" curl -s --max-time 10 -H Metadata:true \
 echo "== python packages =="
 check "trd365_core imports" "$VENV/bin/python" -c "import trd365_core"
 
-echo "== database reachability (prod) =="
-if ! "$VENV/bin/python" - <<'PY'
+echo "== database reachability ($TARGET_ENV) =="
+if ! "$VENV/bin/python" - "$TARGET_ENV" <<'PY'
 import sys
 from trd365_core import ConnectionPool, Environment, DB_KEYS
 try:
-    with ConnectionPool(Environment.PROD) as pool:
+    with ConnectionPool(Environment(sys.argv[1])) as pool:
         for key in DB_KEYS:
             try:
                 info = pool.verify(key)
