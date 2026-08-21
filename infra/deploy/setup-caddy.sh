@@ -23,13 +23,14 @@ set -Eeuo pipefail
 USERNAME=${1:?usage: setup-caddy.sh <username> <password>}
 PASSWORD=${2:?usage: setup-caddy.sh <username> <password>}
 
+STAGED=/etc/trd365/Caddyfile
 CADDYFILE=/etc/caddy/Caddyfile
 CREDENTIALS=/etc/caddy/demo.env
 
 log() { printf '[caddy] %s\n' "$*"; }
 fail() { printf '[caddy] ERROR: %s\n' "$*" >&2; exit 1; }
 
-[[ -r "$CADDYFILE" ]] || fail "$CADDYFILE is missing; cloud-init should have written it"
+[[ -r "$STAGED" ]] || fail "$STAGED is missing; cloud-init should have written it"
 
 install -d -m 0755 /etc/caddy /var/log/caddy /etc/systemd/system/caddy.service.d
 
@@ -47,10 +48,18 @@ if ! command -v caddy >/dev/null 2>&1; then
   curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt \
     > /etc/apt/sources.list.d/caddy-stable.list
   apt-get update -qq
-  apt-get install -y -qq caddy
+  # --force-confold so a conffile that already exists can never turn this into
+  # an interactive prompt on a host with no stdin.
+  apt-get install -y -qq -o Dpkg::Options::=--force-confold caddy
 else
   log "caddy already installed ($(caddy version | head -1))"
 fi
+
+# ------------------------------------------------------------------- config
+
+# After the package, so dpkg owns the file before we overwrite it.
+log "installing the configuration"
+install -m 0644 "$STAGED" "$CADDYFILE"
 
 # --------------------------------------------------------------- credentials
 

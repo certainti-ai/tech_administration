@@ -68,7 +68,12 @@ write_files:
   # the property that makes exposing this host tolerable: it holds credentials
   # that can delete production data, and no login page is strong enough to be
   # the only thing standing in the way.
-  - path: /etc/caddy/Caddyfile
+  # Staged here, NOT at /etc/caddy/Caddyfile. That path is a dpkg conffile owned
+  # by the caddy package: pre-creating it makes `apt-get install caddy` stop at a
+  # "keep your currently-installed version?" prompt, and with no stdin dpkg
+  # aborts, leaving the binary unpacked and the package unconfigured. The setup
+  # script installs the package first and then puts this in place.
+  - path: /etc/trd365/Caddyfile
     permissions: "0644"
     content: |
       {
@@ -177,8 +182,12 @@ write_files:
       Group=trd365
       EnvironmentFile=/etc/trd365/environment
       WorkingDirectory=/opt/trd365/app
+      # Loopback only. Caddy is the sole consumer and reaches it over loopback,
+      # so binding every interface buys nothing and costs a second line of
+      # defence: if the network rules are ever loosened by accident, the
+      # application still is not listening on a routable address.
       ExecStart=/opt/trd365/venv/bin/uvicorn trd365_orchestrator.app:app \
-          --host 0.0.0.0 --port ${app_port} --proxy-headers
+          --host 127.0.0.1 --port ${app_port} --proxy-headers
 
       Restart=on-failure
       RestartSec=5s
