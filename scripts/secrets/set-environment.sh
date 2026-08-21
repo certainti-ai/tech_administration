@@ -232,16 +232,48 @@ if [[ "$APPLY" != "--apply" ]]; then
   exit 0
 fi
 
-command -v az >/dev/null || fail "the az CLI is needed for --apply"
+# Two writers, because the hosts that need this do not all have the same tools.
+# The `az` CLI where it exists; the Azure SDK otherwise, which is what a session
+# container has. Both take the value from the mode-0600 file rather than an
+# argument, and both write the names derived above — the derivation is not
+# duplicated, only the transport.
+if command -v az >/dev/null; then
+  WRITER=az
+elif python3 -c "import azure.identity, azure.keyvault.secrets" 2>/dev/null; then
+  WRITER=sdk
+else
+  fail "writing needs either the az CLI or the Azure SDK (pip install azure-identity azure-keyvault-secrets)"
+fi
+log "writing with: $WRITER"
 
 for i in "${!NAMES[@]}"; do
   printf '  writing %s ... ' "${NAMES[$i]}"
-  az keyvault secret set \
-    --vault-name "$VAULT" \
-    --name "${NAMES[$i]}" \
-    --file "$WORK/value.${KEYS[$i]}" \
-    --encoding utf-8 \
-    --only-show-errors --output none
+  if [[ "$WRITER" == az ]]; then
+    az keyvault secret set \
+      --vault-name "$VAULT" \
+      --name "${NAMES[$i]}" \
+      --file "$WORK/value.${KEYS[$i]}" \
+      --encoding utf-8 \
+      --only-show-errors --output none
+  else
+    VAULT="$VAULT" python3 - "${NAMES[$i]}" "$WORK/value.${KEYS[$i]}" <<'PY'
+import os
+import sys
+
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
+
+name, path = sys.argv[1:3]
+# Read as bytes and decode explicitly: a value is stored exactly as it was
+# given, with no newline added and none stripped that was not there.
+value = open(path, "rb").read().decode("utf-8")
+client = SecretClient(
+    vault_url=f"https://{os.environ['VAULT']}.vault.azure.net",
+    credential=DefaultAzureCredential(),
+)
+client.set_secret(name, value)
+PY
+  fi
   printf 'done\n'
 done
 
