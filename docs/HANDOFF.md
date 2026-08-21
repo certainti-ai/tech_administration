@@ -332,6 +332,38 @@ Ask these before building past them:
    and `TENANT_SCHEMA_LIKE` say, so tenant schemas are discovered rather than
    listed.
 
+   **Dev and QA connect, verified from the VM 2026-08-21:**
+
+   ```
+   dev    ok maindb: thinkrd365_main as adminUser    ok orgdb: thinkrd365_org as adminUser
+   qa     ok maindb: thinkrd365_main as adminUser    ok orgdb: thinkrd365_org as adminUser
+   prod   ok maindb: thinkrd365_pvt_main             ok orgdb: thinkrd365_pvt_org
+   ```
+
+   Two things were wrong on the first attempt, and both failed *after* the
+   credential was accepted — the failure mode worth internalising, because a
+   working password proves less than it appears to.
+
+   * **The database names.** "Same as production" meant the pattern, not the
+     string: `-pvt-` in the server means `pvt` in the database, so Dev and QA are
+     `thinkrd365_main` / `thinkrd365_org`. Postgres authenticates *before* it
+     resolves the database, so the wrong name sailed through every credential
+     check and came back as `FATAL: database "thinkrd365_pvt_main" does not
+     exist`. Read off the servers with `SELECT datname FROM pg_database` rather
+     than inferred, and now pinned by a test that ties the two names together.
+   * **Stage's bastion.** It is not the production one. Every environment has its
+     own private DNS zone, all four named
+     `privatelink.postgres.database.azure.com`, and a virtual network can link to
+     only one zone of a given name — so the production bastion resolves
+     production's private endpoint and *nothing* for preprod, failing from inside
+     the tunnel with `Name or service not known`. There is a jump host per
+     environment (`Resource-Platform-{Development,QA,Pre-Production,Production}-VM`);
+     Stage's is **40.71.82.6**, in the network linked to preprod's zone. The
+     credentials supplied for Stage are the production bastion's — same password
+     digest as prod's, they authenticate at 172.203.151.166 and are refused at
+     40.71.82.6. **Stage needs its own bastion account**; that is the one thing
+     still missing for it.
+
    Still outstanding: **whether `trd365ai` exists outside prod.** Prod's is a
    direct connection to `4.246.251.140` as `aiadmin`; nothing has named an
    equivalent for the other three, so their entries stay placeholders and the
