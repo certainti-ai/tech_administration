@@ -11,6 +11,16 @@ requires-python = ">=3.11"
 dependencies = [
     "psycopg2-binary>=2.9",
     "sshtunnel>=0.4.0",
+    # sshtunnel 0.4.0 references paramiko.DSSKey, which paramiko 4 removed along
+    # with DSA support. Unpinned, pip installs paramiko 5 and every tunnel fails
+    # with "module 'paramiko' has no attribute 'DSSKey'" — which is what happened
+    # on the first real connection attempt from the VM. Every test fakes the
+    # tunnel, so nothing here could have caught it.
+    #
+    # Pinned rather than replaced because maindb and orgdb are only reachable
+    # through the bastion. Revisit if sshtunnel releases a paramiko-4 fix, or
+    # move the tunnel onto plain OpenSSH and drop both dependencies.
+    "paramiko>=3.4,<4",
 ]
 
 [project.optional-dependencies]
