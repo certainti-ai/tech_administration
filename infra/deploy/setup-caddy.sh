@@ -77,14 +77,17 @@ chown -R caddy:caddy /var/log/caddy
 systemctl daemon-reload
 
 # Validate before restarting, so a bad config leaves the previous one serving
-# rather than taking the site down. The credentials have to be in scope for the
-# placeholders to resolve.
+# rather than taking the site down.
+#
+# The values are passed straight to the command rather than sourced from the file.
+# A bcrypt hash is literally `$2a$14$…`, and sourcing that under `set -u` makes
+# bash try to expand `$2a` and abort with "unbound variable" — which is exactly
+# what stopped this script before it ever started the service. systemd's
+# EnvironmentFile does no expansion, so the file itself is fine; only shell
+# sourcing is the hazard.
 log "validating the configuration"
-set -a
-# shellcheck source=/dev/null  # generated above
-source "$CREDENTIALS"
-set +a
-caddy validate --config "$CADDYFILE" >/dev/null \
+TRD365_DEMO_USER="$USERNAME" TRD365_DEMO_HASH="$HASH" \
+  caddy validate --config "$CADDYFILE" >/dev/null 2>&1 \
   || fail "$CADDYFILE is not valid; leaving the running config alone"
 
 log "starting caddy"
