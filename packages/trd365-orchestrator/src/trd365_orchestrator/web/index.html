@@ -263,10 +263,15 @@ function envCard(env) {
     ready === 0 ? "unconfigured" : failed.length ? "critical" : ready < total ? "warning" : "good";
   let [tone, label] = STATUS[env.status ?? derived] ?? ["idle", env.status ?? derived];
 
-  // "Model attention" is vague on its own — say which of the two it is.
-  if (label === "Model attention" && ready < total) label = `${ready} of ${total} configured`;
-  else if (label === "Model attention" && env.model && !env.model.present) label = "No snapshot yet";
-  else if (label === "Model attention" && env.model && env.model.stale) label = "Snapshot stale";
+  // "Model attention" is vague on its own — say which of the two it is. When the
+  // pill ends up naming the snapshot, the detail line below drops its own note
+  // rather than saying the same thing twice.
+  let pillNamesTheModel = false;
+  if (label === "Model attention") {
+    if (ready < total) label = `${ready} of ${total} configured`;
+    else if (env.model && !env.model.present) { label = "No snapshot yet"; pillNamesTheModel = true; }
+    else if (env.model && env.model.stale) { label = "Snapshot stale"; pillNamesTheModel = true; }
+  }
 
   // Detail, not a second copy of the pill: what the state is made of.
   const detail = [];
@@ -281,7 +286,7 @@ function envCard(env) {
   }
   if (env.model?.present && env.model.fingerprint) {
     detail.push(`model ${env.model.fingerprint.slice(0, 8)}${env.model.stale ? " (stale)" : ""}`);
-  } else if (ready > 0) {
+  } else if (ready > 0 && !pillNamesTheModel) {
     detail.push("no model snapshot");
   }
 
@@ -383,8 +388,10 @@ async function loadModel() {
       return;
     } catch (error) { /* try the next environment */ }
   }
-  node.innerHTML = `<p class="muted">No environment has a data-model snapshot yet.
-    Run <code>data-model-analysis</code> against one to create the first.</p>`;
+  $("model-sub").textContent = "not captured yet";
+  node.innerHTML = `<div class="tablewrap"><p class="empty">No environment has a
+    data-model snapshot on this host yet. Run <code>data-model-analysis</code>
+    against one to create the first.</p></div>`;
 }
 
 /* --------------------------------------------------------------- jobs/audit */
