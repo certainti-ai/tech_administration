@@ -1123,7 +1123,8 @@ where cloud-init had cloned the same commit.
 
 ## 13. The live site
 
-**https://tech-controlcentre.certainti.ai/** — `demo` / `admin`.
+**https://tech-controlcentre.certainti.ai/** — Microsoft sign-in, certainti.ai
+tenant. The shared password is gone.
 
 Real Let's Encrypt certificate (`CN=tech-controlcentre.certainti.ai`, expires
 2026-11-19), no browser warning. The A record is in GoDaddy and points at the
@@ -1170,6 +1171,37 @@ would fill the panel, the audit trail and the jobs list with real figures in one
 pass. It is read-only against the databases; it is the snapshot it writes.
 
 Provisioned by `terraform apply -var expose_publicly=true -var demo_password=…`.
+
+### Sign-in is live
+
+Switched on 2026-08-21, once a role had somebody in it. Verified from outside:
+
+```
+/api                      authentication: entra id
+/api/utilities            403   (no session)
+/api/utilities + X-Dev-Roles: admin
+                          403   (a header cannot name its own roles)
+/api/audit                403
+/auth/login               307 -> login.microsoftonline.com/b6734060-…/oauth2/v2.0/authorize
+/api/utilities with demo:admin
+                          403   (the shared password buys nothing)
+```
+
+`/` and `/api/me` are deliberately public and return 200: the console is a static
+page, and it asks `/api/me` who you are so it can render "sign in" instead of
+controls that would 403. Anonymously that answers
+`{"subject": "anonymous", "roles": [], "can_view": false, …}` — which is the whole
+of what an unauthenticated caller learns.
+
+**The shared credential is retired**, in two steps rather than one. `set-entra.sh`
+removed the `basic_auth` stanza and the injected identity from both Caddyfiles, so
+the credential was already unreachable; then `/etc/caddy/demo.env` was blanked and
+the old copy shredded. Blanked rather than deleted, because the packaged unit has
+`EnvironmentFile=/etc/caddy/demo.env` with no `-` prefix — a missing file stops
+Caddy from starting at all. Restarted and confirmed active afterwards.
+
+First assignment: Prabhu Balakrishnan, `admin`. Nobody else can sign in until
+they are assigned, and Entra refuses them before the application is reached.
 
 ### The Entra registration exists
 
