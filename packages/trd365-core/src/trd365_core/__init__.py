@@ -65,6 +65,14 @@ from .registry import (
     load_installed_utilities,
     registry,
 )
+from .vault import (
+    KeyVaultSecrets,
+    MappingVault,
+    NoVault,
+    SecretSource,
+    default_secret_source,
+    to_secret_name,
+)
 
 __version__ = "0.1.0"
 
@@ -80,11 +88,14 @@ __all__ = [
     "Environment",
     "FileModelStore",
     "Impact",
+    "KeyVaultSecrets",
     "JsonlAuditSink",
     "MemoryAuditSink",
     "ModelDiff",
     "ModelSnapshot",
+    "MappingVault",
     "ModelStore",
+    "NoVault",
     "PRIMARY_ENTITIES",
     "Parameter",
     "ParameterType",
@@ -94,6 +105,7 @@ __all__ = [
     "RunRecord",
     "SchemaCatalog",
     "SchemaModel",
+    "SecretSource",
     "StaleModelError",
     "Trd365Error",
     "UnsafeOperationError",
@@ -106,6 +118,7 @@ __all__ = [
     "confirm_production",
     "connection_settings",
     "default_model_dir",
+    "default_secret_source",
     "describe",
     "describe_mode",
     "diff_snapshots",
@@ -120,4 +133,5 @@ __all__ = [
     "require_model",
     "resolve_parent_table",
     "tenant_schemas",
+    "to_secret_name",
 ]

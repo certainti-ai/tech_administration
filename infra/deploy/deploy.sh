@@ -74,12 +74,20 @@ install_packages() {
   # where it does not exist, and the deploy dies. Given all the paths at once,
   # pip resolves the set against itself, and no dependency order is hard-coded
   # here to drift from the real one.
+  # trd365-core also needs its azure extra here: the VM reads database
+  # credentials from Key Vault through its managed identity, and without the SDK
+  # every lookup comes back absent and every utility reports the environment
+  # unconfigured. [dev] carries pytest, which the test gate below needs.
   local paths=()
-  local dir
+  local dir extras
   for pyproject in "${pyprojects[@]}"; do
     dir=$(dirname "$pyproject")
+    case "$(basename "$dir")" in
+      trd365-core) extras="[dev,azure]" ;;
+      *) extras="[dev]" ;;
+    esac
     # Braced: "$dir[dev]" reads as an array subscript, not a pip extra.
-    paths+=("${dir}[dev]")
+    paths+=("${dir}${extras}")
   done
 
   if ! "$VENV/bin/pip" install --quiet --upgrade "${paths[@]}"; then

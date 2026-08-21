@@ -15,6 +15,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.11"]
+# Reading credentials from Key Vault. Optional on purpose: the import is lazy,
+# and CI and every Claude Code session run without the SDK installed.
+azure = ["azure-identity>=1.17", "azure-keyvault-secrets>=4.8"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

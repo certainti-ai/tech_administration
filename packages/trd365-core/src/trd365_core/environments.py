@@ -29,6 +29,7 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 
 from .errors import ConfigError, PlaceholderCredentialError
+from .vault import SecretSource, default_secret_source, to_secret_name
 
 #: Marker value for a credential that has not been supplied yet. Chosen to be
 #: obviously non-functional if it ever escapes into a connection attempt.
@@ -198,15 +199,49 @@ _PLACEHOLDER_TOPOLOGY: dict[str, dict[str, object]] = {
 }
 
 
-def _lookup(env: Environment, db_key: str, field: str, environ: dict[str, str]) -> str | None:
-    """Environment-scoped name first, then the legacy unscoped name for prod."""
-    scoped = f"TRD365_{env.value.upper()}_{db_key.upper()}_{field.upper()}"
-    if scoped in environ and environ[scoped] != "":
-        return environ[scoped]
+def _candidate_names(env: Environment, db_key: str, field: str) -> list[str]:
+    """
+    The environment variable names that can carry one credential field, in order.
+
+    The scoped name wins. The unscoped one is honoured for production only,
+    because that is the shape the original scripts used and the only environment
+    they ever described — extending it to the others would let a stray
+    ``ORGDB_PASSWORD`` silently serve Dev.
+    """
+    names = [f"TRD365_{env.value.upper()}_{db_key.upper()}_{field.upper()}"]
     if env.is_production:
-        legacy = f"{db_key.upper()}_{field.upper()}"
-        if legacy in environ and environ[legacy] != "":
-            return environ[legacy]
+        names.append(f"{db_key.upper()}_{field.upper()}")
+    return names
+
+
+def _lookup(
+    env: Environment,
+    db_key: str,
+    field: str,
+    environ: dict[str, str],
+    secrets: SecretSource | None = None,
+) -> str | None:
+    """
+    One credential field: the process environment first, then Key Vault.
+
+    Order matters. The environment is what an operator sets deliberately for one
+    command, so it has to beat the vault — otherwise overriding a single value to
+    test something would be impossible. The vault is the durable source underneath
+    (PRD FR-2.x), and on the maintenance VM it is the *only* source: nothing there
+    populates the environment, so without this the credentials sit in a vault the
+    host can read and no utility can see.
+    """
+    for name in _candidate_names(env, db_key, field):
+        if environ.get(name):
+            return environ[name]
+
+    if secrets is None:
+        return None
+
+    for name in _candidate_names(env, db_key, field):
+        value = secrets.get(to_secret_name(name))
+        if value:
+            return value
     return None
 
 
@@ -214,12 +249,17 @@ def describe(
     env: Environment,
     db_key: str,
     environ: dict[str, str] | None = None,
+    secrets: SecretSource | None = None,
 ) -> ConnectionSettings:
     """
     Build settings for one database, without judging whether they are usable.
 
     Placeholders are returned as-is. Use :func:`connection_settings` when you
     intend to connect — it refuses placeholders.
+
+    ``secrets`` defaults to a Key Vault source built from the ambient
+    environment, which resolves to :class:`~trd365_core.vault.NoVault` unless
+    ``AZURE_KEY_VAULT_NAME`` is set. Pass one explicitly in tests.
     """
     if db_key not in DB_KEYS:
         raise ConfigError(
@@ -227,10 +267,12 @@ def describe(
         )
 
     environ = os.environ if environ is None else environ
+    if secrets is None:
+        secrets = default_secret_source(environ)
     known = _KNOWN_TOPOLOGY.get(env, _PLACEHOLDER_TOPOLOGY)[db_key]
 
     def field(name: str, fallback: object) -> str:
-        found = _lookup(env, db_key, name, environ)
+        found = _lookup(env, db_key, name, environ, secrets)
         return found if found is not None else str(fallback)
 
     tunnel_defaults = known.get("tunnel")
@@ -260,6 +302,7 @@ def connection_settings(
     env: Environment,
     db_key: str,
     environ: dict[str, str] | None = None,
+    secrets: SecretSource | None = None,
 ) -> ConnectionSettings:
     """
     Settings for a database you intend to connect to.
@@ -267,7 +310,7 @@ def connection_settings(
     Raises :class:`PlaceholderCredentialError` if the environment has not been
     configured, naming the variables that would supply it.
     """
-    settings = describe(env, db_key, environ)
+    settings = describe(env, db_key, environ, secrets)
     if settings.is_placeholder:
         prefix = f"TRD365_{env.value.upper()}_{db_key.upper()}_"
         raise PlaceholderCredentialError(
@@ -283,16 +326,33 @@ def connection_settings(
     return settings
 
 
-def is_configured(env: Environment, environ: dict[str, str] | None = None) -> bool:
+def is_configured(
+    env: Environment,
+    environ: dict[str, str] | None = None,
+    secrets: SecretSource | None = None,
+) -> bool:
     """Whether every database in an environment has real credentials."""
-    return all(not describe(env, key, environ).is_placeholder for key in DB_KEYS)
+    if secrets is None:
+        secrets = default_secret_source(os.environ if environ is None else environ)
+    return all(not describe(env, key, environ, secrets).is_placeholder for key in DB_KEYS)
 
 
 def configuration_status(
     environ: dict[str, str] | None = None,
+    secrets: SecretSource | None = None,
 ) -> dict[Environment, dict[str, bool]]:
-    """Per-environment, per-database readiness — what the health dashboard shows."""
+    """
+    Per-environment, per-database readiness — what the health dashboard shows.
+
+    The secret source is built once and shared across all sixteen checks. Built
+    per call it would be sixteen times the vault round trips for one dashboard
+    refresh, and the cache would never be warm.
+    """
+    if secrets is None:
+        secrets = default_secret_source(os.environ if environ is None else environ)
     return {
-        env: {key: not describe(env, key, environ).is_placeholder for key in DB_KEYS}
+        env: {
+            key: not describe(env, key, environ, secrets).is_placeholder for key in DB_KEYS
+        }
         for env in Environment
     }
