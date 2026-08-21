@@ -842,26 +842,74 @@ Two things were deliberately held back:
   known-broken secret is worse than leaving the slot empty.
 - **`tf-var-repo-pat`.** The repository is public, so nothing needs it.
 
-### Still outstanding — the last link
+### The databases are reachable — 2026-08-21
 
-**Nothing on the VM can get the vault's secrets into a utility's environment.**
-`environments.py` resolves credentials from the process environment, and its own
-docstring says that environment is "populated from Azure Key Vault" — but on the
-VM nothing populates it:
+`trd365_core.vault` closed the last link, and `verify.sh` on the VM now reports:
 
-- no Python package reads Key Vault (`grep -rl keyvault packages/*/src` is empty);
-- `scripts/secrets/load.sh` would do it, but it is Node, and cloud-init installs
-  no Node runtime.
+```
+== managed identity can read the vault ==
+  ok    IMDS token
+== database reachability (prod) ==
+[tunnel] maindb: 127.0.0.1:40637 -> prod-…-pvt-main.postgres.database.azure.com:5432
+  ok    maindb: thinkrd365_pvt_main as adminUser
+[tunnel] orgdb: 127.0.0.1:34179 -> prod-…-pvt-org.postgres.database.azure.com:5432
+  ok    orgdb: thinkrd365_pvt_org as adminUser
+  ok    trd365ai: trd365ai as aiadmin
 
-So `configuration_status` still reports every database unconfigured on the VM,
-even though the values are sitting in a vault it can read. The fix is a small
-Python resolver in `trd365-core`: when an environment variable is absent, fetch
-the corresponding secret from the vault via the managed identity, using the same
-name transform as `scripts/secrets/naming.mjs` (`MAINDB_PASSWORD` ->
-`maindb-password`). It must be injectable so tests keep running against fakes,
-and the Azure SDK import should be lazy so the package does not hard-depend on it.
+All checks passed.
+```
 
-**That is the only thing between here and a utility talking to a real database.**
+**That is the first real database connection this project has ever made.** SSH
+tunnels through the bastion, credentials from Key Vault via the managed identity,
+and the connection pool — all working, on a host built from this repository.
+
+Credential readiness resolved from the vault:
+
+```
+  dev    maindb=--  orgdb=--  trd365ai=--
+  qa     maindb=--  orgdb=--  trd365ai=--
+  stage  maindb=--  orgdb=--  trd365ai=--
+  prod   maindb=ok  orgdb=ok  trd365ai=ok
+```
+
+Dev, QA and Stage are still genuine placeholders — those credentials have never
+been supplied (§6 open question 1). Prod resolves fully.
+
+**Production has 26 tenant schemas** (`trd365_00042`, `trd365_00353`, …), read
+from the live catalog. That is the first fact about the real database anything
+here has established.
+
+### Two more bugs that only a live run could find
+
+Both passed 482 unit tests, lint and static analysis.
+
+1. **`paramiko.DSSKey` no longer exists.** `sshtunnel` 0.4.0 names `RSAKey`,
+   `DSSKey` and `ECDSAKey` directly; paramiko 4 removed DSA, and unpinned pip
+   installs paramiko 5. Every tunnel failed — and maindb and orgdb are only
+   reachable through one. Pinned `paramiko>=3.4,<4`, and
+   `tests/test_dependencies.py` now exercises the imports the fakes stand in for,
+   because faking the tunnel is right and makes a broken dependency *combination*
+   invisible.
+2. **A deploy runs the previous revision's `deploy.sh`.** The snapshot is taken
+   before the fetch, so a change to the deploy script itself takes effect on the
+   *next* run. Correct, and surprising: expect to run a deploy twice when the
+   change is to `deploy.sh`.
+
+### Next — needs a decision, not code
+
+`data-model-analysis --env prod --apply` is ready and was **refused by the
+harness**, which declines to run a utility against production unattended. That is
+the guard working. The run is read-only against the database and writes only a
+local snapshot, but it is production, so it wants a human saying go.
+
+Running it produces the first real `ModelSnapshot`, which unblocks:
+
+- `purge-account --apply`, which correctly refuses without a snapshot;
+- the live-schema extraction (§4 Step 3), replacing the checked-in `pg_dump`;
+- the orphan and deviation counts the Phase-3 dashboard needs (FR-4.5).
+
+Start with `--no-orphans` across all 26 schemas: structure and naming only, much
+cheaper, and enough to prove the path before the expensive scan.
 
 ### Four bugs the first live deploy found that no test could
 

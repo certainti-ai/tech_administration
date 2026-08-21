@@ -84,7 +84,8 @@ Two constraints worth knowing before you plan work:
 - **No Claude Code session can reach the databases.** The private endpoints do
   not resolve and the proxy blocks the bastion. Verification here is unit tests
   and fakes; integration testing happens on the maintenance VM — which now
-  exists, and from which the bastion and `trd365ai` are both reachable.
+  exists, and **from which all three production databases connect** (see
+  `docs/HANDOFF.md` §12).
 - **Deploying needs a human once.** `terraform apply` requires `az login`, which
   is interactive and impossible from a Claude session — see `docs/HANDOFF.md` §11.
   After that first apply the VM updates itself from git every three hours, gated
