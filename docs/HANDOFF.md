@@ -503,47 +503,54 @@ for every result observed on 2026-08-20:
 
 So a token can be obtained and then used against nothing.
 
-### What the sibling session actually does — corrected 2026-08-21
+### What the sibling session does — twice corrected, now stated only as far as evidence goes
 
-An earlier version of this section claimed `incentiwise-beta` deploys because its
-environment permits Azure. **That was an inference and it was wrong.** The owner
-said they had never changed a network setting, which prompted actually reading
-`certainti-ai/incentiwise-beta`. Its `deploy/azure/README.md` settles it:
+I have guessed at this twice and been wrong twice. What follows separates what is
+measured from what is not.
 
-> Prerequisites: An Azure subscription you're allowed to provision into, and
-> `az login` completed locally.
->
-> ```
-> # 1. Authenticate to Azure (interactive; not run by OpenTofu itself)
-> az login
-> ...
-> # 4. Apply — THIS IS THE HUMAN-GATED STEP.
-> ```
+**Measured, here, repeatably.** `tools/check_azure_reachability.sh` mints a real
+token from the service principal in `ARM_*` — 1,872 characters, so the
+credentials are valid — and then fails to reach ARM with it: `curl` exit 56,
+connection reset, no HTTP response. The proxy names the reason itself:
 
-That session **never reached Azure either.** It wrote the OpenTofu and documented
-it; a human ran `az login` and `tofu apply` from their own machine. `az login` is
-interactive and cannot happen in a cloud session at all.
+```
+management.azure.com:443  gateway answered 403 to CONNECT (policy denial …)
+registry.terraform.io:443 gateway answered 403 to CONNECT
+vault.azure.net:443       gateway answered 403 to CONNECT
+graph.microsoft.com:443   gateway answered 403 to CONNECT
+```
 
-The "deploying every 3 hours" is a different mechanism: `deploy/demo/deploy.sh
-redeploy` does `git pull` + rebuild + up, and it runs **on the VM**. Once the box
-exists it updates itself from git. The session's hourly Routine was repo work —
-a BA→Dev→Test→PR pipeline — not an infra deploy.
+Good credentials, no route. No credential change and no code change affects this.
 
-So the model to copy is:
+**Not established: why `incentiwise-beta` differs.** Two theories have now failed:
 
-1. **A human applies the Terraform once**, locally, from a machine with `az`.
-   No session can do this, and no network policy change makes it possible.
-2. **The VM then updates itself from git**, which is `trd365-deploy.timer`.
+1. *"Its environment permits Azure."* Its own journal says otherwise — that
+   sandbox recorded `api.github.com` proxy-blocked, Maven Central not
+   allowlisted, web search 403, container registries 403. It was **more**
+   restricted than this one, not less.
+2. *"A human ran it locally."* Its `deploy/azure/README.md` does document
+   `az login` + `tofu apply` as a human step, but its HANDOFF also records ARM
+   credentials "injected as env vars", a subscription "verified via ARM REST",
+   and a guardrail deliberately changed to **allow agent IaC apply** for
+   non-prod. The owner also says they did not run it. So this does not hold up
+   either.
 
-Step 2 was missing here until 2026-08-21: `deploy.sh` was idempotent but nothing
-ever invoked it. It now runs every three hours by default.
+Its HANDOFF does claim a live VM (`http://20.228.194.61/`, RG
+`rg_incentiwise-beta`, eastus, `Standard_D4s_v3`, NSG locked to `49.206.115.8/32`).
+That cannot be confirmed from here: checking would mean reaching ARM, which is
+the thing that fails, and the NSG would refuse this host anyway.
 
-The allowlist below is still worth applying — it would let a session read the
-vault, run `terraform plan`, and query ARM to check what exists — but it is an
-improvement, not the thing standing between this build and a deployment. **The
-thing standing in the way is step 1, and it needs a human at a terminal.**
+**The question that settles it** is one look, not more analysis: open the
+environment selector at claude.ai/code, hover **incentiwise-beta**, select the
+settings icon, and read the **Network access** field. If it says anything other
+than *Trusted*, that is the whole story, and it may have been set at creation
+without anyone thinking of it as a network decision — the two environments were
+created four days apart. Do not spend more time reasoning about it; look.
 
-### Widening the network policy (useful, not sufficient)
+### Widening the network policy
+
+Whatever the sibling's history, this is the change that makes this environment
+able to deploy.
 
 At [claude.ai/code](https://claude.ai/code), open the environment selector — the
 cloud icon showing the environment name, in the row above the message box; there
@@ -647,3 +654,15 @@ sudo -u trd365 /opt/trd365/verify.sh
 Read-only. It checks the managed identity can read the vault and that all three
 databases answer. This is the first moment anything in this project touches a
 real database, so expect to learn something here.
+
+### Confirming it, either way
+
+```bash
+bash tools/check_azure_reachability.sh
+```
+
+Read-only. It distinguishes the two failures that have been confused for each
+other all along: a bad credential (the token step fails) from no route (the token
+succeeds and ARM does not answer). If it ends with *"This session CAN deploy"*,
+then `cd infra/terraform && terraform init && terraform apply` — no variables
+required.
