@@ -46,13 +46,31 @@ install_packages() {
   shopt -s nullglob
   local pyprojects=("$APP_DIR"/packages/*/pyproject.toml)
   [[ ${#pyprojects[@]} -gt 0 ]] || fail "no packages found under $APP_DIR/packages"
+
+  # One pip invocation with every local path, not one per package. The packages
+  # depend on each other — trd365-analysis requires trd365-core — and installed
+  # one at a time in directory order, pip goes looking for "trd365-core" on PyPI,
+  # where it does not exist, and the deploy dies. Given all the paths at once,
+  # pip resolves the set against itself, and no dependency order is hard-coded
+  # here to drift from the real one.
+  local paths=()
+  local dir
   for pyproject in "${pyprojects[@]}"; do
-    local dir
     dir=$(dirname "$pyproject")
     # Braced: "$dir[dev]" reads as an array subscript, not a pip extra.
-    "$VENV/bin/pip" install --quiet --upgrade "${dir}[dev]" \
-      || "$VENV/bin/pip" install --quiet --upgrade "$dir"
+    paths+=("${dir}[dev]")
   done
+
+  if ! "$VENV/bin/pip" install --quiet --upgrade "${paths[@]}"; then
+    # Retry without the dev extras: a package may not declare one, and the
+    # utilities are more important than the test dependencies.
+    paths=()
+    for pyproject in "${pyprojects[@]}"; do
+      paths+=("$(dirname "$pyproject")")
+    done
+    "$VENV/bin/pip" install --quiet --upgrade "${paths[@]}" \
+      || fail "pip install failed for $APP_DIR/packages"
+  fi
 }
 
 run_tests() {
