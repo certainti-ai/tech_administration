@@ -228,6 +228,9 @@ error that explains the change. Announce this to operators before it ships.
   `data-model-analysis --env X --apply` publishes the snapshot that every
   destructive utility requires. Until that has run against X, dry runs work
   there and `--apply` refuses. That is the design, not a gap.
+- **The environment's network policy is what blocks deployment**, and it is a
+  setting, not a limitation of the code. See §10 for the host-by-host evidence
+  and the exact allowlist that fixes it.
 - **No preview means no deployment.** `tools/preview/` renders a page from real
   utility output so the owner can see the system without one existing. It is
   generated, never hand-written, and it states plainly that nothing has been
@@ -476,3 +479,69 @@ where before it refused.
 **Resume at §4 Step 1 — `remediate_orphans`**, reusing the purge engine rather
 than repeating it. Step 3 (validating the datamodel conventions against the real
 DDL, now that the repo is attached) is cheap and worth doing early.
+
+---
+
+## 10. Why deployment is blocked, and the exact fix
+
+Terraform cannot reach Azure from a Claude session in this project's environment.
+The code is not the problem: `infra/terraform/` needs no required inputs and
+creates everything it uses.
+
+Cloud environments carry a **Network access** level. This one is on **Trusted**,
+whose allowlist matches *exact hosts* unless an entry begins `*.`. That accounts
+for every result observed on 2026-08-20:
+
+| Host | In the Trusted list? | Observed |
+|---|---|---|
+| `login.microsoftonline.com` | yes, via `*.microsoftonline.com` | 302 — a service-principal token was obtained |
+| `releases.hashicorp.com` | yes | the Terraform binary downloaded |
+| `management.azure.com` | **no** — only `azure.com`, `portal.azure.com`, `dev.azure.com` | 403 at CONNECT |
+| `registry.terraform.io` | **no** | 403 — cannot download the azurerm provider |
+| `checkpoint-api.hashicorp.com` | **no** — `hashicorp.com` does not cover subdomains | 403 |
+| `vault.azure.net` | **no** | 403 — the secrets tooling cannot reach the vault |
+
+So a token can be obtained and then used against nothing. The sibling
+`incentiwise-beta` environment deploys because it is not on Trusted — not because
+it does anything different. Both build infra from scratch with Terraform.
+
+### The fix
+
+At [claude.ai/code](https://claude.ai/code), open the environment selector — the
+cloud icon showing the environment name, in the row above the message box; there
+is no settings URL for it. Hover **certainti_tech_administration**, select the
+settings icon, set **Network access** to **Custom**, and put this in **Allowed
+domains**, one host per line:
+
+```
+management.azure.com
+*.vault.azure.net
+graph.microsoft.com
+registry.terraform.io
+checkpoint-api.hashicorp.com
+*.blob.core.windows.net
+*.frame.claudeusercontent.com
+```
+
+Then tick **Also include default list of common package managers** — without it,
+npm, pip and GitHub stop working.
+
+Why each: ARM is the entire API the azurerm provider talks to; the vault data
+plane is what `scripts/secrets/` reads and writes; Microsoft Graph is needed for
+role assignments and any Entra ID group work; the registry is where providers
+come from; the checkpoint host is only Terraform's version check, and setting
+`CHECKPOINT_DISABLE=1` avoids needing it; blob storage matters only if Terraform
+state moves to an Azure backend; and the last is required for a session to read
+published artifacts, such as the preview page.
+
+**Custom, not Full.** This host can purge production databases. An explicit list
+is auditable; Full is not.
+
+**Start a new session afterwards.** An environment's configuration is applied
+when a session's VM is provisioned, and a running session keeps what it started
+with. A fresh container inside an existing session is not enough — confirmed on
+2026-08-20, when a 31-minute-old container was still refused.
+
+On a Team or Enterprise plan the same fields exist for organization-shared
+environments, under **Cloud environments** in
+[admin settings](https://claude.ai/admin-settings).
