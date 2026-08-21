@@ -63,11 +63,11 @@ def table(columns, rows=(), fks=(), blocked_by=None) -> FakeTable:
 # --------------------------------------------------------------------------
 
 
-#: Equality against one column — ``account_rid = %s``, ``rid=%s``. The only
+#: Equality against one column — ``account_rid = %s``, ``"project_code"=%s``. The only
 #: predicate shape this fake evaluates; anything more (a subselect, an OR, ANY)
 #: is asserted on as generated SQL instead, because evaluating it here would mean
 #: writing a query planner and trusting it.
-_EQUALITY = re.compile(r"^([a-z_][a-z0-9_]*)\s*=\s*%s$")
+_EQUALITY = re.compile(r'^"?([a-z_][a-z0-9_]*)"?\s*=\s*%s$')
 
 
 def matches(row: dict[str, Any], where: str, params) -> bool:
@@ -86,6 +86,28 @@ def matches(row: dict[str, Any], where: str, params) -> bool:
     )
 
 
+def _sort_key(row: dict[str, Any], order: str) -> tuple:
+    """
+    Evaluate an ORDER BY the way Postgres would for the shapes used here.
+
+    Ordering is not cosmetic in this package: which project fiscal comes last
+    decides where the financial recompute happens, so a fake that returned rows in
+    insertion order would let a missing ORDER BY pass its tests.
+    """
+    key: list = []
+    for term in order.split(","):
+        term = term.strip()
+        nulls_last = not term.upper().endswith("NULLS FIRST")
+        for suffix in ("NULLS LAST", "NULLS FIRST", "ASC", "DESC"):
+            if term.upper().endswith(suffix):
+                term = term[: -len(suffix)].strip()
+        value = row.get(term.strip('"'))
+        # None sorts to whichever end the statement asked for.
+        key.append((value is None) == nulls_last)
+        key.append(value if value is not None else "")
+    return tuple(key)
+
+
 _COUNT_WHERE = re.compile(r'^SELECT count\(\*\) FROM "([^"]+)"\."([^"]+)" WHERE (.+)$', re.S)
 _COUNT_ALL = re.compile(r'^SELECT count\(\*\) FROM "([^"]+)"\."([^"]+)"$')
 _CTIDS = re.compile(r'^SELECT ctid FROM "([^"]+)"\."([^"]+)" WHERE (.+) LIMIT (\d+)$', re.S)
@@ -98,6 +120,16 @@ _INSERT_BAK = re.compile(
 _DELETE_CTIDS = re.compile(
     r'^DELETE FROM "([^"]+)"\."([^"]+)" WHERE ctid = ANY\(%s::tid\[\]\)$'
 )
+
+#: A projection of named columns, with an optional WHERE and ORDER BY. Tried last,
+#: after the specific shapes above, so ``SELECT rid …`` and ``SELECT count(*) …``
+#: keep their own handlers.
+_SELECT = re.compile(
+    r'^SELECT (?P<columns>[A-Za-z_0-9", ]+?) FROM "(?P<schema>[^"]+)"\."(?P<table>[^"]+)"'
+    r'(?P<tail>.*)$',
+    re.S,
+)
+_TAIL = re.compile(r'^(?: WHERE (?P<where>.*?))?(?: ORDER BY (?P<order>[^)]*))?$', re.S)
 
 
 class FakeCursor:
@@ -167,6 +199,7 @@ class FakeCursor:
             (_INSERT_BAK, self._insert_backup),
             (_DELETE_CTIDS, self._delete_ctids),
             (_RIDS, self._rids),
+            (_SELECT, self._select),
         ):
             match = pattern.match(sql)
             if match:
@@ -196,6 +229,27 @@ class FakeCursor:
         schema, name, where = match.groups()
         self._result = [
             (r["rid"],) for r in self._live(schema, name) if matches(r, where, params)
+        ]
+
+    def _select(self, match, params) -> None:
+        """A projection of named columns, ordered if the statement says so."""
+        tail = _TAIL.match(match.group("tail") or "")
+        if tail is None:
+            raise NotImplementedError(f"the fake cannot parse: {match.group('tail')!r}")
+
+        schema, name = match.group("schema"), match.group("table")
+        rows = self._live(schema, name)
+        where = (tail.group("where") or "").strip()
+        if where:
+            rows = [row for row in rows if matches(row, where, params)]
+
+        order = (tail.group("order") or "").strip()
+        if order:
+            rows = sorted(rows, key=lambda row: _sort_key(row, order))
+
+        columns = [c.strip().strip('"') for c in match.group("columns").split(",")]
+        self._result = [
+            tuple(None if c.upper() == "NULL" else row.get(c) for c in columns) for row in rows
         ]
 
     def _insert_backup(self, match, params) -> None:
