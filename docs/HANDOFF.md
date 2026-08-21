@@ -482,7 +482,7 @@ DDL, now that the repo is attached) is cheap and worth doing early.
 
 ---
 
-## 10. Why deployment is blocked, and the exact fix
+## 10. The deployment blocker, and how it was resolved
 
 Terraform cannot reach Azure from a Claude session in this project's environment.
 The code is not the problem: `infra/terraform/` needs no required inputs and
@@ -503,54 +503,65 @@ for every result observed on 2026-08-20:
 
 So a token can be obtained and then used against nothing.
 
-### What the sibling session does — twice corrected, now stated only as far as evidence goes
+### What the sibling session does — three theories, all wrong
 
-I have guessed at this twice and been wrong twice. What follows separates what is
-measured from what is not.
+Deployment has been misdiagnosed three times. Recording all three so nobody
+spends a fourth round on it.
 
-**Measured, here, repeatably.** `tools/check_azure_reachability.sh` mints a real
-token from the service principal in `ARM_*` — 1,872 characters, so the
-credentials are valid — and then fails to reach ARM with it: `curl` exit 56,
-connection reset, no HTTP response. The proxy names the reason itself:
+1. *"Its environment permits Azure and this one does not."* **Disproved
+   2026-08-21:** the owner read the field. `incentiwise-beta` was on **Trusted**,
+   the same level as this environment.
+2. *"A human ran `tofu apply` locally."* Its `deploy/azure/README.md` does
+   document `az login` + `tofu apply` as a human step — but its HANDOFF records
+   ARM credentials "injected as env vars", a subscription "verified via ARM
+   REST", and a guardrail deliberately changed to **allow agent IaC apply** for
+   non-prod. The owner also says they did not run it.
+3. *"Its sandbox had freer egress."* Its own journal says the opposite:
+   `api.github.com` proxy-blocked, Maven Central not allowlisted, web search 403,
+   container registry pulls 403. It was **more** restricted than this one.
+
+What remains is measurable and what is left is not:
+
+**Measured here, repeatably.** `tools/check_azure_reachability.sh` mints a valid
+1,872-character token from the service principal in `ARM_*`, then fails to reach
+ARM with it — `curl` exit 56, no HTTP response. The proxy's own words:
 
 ```
-management.azure.com:443  gateway answered 403 to CONNECT (policy denial …)
-registry.terraform.io:443 gateway answered 403 to CONNECT
-vault.azure.net:443       gateway answered 403 to CONNECT
-graph.microsoft.com:443   gateway answered 403 to CONNECT
+management.azure.com:443   gateway answered 403 to CONNECT (policy denial …)
+registry.terraform.io:443  gateway answered 403 to CONNECT
+vault.azure.net:443        gateway answered 403 to CONNECT
+graph.microsoft.com:443    gateway answered 403 to CONNECT
 ```
 
-Good credentials, no route. No credential change and no code change affects this.
+Good credentials, no route.
 
-**Not established: why `incentiwise-beta` differs.** Two theories have now failed:
+**Unexplained, and not worth more effort.** Both environments were on Trusted,
+yet one has a HANDOFF claiming a live VM at `20.228.194.61`. The likeliest
+reconciliation is that the Trusted allowlist itself changed between 2026-08-17
+and now — it is Anthropic's list, not ours, and `azure.com` appearing in it
+without a wildcard is exactly the kind of entry that gets tightened. That cannot
+be confirmed from here, the claim cannot be verified without ARM access, and
+nothing about this project depends on the answer. **Let it go.**
 
-1. *"Its environment permits Azure."* Its own journal says otherwise — that
-   sandbox recorded `api.github.com` proxy-blocked, Maven Central not
-   allowlisted, web search 403, container registries 403. It was **more**
-   restricted than this one, not less.
-2. *"A human ran it locally."* Its `deploy/azure/README.md` does document
-   `az login` + `tofu apply` as a human step, but its HANDOFF also records ARM
-   credentials "injected as env vars", a subscription "verified via ARM REST",
-   and a guardrail deliberately changed to **allow agent IaC apply** for
-   non-prod. The owner also says they did not run it. So this does not hold up
-   either.
+### The change that was made
 
-Its HANDOFF does claim a live VM (`http://20.228.194.61/`, RG
-`rg_incentiwise-beta`, eastus, `Standard_D4s_v3`, NSG locked to `49.206.115.8/32`).
-That cannot be confirmed from here: checking would mean reaching ARM, which is
-the thing that fails, and the NSG would refuse this host anyway.
+The owner set this environment's **Network access** to **Full** on 2026-08-21.
 
-**The question that settles it** is one look, not more analysis: open the
-environment selector at claude.ai/code, hover **incentiwise-beta**, select the
-settings icon, and read the **Network access** field. If it says anything other
-than *Trusted*, that is the whole story, and it may have been set at creation
-without anyone thinking of it as a network decision — the two environments were
-created four days apart. Do not spend more time reasoning about it; look.
+Full permits any domain. A narrower **Custom** list would be preferable for a
+host that can purge production databases — the list is in the next section, and
+switching to it later costs nothing — but Full unblocks the work now, and that
+was the owner's call to make.
 
-### Widening the network policy
+**This does not affect any session already running**, including the one that
+wrote this. An environment's configuration is applied when a session's VM is
+provisioned. Re-tested immediately after the change: still 403. **A new session
+is required**, and the first thing it should do is
+`bash tools/check_azure_reachability.sh`.
 
-Whatever the sibling's history, this is the change that makes this environment
-able to deploy.
+### The narrower alternative, if you want it later
+
+Full is set and works. If you would rather this host reach only what it needs,
+set **Network access** to **Custom** instead.
 
 At [claude.ai/code](https://claude.ai/code), open the environment selector — the
 cloud icon showing the environment name, in the row above the message box; there
@@ -595,27 +606,46 @@ environments, under **Cloud environments** in
 
 ## 11. Deploying, end to end
 
-### Step 1 — a human applies the Terraform, once
+### Step 1 — apply the Terraform, once
 
-Needs a machine with `az` and Terraform (or OpenTofu). No Claude session can do
-this: `az login` is interactive.
+With **Full** network access (§10) a session can do this itself. Check first,
+because a session provisioned before the change still cannot:
 
 ```bash
-git clone -b claude/certainti-tech-admin-y4c4ul \
-    https://github.com/certainti-ai/tech_administration
-cd tech_administration/infra/terraform
-
-az login
-az account set --subscription "$ARM_SUBSCRIPTION_ID"
-
-terraform init
-terraform plan          # no variables are required; review what it will create
-terraform apply
+bash tools/check_azure_reachability.sh
 ```
 
-It creates its own resource group, virtual network, subnet, NSG, Key Vault,
-managed identity, SSH key and VM, and touches nothing that already exists.
-`terraform output next_steps` prints what to do afterwards.
+Proceed only if it says *"This session CAN deploy"*. Then:
+
+```bash
+cd infra/terraform
+terraform init
+terraform plan     # no variables are required
+```
+
+**Read the plan before applying.** It is the last point at which nothing has been
+created, and it is the review a human should actually do — roughly 19 resources,
+all new, none touching anything that already exists.
+
+```bash
+terraform apply
+terraform output next_steps
+```
+
+The stack creates its own resource group, virtual network, subnet, NSG, Key
+Vault, managed identity, SSH key and VM. `ARM_CLIENT_ID` / `ARM_CLIENT_SECRET` /
+`ARM_TENANT_ID` / `ARM_SUBSCRIPTION_ID` are already in the environment, so the
+azurerm provider authenticates without `az login` — which matters, because
+`az login` is interactive and no session can complete it.
+
+Two things to know before applying:
+
+- **Quota bites.** The sibling project found `Dsv5` quota was **0** in its
+  region and had to fall back to `Dsv3`. `vm_size` here defaults to
+  `Standard_D2s_v3` for that reason. If apply fails on quota, that is why.
+- **`prevent_destroy` guards the vault and the resource group.** Deliberate: a
+  resource-group destroy takes the vault's secrets with it. Removing the guard
+  should be a conscious act.
 
 ### Step 2 — the VM keeps itself current
 
@@ -666,3 +696,34 @@ other all along: a bad credential (the token step fails) from no route (the toke
 succeeds and ARM does not answer). If it ends with *"This session CAN deploy"*,
 then `cd infra/terraform && terraform init && terraform apply` — no variables
 required.
+
+### Session 6 — 2026-08-21
+
+Deployment. Three wrong diagnoses, then a measurement (§10). The owner read the
+sibling environment's setting and it was **Trusted**, the same as this one, which
+disproved the last surviving theory; they then set this environment to **Full**.
+Re-tested immediately: still 403, because an environment's configuration applies
+when a session's VM is provisioned. **A new session can deploy. This one cannot.**
+
+Built this session:
+
+- `tools/check_azure_reachability.sh` — mints a token from the service principal
+  and then uses it against ARM, because those two steps fail for unrelated
+  reasons with unrelated fixes. Run it before anything else.
+- **Self-updating deploys.** `deploy.sh` was idempotent but nothing ever invoked
+  it. `trd365-deploy.timer` now runs it every three hours, gated on the full test
+  suite, rolling the checkout back if the suite fails or the service does not come
+  up. That gate is load-bearing: the deploy is unattended and the host holds
+  credentials that can delete production data.
+- **The Terraform is self-contained** — its own VNet and subnet, no required
+  variables, nothing existing touched.
+- `tools/check_terraform.py`, because `terraform validate` needs a registry no
+  session could reach. Catches the cloud-init input that `templatefile()` forgets
+  to supply, which otherwise fails at apply time with resources already created.
+- A real engine defect: absent tables were reported as "UNSCOPED — needs manual
+  review", about eighty per run, burying the few that genuinely need a human.
+- `tools/preview/` and a published preview page, rendered from real utility output.
+
+**Resume at §11 — deploy.** It unblocks everything that has been waiting on a
+real database: the live-schema extraction (§4 Step 3), the first
+`data-model-analysis --apply`, and integration testing at all.
