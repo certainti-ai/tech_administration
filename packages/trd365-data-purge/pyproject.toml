@@ -19,6 +19,12 @@ dev = ["pytest>=8", "ruff>=0.6"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# The per-entity DELETION_ORDER.md files are the vendor's description of the FK
+# order the manifests encode, and the most valuable documentation in the estate.
+# They ship with the code so a deployed host carries them too.
+[tool.setuptools.package-data]
+trd365_data_purge = ["*/DELETION_ORDER.md", "*/base_sql/*.sql"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 

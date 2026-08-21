@@ -63,6 +63,13 @@ def table(columns, rows=(), fks=(), blocked_by=None) -> FakeTable:
 # --------------------------------------------------------------------------
 
 
+#: Equality against one column — ``account_rid = %s``, ``rid=%s``. The only
+#: predicate shape this fake evaluates; anything more (a subselect, an OR, ANY)
+#: is asserted on as generated SQL instead, because evaluating it here would mean
+#: writing a query planner and trusting it.
+_EQUALITY = re.compile(r"^([a-z_][a-z0-9_]*)\s*=\s*%s$")
+
+
 def matches(row: dict[str, Any], where: str, params) -> bool:
     """Evaluate the handful of predicate shapes the engine tests use."""
     where = where.strip()
@@ -70,12 +77,9 @@ def matches(row: dict[str, Any], where: str, params) -> bool:
         return False
     if where in ("1=1", "TRUE"):
         return True
-    if where == "account_rid = %s":
-        return row.get("account_rid") == list(params)[0]
-    if where == "account_rid=%s":
-        return row.get("account_rid") == list(params)[0]
-    if where == "rid = %s":
-        return row.get("rid") == list(params)[0]
+    equality = _EQUALITY.match(where)
+    if equality:
+        return row.get(equality.group(1)) == list(params)[0]
     raise NotImplementedError(
         f"The fake database does not evaluate {where!r}. Assert on the generated "
         f"SQL instead, or add the shape here deliberately."
@@ -336,10 +340,14 @@ class AccountDirectory(FakeConnection):
     """
     A main database that also answers ``resolve_account``'s bespoke query.
 
-    Account resolution reads three named columns in one statement rather than
-    the row shapes everything else deals in, so that query is special-cased.
-    Every other statement falls through to the ordinary fake, which is what
-    makes this usable for the whole main step and not just resolution.
+    Account resolution reads named columns in one statement rather than the row
+    shapes everything else deals in, so that query is special-cased. Every other
+    statement falls through to the ordinary fake, which is what makes this usable
+    for the whole main step and not just resolution.
+
+    ``accounts`` maps rid to ``(r_number, storage_type, parent_account_rid)``.
+    Lookups by reference number scan for a matching ``r_number``, which is what
+    the real query does with an index.
     """
 
     def __init__(
@@ -349,6 +357,19 @@ class AccountDirectory(FakeConnection):
     ) -> None:
         super().__init__(tables or {})
         self.accounts = accounts
+
+    def _resolve(self, sql: str, key):
+        if "storage_type" not in sql:
+            # Following a parent link: only the reference number is asked for.
+            record = self.accounts.get(key)
+            return (record[0],) if record else None
+        if 'WHERE "r_number"' in sql:
+            for rid, record in self.accounts.items():
+                if record[0] == key:
+                    return (rid, *record)
+            return None
+        record = self.accounts.get(key)
+        return (key, *record) if record else None
 
     def cursor(self):
         outer = self
@@ -372,12 +393,7 @@ class AccountDirectory(FakeConnection):
                 # and just the reference number when following a parent link.
                 if "r_number" in sql:
                     self_inner.resolved = True
-                    record = outer.accounts.get(list(params or [])[0])
-                    self_inner.result = (
-                        record
-                        if record is None or "storage_type" in sql
-                        else (record[0],)
-                    )
+                    self_inner.result = outer._resolve(sql, list(params or [])[0])
                     return
                 self_inner.resolved = False
                 fallback.execute(sql, params)

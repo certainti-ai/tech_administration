@@ -76,10 +76,49 @@ PURGE_ACCOUNT = Utility(
 )
 
 
+PURGE_CASE = Utility(
+    id="purge-case",
+    title="Purge case",
+    description=(
+        "Delete one case — a credit study — and its whole subtree: its rows in the "
+        "account's org schema, then the case-owned rows in the shared main schema. "
+        "A pure subtree delete: no aggregate outside the case depends on it, so "
+        "nothing is recalculated afterwards."
+    ),
+    module="trd365_data_purge.case",
+    impact=Impact.DESTRUCTIVE,
+    databases=("maindb", "orgdb"),
+    parameters=(
+        Parameter(
+            name="account_id",
+            type=ParameterType.STRING,
+            help=(
+                "The account the case belongs to, as its reference number (ACC-00459) "
+                "or its rid. The case's rows live in that account's org schema."
+            ),
+            required=True,
+        ),
+        Parameter(
+            name="case_rid",
+            type=ParameterType.STRING,
+            help="The rid of the case to purge, from the org schema's cases table.",
+            required=True,
+        ),
+        *COMMON_PARAMETERS,
+    ),
+    notes=(
+        "Dry run by default; --apply writes. Three manifest tables carry no case link "
+        "at all and are always reported unscoped and left untouched: case_timeline_old, "
+        "case_projects_by_region, case_history_submission."
+    ),
+)
+
+
 def register(registry: Registry | None = None) -> Registry:
     """Add the purge utilities to a registry (the shared one by default)."""
     target = default_registry if registry is None else registry
     target.register(PURGE_ACCOUNT)
+    target.register(PURGE_CASE)
     return target
 
 

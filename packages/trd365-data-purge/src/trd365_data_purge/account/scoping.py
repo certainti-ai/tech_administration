@@ -76,20 +76,42 @@ def resolve_account(pool, rid: str) -> ResolvedAccount:
     Getting this wrong would either miss every row or point the purge at a
     schema belonging to somebody else, so it is resolved before anything else.
     """
+    return _resolve(pool, PK_COLUMN, rid, reported_as=rid)
+
+
+def resolve_account_reference(pool, reference: str) -> ResolvedAccount:
+    """
+    Resolve an account given either its rid or its reference number.
+
+    The sub-entity purges — a case, an interaction, a project — are told which
+    account to look inside, and an operator naturally has the number from the
+    product UI (``ACC-00459``) rather than the rid. Which column to search is
+    decided by the shape of the value: an ``ACC-`` prefix is a reference number
+    and anything else is treated as a rid. The legacy tool guessed the other way
+    round, treating everything that did not look like a rid as a number, which
+    turned a mistyped rid into "account not found" instead of a rid lookup that
+    says so.
+    """
+    reference = reference.strip()
+    column = "r_number" if reference.upper().startswith(M.R_NUMBER_PREFIX) else PK_COLUMN
+    return _resolve(pool, column, reference, reported_as=reference)
+
+
+def _resolve(pool, column: str, value: str, *, reported_as: str) -> ResolvedAccount:
     conn = pool.get(ACCOUNT.db_key)
     with conn.cursor() as cur:
         cur.execute(
-            f"SELECT r_number, storage_type, parent_account_rid "
-            f"FROM {quote(M.MAIN_SCHEMA)}.{quote(ACCOUNT.table)} WHERE {PK_COLUMN}=%s",
-            (rid,),
+            f"SELECT {PK_COLUMN}, r_number, storage_type, parent_account_rid "
+            f"FROM {quote(M.MAIN_SCHEMA)}.{quote(ACCOUNT.table)} WHERE {quote(column)}=%s",
+            (value,),
         )
         row = cur.fetchone()
     conn.rollback()
 
     if not row:
-        return ResolvedAccount(rid=rid, exists=False)
+        return ResolvedAccount(rid=reported_as, exists=False)
 
-    r_number, storage_type, parent_rid = row
+    rid, r_number, storage_type, parent_rid = row
     effective = r_number
 
     if storage_type == "store_in_parent" and parent_rid:
