@@ -151,12 +151,131 @@ PURGE_INTERACTION = Utility(
 )
 
 
+#: Shared by the two SECTION-driven purges. They take neither a chunk size nor a
+#: checkpoint nor the data-model snapshot: none of those mean anything to SQL the
+#: vendor wrote, which manages its own batching and its own backup schema.
+SECTION_PARAMETERS: tuple[Parameter, ...] = (
+    Parameter(
+        name="sections",
+        type=ParameterType.STRING,
+        help="Run only these sections, e.g. \"4 5 8\" to re-run the audit after a failure.",
+    ),
+    Parameter(
+        name="backup_schema",
+        type=ParameterType.STRING,
+        help="The schema every section backs up into. Override to resume into an earlier run's.",
+        default="data_purge",
+    ),
+    Parameter(
+        name="heartbeat_seconds",
+        type=ParameterType.INTEGER,
+        help="How often to report that a section is still running. Each one is a silent DO block.",
+        default=15,
+    ),
+    Parameter(
+        name="out_dir",
+        type=ParameterType.PATH,
+        help="Where to write the run report.",
+        default="reports",
+    ),
+)
+
+_NOT_FREE = (
+    "A DRY RUN OF THIS UTILITY IS NOT FREE. It runs the vendor's delete-and-recompute "
+    "SQL inside a transaction it then rolls back — same locks, same work, result "
+    "discarded — because SQL that recomputes financial aggregates cannot be previewed "
+    "any other way. In production a preview needs an approver for that reason."
+)
+
+PURGE_PROJECT_FISCAL = Utility(
+    id="purge-project-fiscal",
+    title="Purge project fiscal year",
+    description=(
+        "Delete one fiscal year of one project across all three databases, and "
+        "recompute the financial aggregates that survive it — account fiscal totals, "
+        "project rollups, QRE dollars. Runs the vendor's SECTION 1-8 SQL rather than "
+        "enumerating rows, because the recompute must not be re-derived."
+    ),
+    module="trd365_data_purge.project_fiscal",
+    impact=Impact.DESTRUCTIVE,
+    databases=("maindb", "orgdb", "trd365ai"),
+    dry_run_executes=True,
+    parameters=(
+        Parameter(
+            name="account_id",
+            type=ParameterType.STRING,
+            help="The account, as its reference number (ACC-00459) or its rid.",
+            required=True,
+        ),
+        Parameter(
+            name="project_fiscal_rid",
+            type=ParameterType.STRING,
+            help="The rid of the project fiscal to delete.",
+            required=True,
+        ),
+        Parameter(
+            name="last_fiscal",
+            type=ParameterType.BOOLEAN,
+            help=(
+                "Force is_last_fiscal. Leave unset to count the project's fiscals. "
+                "Set when a previous failed run already removed a sibling and left the "
+                "count misleading."
+            ),
+        ),
+        *SECTION_PARAMETERS,
+    ),
+    notes=(
+        "is_last_fiscal is TRUE only when this is the project's only remaining fiscal, "
+        "in which case the project row goes too and the account totals are recomputed. "
+        + _NOT_FREE
+    ),
+)
+
+PURGE_PROJECT = Utility(
+    id="purge-project",
+    title="Purge project",
+    description=(
+        "Delete a whole project — every fiscal year, oldest first — with the final "
+        "fiscal's run also removing the project row and recomputing the account "
+        "totals. This is the project-fiscal purge repeated, which is what keeps "
+        "deleting a project identical to deleting its years one at a time."
+    ),
+    module="trd365_data_purge.project",
+    impact=Impact.DESTRUCTIVE,
+    databases=("maindb", "orgdb", "trd365ai"),
+    dry_run_executes=True,
+    parameters=(
+        Parameter(
+            name="account_id",
+            type=ParameterType.STRING,
+            help="The account, as its reference number (ACC-00459) or its rid.",
+            required=True,
+        ),
+        Parameter(
+            name="project",
+            type=ParameterType.STRING,
+            help="The project, as its rid or its project code.",
+            required=True,
+        ),
+        *SECTION_PARAMETERS,
+    ),
+    notes=(
+        "Stops at the first failing fiscal by default: a failed fiscal means the "
+        "recompute chain is already inconsistent, and pressing on compounds it. "
+        + _NOT_FREE
+    ),
+    supersedes="project_fiscal_year_deletion",
+)
+
+
 def register(registry: Registry | None = None) -> Registry:
     """Add the purge utilities to a registry (the shared one by default)."""
     target = default_registry if registry is None else registry
     target.register(PURGE_ACCOUNT)
     target.register(PURGE_CASE)
     target.register(PURGE_INTERACTION)
+    target.register(PURGE_PROJECT_FISCAL)
+    target.register(PURGE_PROJECT)
     return target
 
 

@@ -69,6 +69,17 @@ class Utility:
     environments: tuple[Environment, ...] = tuple(Environment)
     #: Set when a utility supersedes another that still exists.
     supersedes: str | None = None
+    #: True when a dry run is *not* free — it does the work and discards it.
+    #:
+    #: Almost every utility previews by counting rows without touching them, so a
+    #: dry run is safe to take without ceremony. The project and project-fiscal
+    #: purges cannot: they run hand-written PL/pgSQL that deletes *and recomputes*
+    #: financial aggregates, and the only way to preview that is to execute it
+    #: inside a transaction that is then rolled back. Same locks, same work, result
+    #: discarded. That is not something to start against production casually, so
+    #: utilities that declare this need an approver in production even for a
+    #: preview.
+    dry_run_executes: bool = False
     notes: str = ""
 
     @property
@@ -79,6 +90,11 @@ class Utility:
     def requires_approval_in_prod(self) -> bool:
         """Anything that writes to production needs a second human (FR-4.3)."""
         return self.impact.needs_apply
+
+    @property
+    def dry_run_requires_approval_in_prod(self) -> bool:
+        """A preview that is not free needs the same second human."""
+        return self.dry_run_executes
 
     def to_dict(self) -> dict[str, Any]:
         """Serialisable form — this is the API payload the UI renders from."""
@@ -91,6 +107,7 @@ class Utility:
             "databases": list(self.databases),
             "environments": [e.value for e in self.environments],
             "requires_approval_in_prod": self.requires_approval_in_prod,
+            "dry_run_executes": self.dry_run_executes,
             "supersedes": self.supersedes,
             "notes": self.notes,
             "parameters": [

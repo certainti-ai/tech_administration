@@ -83,10 +83,23 @@ def can_approve(principal: Principal, requested_by: str) -> bool:
 
 def requires_approval(utility: Utility, env: Environment, apply: bool) -> bool:
     """
-    Production writes need a second person. Dry runs never do — the whole point
-    of a preview is that it is safe to take without ceremony.
+    Production writes need a second person.
+
+    A dry run normally does not: the whole point of a preview is that it is safe
+    to take without ceremony, because it counts rows and touches nothing.
+
+    Some previews are not free. The project and project-fiscal purges preview by
+    running the vendor's delete-and-recompute SQL inside a transaction they then
+    roll back — same locks, same work, result discarded. A utility that declares
+    ``dry_run_executes`` therefore needs the second person in production either
+    way. Without this, granting somebody the operator role would let them start
+    real work against production unreviewed just by calling it a preview.
     """
-    return env.is_production and apply and utility.impact.needs_apply
+    if not env.is_production:
+        return False
+    if apply:
+        return utility.impact.needs_apply
+    return utility.dry_run_requires_approval_in_prod
 
 
 def authorize_run(

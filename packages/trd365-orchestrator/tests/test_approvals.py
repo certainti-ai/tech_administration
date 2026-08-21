@@ -1,11 +1,15 @@
 """Production writes need a second person. This is the rule that matters most."""
 
 import pytest
-from helpers import principal
+from helpers import NOT_FREE_PREVIEW, PURGE, REPORT, ScriptedRunner, principal
+from trd365_core.audit import MemoryAuditSink
 from trd365_core.environments import Environment
+from trd365_core.registry import Registry
 
-from trd365_orchestrator.jobs import JobState
-from trd365_orchestrator.security import AuthorizationError, Role
+from trd365_orchestrator.jobs import JobState, JobStore
+from trd365_orchestrator.scheduler import Scheduler
+from trd365_orchestrator.security import AuthorizationError, Role, can_approve, requires_approval
+from trd365_orchestrator.service import Orchestrator, OrchestratorConfig
 
 
 def request(orchestrator, actor, env=Environment.PROD, apply=True, utility="purge-account"):
@@ -134,3 +138,56 @@ class TestAuthorisation:
         job = request(orchestrator, viewer, utility="orphan-report", apply=False)
         await orchestrator.scheduler.wait(job.id)
         assert orchestrator.store.get(job.id).state is JobState.SUCCEEDED
+
+
+class TestPreviewsThatAreNotFree:
+    """
+    Most previews are safe to take without ceremony because they count rows and
+    touch nothing. The two project purges cannot preview that way — they run the
+    vendor's delete-and-recompute SQL and roll it back, taking the same locks and
+    doing the same work.
+
+    This became load-bearing the moment anyone was given the operator role.
+    Without it, an operator could start real work against production, unreviewed,
+    simply by calling it a preview.
+    """
+
+    def test_an_ordinary_dry_run_in_production_needs_nobody(self):
+        assert requires_approval(PURGE, Environment.PROD, apply=False) is False
+
+    def test_a_preview_that_executes_needs_an_approver_in_production(self):
+        assert requires_approval(NOT_FREE_PREVIEW, Environment.PROD, apply=False) is True
+        assert requires_approval(NOT_FREE_PREVIEW, Environment.PROD, apply=True) is True
+
+    def test_outside_production_neither_does(self):
+        for env in (Environment.DEV, Environment.QA, Environment.STAGE):
+            assert requires_approval(NOT_FREE_PREVIEW, env, apply=False) is False, env
+            assert requires_approval(NOT_FREE_PREVIEW, env, apply=True) is False, env
+
+    async def test_an_operator_may_ask_but_it_does_not_start(self, make_orchestrator, operator):
+        # The two halves of the guarantee: an operator is allowed to ask, and
+        # asking is not the same as it happening.
+        registry = Registry([PURGE, REPORT, NOT_FREE_PREVIEW])
+        store = JobStore()
+        audit = MemoryAuditSink()
+        orchestrator = Orchestrator(
+            registry,
+            store,
+            Scheduler(registry, store, ScriptedRunner(), audit_sink=audit),
+            audit_sink=audit,
+            config=OrchestratorConfig(authentication_configured=True),
+            environ={},
+        )
+        job = orchestrator.request_run(
+            operator,
+            utility_id="purge-project-fiscal",
+            environment=Environment.PROD,
+            arguments={"project_fiscal_rid": "P001-f1"},
+            apply=False,
+        )
+        assert job.state is JobState.PENDING_APPROVAL
+        assert job.started_at is None
+
+    def test_the_asker_cannot_approve_their_own(self):
+        assert can_approve(principal("ops", Role.OPERATOR, Role.APPROVER), "ops") is False
+        assert can_approve(principal("other", Role.APPROVER), "ops") is True

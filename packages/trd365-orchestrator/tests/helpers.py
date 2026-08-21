@@ -20,6 +20,22 @@ PURGE = Utility(
     ),
 )
 
+#: A destructive utility whose *preview* is not free: it runs the vendor's
+#: delete-and-recompute SQL inside a rolled-back transaction. Modelled on
+#: purge-project-fiscal.
+NOT_FREE_PREVIEW = Utility(
+    id="purge-project-fiscal",
+    title="Purge project fiscal year",
+    description="Delete one fiscal year and recompute the financial aggregates.",
+    module="trd365_data_purge.project_fiscal",
+    impact=Impact.DESTRUCTIVE,
+    databases=("maindb", "orgdb", "trd365ai"),
+    dry_run_executes=True,
+    parameters=(
+        Parameter("project_fiscal_rid", ParameterType.STRING, "Fiscal row id", required=True),
+    ),
+)
+
 REPORT = Utility(
     id="orphan-report",
     title="Orphan report",
