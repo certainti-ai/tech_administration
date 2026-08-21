@@ -208,3 +208,63 @@ class TestResolution:
         # The regression that matters: adding a vault must not change what a
         # laptop or a CI run sees.
         assert describe(Environment.DEV, "maindb", environ={}).is_placeholder
+
+
+class TestMissesCostNothing:
+    """
+    Absent secrets must not each cost a round trip.
+
+    Readiness across four environments and three databases asks for well over a
+    hundred names, and for an environment whose credentials were never supplied
+    every one is absent. Fetched individually that is a hundred sequential
+    requests to learn nothing, which is what made the health endpoint time out
+    the first time it was called through the public site.
+    """
+
+    class Client:
+        def __init__(self, secrets, list_error=None):
+            self.secrets = secrets
+            self.list_error = list_error
+            self.gets: list[str] = []
+            self.lists = 0
+
+        def list_properties_of_secrets(self):
+            self.lists += 1
+            if self.list_error is not None:
+                raise self.list_error
+            return [type("P", (), {"name": name})() for name in self.secrets]
+
+        def get_secret(self, name):
+            self.gets.append(name)
+            if name not in self.secrets:
+                raise KeyError(name)
+            return type("S", (), {"value": self.secrets[name]})()
+
+    def test_the_vault_is_listed_once_and_misses_never_reach_it(self):
+        client = self.Client({"maindb-password": "s3cret"})
+        vault = KeyVaultSecrets("kv", client=client)
+
+        assert vault.get("maindb-password") == "s3cret"
+        for name in ("trd365-dev-maindb-password", "trd365-qa-orgdb-host", "nope"):
+            assert vault.get(name) is None
+
+        assert client.lists == 1, "the listing must happen once, not per lookup"
+        assert client.gets == ["maindb-password"], "a miss must not be requested"
+
+    def test_a_failed_listing_falls_back_to_asking_per_name(self):
+        # An identity that can read a secret but not list them must still work,
+        # and a listing outage must not make a full vault look empty.
+        client = self.Client({"maindb-password": "s3cret"}, list_error=RuntimeError("denied"))
+        vault = KeyVaultSecrets("kv", client=client)
+
+        assert vault.get("maindb-password") == "s3cret"
+        assert client.gets == ["maindb-password"]
+
+    def test_listing_is_not_attempted_when_every_answer_is_cached(self):
+        client = self.Client({"maindb-password": "s3cret"})
+        vault = KeyVaultSecrets("kv", client=client)
+        vault.get("maindb-password")
+        before = client.lists
+        for _ in range(5):
+            vault.get("maindb-password")
+        assert client.lists == before

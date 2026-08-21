@@ -113,6 +113,8 @@ class KeyVaultSecrets:
         self.client_id = client_id
         self._client = client
         self._cache: dict[str, str | None] = {}
+        self._listed: set[str] | None = None
+        self._listing_failed = False
 
     @property
     def url(self) -> str:
@@ -138,10 +140,44 @@ class KeyVaultSecrets:
         self._client = SecretClient(vault_url=self.url, credential=credential)
         return self._client
 
+    def _names(self) -> set[str] | None:
+        """
+        Every secret name in the vault, listed once.
+
+        This exists for the misses, not the hits. Resolving readiness for four
+        environments across three databases asks for well over a hundred names,
+        and for an environment whose credentials have never been supplied every
+        one is absent. Fetched individually that is a hundred sequential round
+        trips to discover nothing — enough to make the health endpoint time out,
+        which is exactly what it did the first time it was called through the
+        public site. One list call answers all of them.
+
+        ``None`` means the listing itself failed, in which case fall back to
+        asking per name rather than concluding the vault is empty.
+        """
+        if self._listed is None:
+            try:
+                client = self._ensure_client()
+                self._listed = {
+                    prop.name for prop in client.list_properties_of_secrets() if prop.name
+                }
+            except ConfigError:
+                raise
+            except Exception:  # noqa: BLE001 — fall back to per-name lookups
+                self._listed = set()
+                self._listing_failed = True
+        return None if self._listing_failed else self._listed
+
     def get(self, name: str) -> str | None:
         if name in self._cache:
             return self._cache[name]
         if not is_valid_secret_name(name):
+            self._cache[name] = None
+            return None
+
+        known = self._names()
+        if known is not None and name not in known:
+            # Absent, established without a request for it.
             self._cache[name] = None
             return None
 
