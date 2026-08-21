@@ -417,20 +417,54 @@ function renderNav() {
 async function loadMe() {
   const info = await api("/api").catch(() => ({}));
   const sso = info.authentication === "entra id";
+  const signIn = `<a href="/auth/login?next=${encodeURIComponent(
+    location.hash || "#/overview",
+  )}">Sign in with Microsoft</a>`;
+
   try {
     state.me = await api("/api/me");
-    const roles = state.me.roles.length ? state.me.roles.join(", ") : "none";
-    $("who").innerHTML =
-      `<strong>${esc(state.me.display_name)}</strong><br>` +
-      `<span class="roles">${esc(roles)}</span>` +
-      (sso ? `<br><a href="/auth/logout">sign out</a>` : "");
   } catch (error) {
-    // With SSO on, "not signed in" is the ordinary state on a first visit, not a
-    // fault — so it gets a way forward rather than an error message.
-    $("who").innerHTML = sso
-      ? `<a href="/auth/login?next=${encodeURIComponent(location.hash || "#/overview")}">Sign in with Microsoft</a>`
-      : `<span class="muted">${esc(error.message)}</span>`;
+    // /api/me is public, so reaching here means the service is unreachable
+    // rather than that nobody is signed in.
+    $("who").innerHTML = `<span class="muted">${esc(error.message)}</span>`;
+    return;
   }
+
+  // Three states, not two, and they were collapsed into two before: this
+  // endpoint answers 200 with an anonymous identity rather than refusing, so
+  // "not signed in" arrived here as a success and the offer to sign in — which
+  // lived in the catch above — was never shown. The console read "unauthenticated
+  // / none / sign out" with no way in.
+  if (!state.me.authenticated) {
+    $("who").innerHTML = sso
+      ? signIn
+      : `<span class="muted">not signed in</span>`;
+    return;
+  }
+
+  const roles = state.me.roles.length ? state.me.roles.join(", ") : "no role assigned";
+  $("who").innerHTML =
+    `<strong>${esc(state.me.display_name)}</strong><br>` +
+    `<span class="roles">${esc(roles)}</span>` +
+    (sso ? `<br><a href="/auth/logout">sign out</a>` : "");
+}
+
+/* Says why every panel is empty, which is otherwise indistinguishable from a
+   broken application. Two different causes, two different remedies. */
+function accessNotice() {
+  const me = state.me;
+  if (!me || me.can_view) return "";
+  if (!me.authenticated) {
+    return `<div class="banner info"><strong>Not signed in.</strong> Environments,
+      utilities, the data model and the audit trail all need a sign-in, so every
+      panel below is empty rather than broken.
+      <a href="/auth/login?next=${encodeURIComponent(location.hash || "#/overview")}">Sign
+      in with Microsoft</a>.</div>`;
+  }
+  return `<div class="banner warn"><strong>No role assigned.</strong> Signing in
+    worked — you are ${esc(me.display_name)} — but nothing has been granted to it
+    yet, so there is nothing to show. Ask an administrator for
+    <code>viewer</code> to read, or <code>operator</code> to start runs.</div>`;
 }
 
 /* ------------------------------------------------------------- environments */
@@ -817,10 +851,13 @@ function render() {
     activity: renderActivity,
   }[view.id];
 
+  const notice = accessNotice();
   try {
-    $("view").innerHTML = body();
+    $("view").innerHTML = notice + body();
   } catch (error) {
-    $("view").innerHTML = fail(error.message);
+    // The notice still goes out: with nothing readable, every view throws, and
+    // the reason is more useful than five copies of the same error.
+    $("view").innerHTML = notice + (notice ? "" : fail(error.message));
   }
   wire();
 }

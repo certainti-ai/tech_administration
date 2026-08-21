@@ -208,6 +208,9 @@ def me(principal=Depends(get_principal)):
     return {
         "subject": principal.subject,
         "display_name": principal.display_name,
+        # The console needs this to tell "not signed in" from "signed in with
+        # nothing assigned". Both have no roles; only one is fixed by signing in.
+        "authenticated": principal.authenticated,
         "roles": sorted(role.value for role in principal.roles),
         "can_view": can_view(principal),
         # Starting anything that writes needs operator or admin, and every

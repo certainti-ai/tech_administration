@@ -33,11 +33,18 @@ class Role(StrEnum):
 
 @dataclass(frozen=True)
 class Principal:
-    """An authenticated caller."""
+    """A caller, authenticated or not."""
 
     subject: str
     display_name: str
     roles: frozenset[Role] = field(default_factory=frozenset)
+
+    #: Whether we know who this is. Distinct from holding no roles: somebody who
+    #: signed in and has not been assigned anything is authenticated and
+    #: powerless, and the two need different messages — "sign in" versus "ask for
+    #: a role". Inferring it from an empty role set gave the first of those to
+    #: somebody who needed the second.
+    authenticated: bool = True
 
     def has(self, *roles: Role) -> bool:
         return bool(self.roles.intersection(roles))
@@ -47,9 +54,12 @@ class Principal:
         return not self.roles
 
 
-#: Used when no authenticator is configured. Deliberately holds no roles, so it
-#: can read nothing privileged and run nothing at all.
-ANONYMOUS = Principal(subject="anonymous", display_name="unauthenticated")
+#: Used when no authenticator is configured, and when a request arrives with no
+#: session. Deliberately holds no roles, so it can read nothing privileged and
+#: run nothing at all.
+ANONYMOUS = Principal(
+    subject="anonymous", display_name="unauthenticated", authenticated=False
+)
 
 
 def can_view(principal: Principal) -> bool:
