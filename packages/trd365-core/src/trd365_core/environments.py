@@ -206,16 +206,15 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
             "sslmode": "require",
             "tunnel": None,
         },
-        # Whether a trd365ai instance exists for this environment at all is an
-        # open question (docs/HANDOFF.md open question 1). Left as placeholders,
-        # so utilities that touch it refuse to run here and say why, rather than
-        # this environment quietly looking complete without it.
+        # Self-hosted on the environment's own platform VM rather than an Azure
+        # flexible server, which is why it is a bare address with no private
+        # endpoint and no bastion in front of it.
         "trd365ai": {
-            "host": PLACEHOLDER,
+            "host": "20.172.163.241",
             "port": 5432,
-            "dbname": PLACEHOLDER,
-            "user": PLACEHOLDER,
-            "sslmode": "prefer",
+            "dbname": "trd365ai",
+            "user": "aiadmin",
+            "sslmode": "require",
             "tunnel": None,
         },
     },
@@ -236,16 +235,15 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
             "sslmode": "require",
             "tunnel": None,
         },
-        # Whether a trd365ai instance exists for this environment at all is an
-        # open question (docs/HANDOFF.md open question 1). Left as placeholders,
-        # so utilities that touch it refuse to run here and say why, rather than
-        # this environment quietly looking complete without it.
+        # Self-hosted on the environment's own platform VM rather than an Azure
+        # flexible server, which is why it is a bare address with no private
+        # endpoint and no bastion in front of it.
         "trd365ai": {
-            "host": PLACEHOLDER,
+            "host": "104.45.139.23",
             "port": 5432,
-            "dbname": PLACEHOLDER,
-            "user": PLACEHOLDER,
-            "sslmode": "prefer",
+            "dbname": "trd365ai",
+            "user": "aiadmin",
+            "sslmode": "require",
             "tunnel": None,
         },
     },
@@ -268,16 +266,15 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
             "sslmode": "require",
             "tunnel": _STAGE_BASTION,
         },
-        # Whether a trd365ai instance exists for this environment at all is an
-        # open question (docs/HANDOFF.md open question 1). Left as placeholders,
-        # so utilities that touch it refuse to run here and say why, rather than
-        # this environment quietly looking complete without it.
+        # Self-hosted on the environment's own platform VM rather than an Azure
+        # flexible server, which is why it is a bare address with no private
+        # endpoint and no bastion in front of it.
         "trd365ai": {
-            "host": PLACEHOLDER,
+            "host": "40.71.82.6",
             "port": 5432,
-            "dbname": PLACEHOLDER,
-            "user": PLACEHOLDER,
-            "sslmode": "prefer",
+            "dbname": "trd365ai",
+            "user": "aiadmin",
+            "sslmode": "require",
             "tunnel": None,
         },
     },
@@ -341,18 +338,35 @@ _PLACEHOLDER_TOPOLOGY: dict[str, dict[str, object]] = {
 }
 
 
+#: Other spellings of a database key that are accepted when reading credentials.
+#:
+#: ``AIDB`` is the sibling of ``MAINDB`` and ``ORGDB`` and is what anybody writing
+#: the three down together reaches for; ``TRD365AI`` is what the original scripts
+#: used and so what the key is called. Accepting both costs one lookup and saves
+#: the failure it replaces: a credential supplied under the reasonable name,
+#: found by nothing, reported as "not configured yet".
+#:
+#: Aliases are read, never written. Everything this project stores — vault
+#: secrets, error messages, the loader script — uses the canonical key, so there
+#: is one name to search for when something is missing.
+_KEY_ALIASES: dict[str, tuple[str, ...]] = {
+    "trd365ai": ("aidb",),
+}
+
+
 def _candidate_names(env: Environment, db_key: str, field: str) -> list[str]:
     """
     The environment variable names that can carry one credential field, in order.
 
-    The scoped name wins. The unscoped one is honoured for production only,
-    because that is the shape the original scripts used and the only environment
-    they ever described — extending it to the others would let a stray
-    ``ORGDB_PASSWORD`` silently serve Dev.
+    The scoped name wins, and the canonical spelling beats an alias. The unscoped
+    name is honoured for production only, because that is the shape the original
+    scripts used and the only environment they ever described — extending it to
+    the others would let a stray ``ORGDB_PASSWORD`` silently serve Dev.
     """
-    names = [f"TRD365_{env.value.upper()}_{db_key.upper()}_{field.upper()}"]
+    spellings = (db_key, *_KEY_ALIASES.get(db_key, ()))
+    names = [f"TRD365_{env.value.upper()}_{key.upper()}_{field.upper()}" for key in spellings]
     if env.is_production:
-        names.append(f"{db_key.upper()}_{field.upper()}")
+        names += [f"{key.upper()}_{field.upper()}" for key in spellings]
     return names
 
 

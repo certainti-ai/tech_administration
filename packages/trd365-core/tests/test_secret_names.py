@@ -51,6 +51,14 @@ FILLED = {
 }
 
 
+#: What a caller must set for one environment to be fully supplied, by the scoped
+#: names ``--from-env`` reads.
+def scoped(env: Environment, extra: dict[str, str] | None = None) -> dict[str, str]:
+    values = {f"TRD365_{env.value.upper()}_{key}": value for key, value in FILLED.items()}
+    values.update(extra or {})
+    return values
+
+
 def names_the_resolver_would_need(env: Environment) -> set[str]:
     """
     The secrets that must exist for ``env`` to be usable, named as the vault
@@ -110,11 +118,14 @@ class TestTheScriptAndTheResolverAgree:
         assert "trd365-stage-maindb-ssh-password" in names
         assert "trd365-stage-orgdb-ssh-password" in names
 
-    def test_nothing_is_asked_for_a_database_with_no_known_server(self, tmp_path):
-        # trd365ai outside prod. Filling the template's fields for it should be
-        # reported as ignored rather than written under a name nothing reads.
-        for env in (Environment.DEV, Environment.QA, Environment.STAGE):
-            assert not any("trd365ai" in name for name in run_loader(env, tmp_path))
+    @pytest.mark.parametrize("env", list(Environment))
+    def test_all_three_databases_are_asked_for(self, env, tmp_path):
+        # Every environment has a known server for all three now. A database
+        # silently dropped from this list is one nobody notices is unconfigured
+        # until a utility refuses to run against it.
+        names = run_loader(env, tmp_path)
+        for db_key in DB_KEYS:
+            assert any(db_key in name for name in names), (db_key, names)
 
 
 class TestTheGuards:
@@ -152,7 +163,14 @@ class TestTheGuards:
         password = "p$$w'rd with space`echo x`"
         filled = tmp_path / "qa.env"
         filled.write_text(
-            "\n".join([f"MAINDB_PASSWORD={password}", "ORGDB_PASSWORD=org-pw"]) + "\n"
+            "\n".join(
+                [
+                    f"MAINDB_PASSWORD={password}",
+                    "ORGDB_PASSWORD=org-pw",
+                    "TRD365AI_PASSWORD=ai-pw",
+                ]
+            )
+            + "\n"
         )
         result = subprocess.run(
             ["bash", str(LOADER), "qa", str(filled)],
@@ -169,7 +187,9 @@ class TestTheGuards:
 
     def test_no_value_is_ever_printed(self, tmp_path):
         filled = tmp_path / "qa.env"
-        filled.write_text("MAINDB_PASSWORD=hunter2\nORGDB_PASSWORD=swordfish\n")
+        filled.write_text(
+            "MAINDB_PASSWORD=hunter2\nORGDB_PASSWORD=swordfish\nTRD365AI_PASSWORD=correcthorse\n"
+        )
         result = subprocess.run(
             ["bash", str(LOADER), "qa", str(filled)],
             capture_output=True,
@@ -177,8 +197,8 @@ class TestTheGuards:
             check=False,
         )
         assert result.returncode == 0, result.stdout + result.stderr
-        assert "hunter2" not in result.stdout + result.stderr
-        assert "swordfish" not in result.stdout + result.stderr
+        for secret in ("hunter2", "swordfish", "correcthorse"):
+            assert secret not in result.stdout + result.stderr
 
 
 class TestReadingFromTheEnvironment:
@@ -201,13 +221,7 @@ class TestReadingFromTheEnvironment:
         )
 
     def test_scoped_names_are_read(self):
-        result = self._run(
-            "qa",
-            {
-                "TRD365_QA_MAINDB_PASSWORD": "main-pw",
-                "TRD365_QA_ORGDB_PASSWORD": "org-pw",
-            },
-        )
+        result = self._run("qa", scoped(Environment.QA))
         assert result.returncode == 0, result.stdout + result.stderr
         assert "trd365-qa-maindb-password" in result.stdout
         assert "trd365-qa-orgdb-password" in result.stdout
@@ -235,13 +249,7 @@ class TestReadingFromTheEnvironment:
         import hashlib
 
         password = "qa$org pw`x`"
-        result = self._run(
-            "qa",
-            {
-                "TRD365_QA_MAINDB_PASSWORD": password,
-                "TRD365_QA_ORGDB_PASSWORD": "other",
-            },
-        )
+        result = self._run("qa", scoped(Environment.QA, {"TRD365_QA_MAINDB_PASSWORD": password}))
         assert result.returncode == 0, result.stdout + result.stderr
         row = next(
             line for line in result.stdout.splitlines() if "trd365-qa-maindb-password" in line
@@ -249,17 +257,21 @@ class TestReadingFromTheEnvironment:
         assert hashlib.sha256(password.encode()).hexdigest()[:12] in row
 
     def test_stage_still_wants_the_bastion_password(self):
-        result = self._run(
-            "stage",
-            {
-                "TRD365_STAGE_MAINDB_PASSWORD": "a",
-                "TRD365_STAGE_ORGDB_PASSWORD": "b",
-                "TRD365_STAGE_MAINDB_SSH_PASSWORD": "c",
-                # orgdb's bastion password left out
-            },
-        )
+        values = scoped(Environment.STAGE)
+        del values["TRD365_STAGE_ORGDB_SSH_PASSWORD"]
+        result = self._run("stage", values)
         assert result.returncode != 0
         assert "ORGDB_SSH_PASSWORD" in result.stdout
+
+    def test_the_aidb_spelling_is_accepted(self):
+        # AIDB is the sibling of MAINDB and ORGDB and is what somebody writing
+        # the three down together reaches for. It must land under the canonical
+        # vault name, so there is one name to search for later.
+        values = scoped(Environment.QA)
+        values["TRD365_QA_AIDB_PASSWORD"] = values.pop("TRD365_QA_TRD365AI_PASSWORD")
+        result = self._run("qa", values)
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "trd365-qa-trd365ai-password" in result.stdout
 
 
 class TestTopologyStaysInCode:
@@ -274,6 +286,7 @@ class TestTopologyStaysInCode:
     """
 
     FULL = {
+        "TRD365AI_PASSWORD": "ai-pw",
         "MAINDB_HOST": "main.example.internal",
         "MAINDB_PORT": "5432",
         "MAINDB_DBNAME": "somewhere_else",
@@ -302,7 +315,11 @@ class TestTopologyStaysInCode:
 
     def test_a_supplied_host_is_not_written_by_default(self):
         names, result = self._run("qa")
-        assert names == {"trd365-qa-maindb-password", "trd365-qa-orgdb-password"}
+        assert names == {
+            "trd365-qa-maindb-password",
+            "trd365-qa-orgdb-password",
+            "trd365-qa-trd365ai-password",
+        }
         # And it says so, rather than dropping them silently.
         assert "in code" in result.stdout
 

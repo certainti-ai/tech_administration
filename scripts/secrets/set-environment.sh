@@ -83,11 +83,15 @@ trap 'rm -rf "$WORK"' EXIT INT TERM
 
 # ---------------------------------------------------------------- what to ask
 
-# One line per field: "<db_key>\t<FIELD>\trequired|optional".
+# One line per field:
+#   "<db_key>\t<FIELD>\trequired|optional\t<SPELLING>[,<SPELLING>…]"
+# The spellings are the names to accept on *input*, taken from trd365_core so the
+# script cannot disagree with the resolver about what a database may be called.
+# The vault name is always built from the canonical key.
 PYTHONPATH="$CORE_SRC" python3 - "$ENVIRONMENT" "$WITH_OVERRIDES" > "$WORK/wanted" <<'PY' || fail "could not read the topology from trd365_core"
 import sys
 
-from trd365_core.environments import DB_KEYS, PLACEHOLDER, Environment, describe
+from trd365_core.environments import _KEY_ALIASES, DB_KEYS, PLACEHOLDER, Environment, describe
 
 env = Environment(sys.argv[1])
 with_overrides = sys.argv[2] == "true"
@@ -116,10 +120,13 @@ for db_key in DB_KEYS:
     if with_overrides and settings.ssh_tunnel is not None:
         optional += list(OPTIONAL_TUNNEL)
 
+    spellings = ",".join(
+        key.upper() for key in (db_key, *_KEY_ALIASES.get(db_key, ()))
+    )
     for field in required:
-        print(f"{db_key}\t{field}\trequired")
+        print(f"{db_key}\t{field}\trequired\t{spellings}")
     for field in optional:
-        print(f"{db_key}\t{field}\toptional")
+        print(f"{db_key}\t{field}\toptional\t{spellings}")
 PY
 
 [[ -s "$WORK/wanted" ]] || fail "$ENVIRONMENT has no databases this repo knows a server for"
@@ -140,10 +147,15 @@ environment, wanted = sys.argv[1:3]
 prefix = f"TRD365_{environment.upper()}_"
 
 for line in open(wanted, encoding="utf-8"):
-    db_key, field, _requirement = line.rstrip("\n").split("\t")
-    value = os.environ.get(f"{prefix}{db_key.upper()}_{field}")
-    if value:
-        print(f"{db_key.upper()}_{field}\t{value}")
+    db_key, field, _requirement, spellings = line.rstrip("\n").split("\t")
+    for spelling in spellings.split(","):
+        value = os.environ.get(f"{prefix}{spelling}_{field}")
+        if value:
+            # Keyed by the canonical spelling, so everything downstream — the
+            # vault name, the digest table, the missing-field report — speaks
+            # one name regardless of which was supplied.
+            print(f"{db_key.upper()}_{field}\t{value}")
+            break
 PY
 else
   # Read the file without sourcing it. A password containing `$`, backticks or a
@@ -172,9 +184,13 @@ declare -a NAMES=() KEYS=()
 
 log ""
 
-while IFS=$'\t' read -r db_key field requirement; do
+while IFS=$'\t' read -r db_key field requirement spellings; do
   key="$(printf '%s_%s' "$db_key" "$field" | tr '[:lower:]' '[:upper:]')"
-  value=$(lookup "$key" || true)
+  value=""
+  for spelling in ${spellings//,/ }; do
+    value=$(lookup "${spelling}_${field}" || true)
+    [[ -n "$value" ]] && break
+  done
 
   if [[ -z "$value" ]]; then
     if [[ "$requirement" == "required" ]]; then
@@ -206,7 +222,11 @@ fi
 while IFS=$'\t' read -r key _; do
   [[ "$FROM_ENV" == true ]] && break
   if ! awk -F'\t' -v k="$key" '
-      { want = toupper($1 "_" $2); if (want == k) found = 1 }
+      {
+        want = toupper($1 "_" $2); if (want == k) found = 1
+        n = split($4, spellings, ",")
+        for (i = 1; i <= n; i++) if (spellings[i] "_" $2 == k) found = 1
+      }
       END { exit !found }' "$WORK/wanted"; then
     if [[ "$WITH_OVERRIDES" == false ]] && printf '%s' "$key" | grep -qE '_(HOST|PORT|DBNAME|USER|SSLMODE)$'; then
       printf '  in code   %s (pass --with-overrides to store it anyway)\n' "$key"

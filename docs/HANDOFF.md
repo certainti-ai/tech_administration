@@ -370,17 +370,34 @@ Ask these before building past them:
      40.71.82.6. **Stage needs its own bastion account**; that is the one thing
      still missing for it.
 
-   Still outstanding: **whether `trd365ai` exists outside prod.** Prod's is a
-   direct connection to `4.246.251.140` as `aiadmin`; nothing has named an
-   equivalent for the other three, so their entries stay placeholders and the
-   loader does not ask for them. Any utility touching `trd365ai` refuses to run
-   there and says why — the right failure, but it does keep those cards short of
-   "Connected".
+   **`trd365ai` exists in all four** — answered 2026-08-21. They are self-hosted
+   on each environment's own platform VM rather than Azure flexible servers, which
+   is why they are bare addresses with no private endpoint and no bastion: Dev
+   `20.172.163.241`, QA `104.45.139.23`, Stage `40.71.82.6`, Prod
+   `4.246.251.140`, all database `trd365ai` as `aiadmin`, sharing one password.
 
-   So the whole remaining ask is passwords: two for Dev, two for QA, four for
-   Stage (its two databases plus the bastion). Supply them with
-   `scripts/secrets/set-environment.sh <env> <file>`;
-   `trd365_core.configuration_status()` reports what is ready, per database.
+   My earlier inference — "the subscription holds only two `RP-*` VMs and both are
+   production, so there may be no non-prod equivalent" — was wrong. The other
+   three run on the `Resource-Platform-*-VM` hosts, which I had already listed and
+   read as bastions only. Worth remembering as a shape of mistake: the evidence
+   was in front of me and I had assigned it a single purpose.
+
+   ### The `AIDB` spelling
+
+   The credentials arrived as `TRD365_DEV_AIDB_PASSWORD` and friends, and the
+   resolver was looking for `TRD365_DEV_TRD365AI_PASSWORD`. `AIDB` is the obvious
+   sibling of `MAINDB` and `ORGDB` — it is what anybody writing the three down
+   together reaches for — while `TRD365AI` is what the original scripts called it
+   and so what the key is named.
+
+   Rather than ask for a rename, `_KEY_ALIASES` accepts both on input. Aliases are
+   read and never written: every vault secret, every error message and every line
+   the loader prints uses the canonical key, so there is exactly one name to search
+   for when a credential is missing. The canonical spelling wins if both are set,
+   and an alias is still environment-scoped — `TRD365_QA_AIDB_PASSWORD` cannot
+   serve Dev. The loader takes the accepted spellings *from* `trd365_core` rather
+   than composing them, because it had been building the names itself and would
+   have missed the alias in exactly the same way.
 2. ~~**`account_deletion/` vs `data_purge/account/`.**~~ **Decided:** keep both
    for now, decision deferred. Record the relationship with
    `Utility.supersedes` rather than deleting either.

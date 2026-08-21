@@ -137,14 +137,64 @@ class TestTheNonProdTopology:
         assert tunnel.ssh_user == "preprod_DevOps"
         assert tunnel.ssh_user != envs.describe(Environment.PROD, "maindb", {}).ssh_tunnel.ssh_user
 
-    @pytest.mark.parametrize("env", [Environment.DEV, Environment.QA, Environment.STAGE])
-    def test_trd365ai_is_unknown_outside_prod(self, env):
-        # Whether one exists per environment is HANDOFF open question 1. Until
-        # it is answered, placeholders mean a utility that touches it refuses to
-        # run and says why.
+    @pytest.mark.parametrize("env", list(Environment))
+    def test_every_environment_has_an_ai_database(self, env):
         settings = envs.describe(env, "trd365ai", {})
-        assert settings.host == envs.PLACEHOLDER
-        assert settings.is_placeholder
+        assert envs.PLACEHOLDER not in settings.host
+        assert settings.dbname == "trd365ai"
+        assert settings.user == "aiadmin"
+        # Self-hosted on each environment's platform VM: a bare address, no
+        # private endpoint, and so no bastion in front of it.
+        assert settings.ssh_tunnel is None
+        assert not settings.host.endswith(".postgres.database.azure.com")
+
+    def test_each_environment_has_its_own_ai_host(self):
+        hosts = {
+            env: envs.describe(env, "trd365ai", {}).host for env in Environment
+        }
+        assert len(set(hosts.values())) == len(hosts), hosts
+
+
+class TestAlternativeSpellings:
+    """
+    ``AIDB`` is accepted as a spelling of ``trd365ai``.
+
+    It is the sibling of ``MAINDB`` and ``ORGDB``, so it is what anybody writing
+    the three down together reaches for — and a credential supplied under a
+    reasonable name that nothing reads gets reported as "not configured yet",
+    which sends the reader looking for the wrong problem.
+    """
+
+    def test_the_canonical_scoped_name_is_read(self):
+        environ = {"TRD365_QA_TRD365AI_PASSWORD": "canonical"}
+        assert envs.describe(Environment.QA, "trd365ai", environ).password == "canonical"
+
+    def test_the_alias_is_read(self):
+        environ = {"TRD365_QA_AIDB_PASSWORD": "alias"}
+        assert envs.describe(Environment.QA, "trd365ai", environ).password == "alias"
+
+    def test_the_canonical_name_wins_when_both_are_set(self):
+        environ = {
+            "TRD365_QA_AIDB_PASSWORD": "alias",
+            "TRD365_QA_TRD365AI_PASSWORD": "canonical",
+        }
+        assert envs.describe(Environment.QA, "trd365ai", environ).password == "canonical"
+
+    def test_an_alias_does_not_cross_environments(self):
+        # The prefix still does its job: QA's value must not serve Dev.
+        environ = {"TRD365_QA_AIDB_PASSWORD": "alias"}
+        assert envs.describe(Environment.DEV, "trd365ai", environ).password == envs.PLACEHOLDER
+
+    def test_the_other_keys_have_no_aliases(self):
+        # Nothing needs one, and an alias nobody asked for is a second name to
+        # search for when a credential goes missing.
+        assert set(envs._KEY_ALIASES) == {"trd365ai"}
+
+    def test_unscoped_aliases_are_production_only(self):
+        assert envs.describe(Environment.QA, "trd365ai", {"AIDB_PASSWORD": "x"}).password == (
+            envs.PLACEHOLDER
+        )
+        assert envs.describe(Environment.PROD, "trd365ai", {"AIDB_PASSWORD": "x"}).password == "x"
 
 
 class TestPlaceholderEnvironments:
