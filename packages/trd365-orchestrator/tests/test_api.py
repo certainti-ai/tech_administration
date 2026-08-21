@@ -43,8 +43,9 @@ class TestLiveness:
         # A liveness probe has to work before anyone signs in.
         assert client.get("/api/health").json() == {"status": "ok"}
 
-    def test_index_reports_whether_auth_is_configured(self, client):
-        assert "authentication" in client.get("/").json()
+    def test_the_service_description_reports_whether_auth_is_configured(self, client):
+        # It lived at / until / became the console.
+        assert "authentication" in client.get("/api").json()
 
 
 class TestUtilities:
@@ -249,3 +250,95 @@ class TestHealthAndAudit:
 
     def test_audit_requires_a_viewer(self, client):
         assert client.get("/api/audit").status_code == 403
+
+
+class TestConsole:
+    """
+    `/` serves the console, not JSON.
+
+    It returned the service description for a while, so anyone opening the
+    deployment in a browser was shown a JSON object and reasonably concluded
+    there was no application. That is what these assert against.
+    """
+
+    def test_the_root_serves_html(self, client):
+        response = client.get("/")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
+        assert "<title>Certainti Tech Administration</title>" in response.text
+
+    def test_the_service_description_moved_to_api(self, client):
+        payload = client.get("/api").json()
+        assert payload["service"] == "trd365 orchestrator"
+        assert payload["console"] == "/"
+
+    def test_the_console_needs_no_authentication_to_load(self, client):
+        # The page itself is a shell; every figure on it comes from an API call
+        # that is authorised on its own. Gating the shell would show a bare 403
+        # instead of a console that explains what the caller may do.
+        assert client.get("/").status_code == 200
+
+    def test_the_console_is_packaged_beside_the_module(self):
+        # Missing package-data installs the module without its HTML, so the
+        # console works from a checkout and falls back to JSON on a deployed host.
+        from trd365_orchestrator.app import CONSOLE
+
+        assert CONSOLE.is_file(), f"{CONSOLE} is not installed"
+
+    def test_the_console_only_fetches_endpoints_that_exist(self, client):
+        import re
+
+        from trd365_orchestrator.app import CONSOLE
+
+        paths = set(client.app.openapi()["paths"])
+        wanted = set(re.findall(r'get\("(/api[^"?]*)', CONSOLE.read_text()))
+        for path in wanted - {"/api"}:  # /api is excluded from the schema
+            template = re.sub(r"/(prod|stage|qa|dev)$", "/{environment}", path)
+            assert template in paths, (
+                f"the console fetches {path}, which the API does not serve"
+            )
+
+
+    def test_the_console_knows_every_status_the_health_module_emits(self):
+        # The card colour follows `status` off the payload rather than being
+        # recomputed in the browser, which is how a dashboard ends up disagreeing
+        # with the API it reads. That only holds if the console's lookup table
+        # covers the whole vocabulary — a new status would otherwise render as a
+        # grey pill labelled with the raw word.
+        import re
+
+        from trd365_orchestrator.app import CONSOLE
+
+        table = re.search(r"const STATUS = \{(.*?)\n\};", CONSOLE.read_text(), re.S)
+        assert table, "the console no longer has a STATUS table"
+        known = set(re.findall(r"(\w+): \[", table.group(1)))
+
+        # Read the vocabulary out of the health module rather than restating it,
+        # so adding a status there fails here instead of shipping a grey pill.
+        import inspect
+
+        from trd365_orchestrator import health
+
+        source = inspect.getsource(health.EnvironmentHealth.status.fget)
+        emitted = set(re.findall(r'return "(\w+)"', source))
+
+        assert emitted, "EnvironmentHealth.status no longer returns literals"
+        assert emitted <= known, f"the console has no tone for {sorted(emitted - known)}"
+
+
+class TestWhoAmI:
+    def test_a_viewer_is_told_it_cannot_run_anything(self, client):
+        payload = as_(client, "demo", "viewer").get("/api/me").json()
+        assert payload["can_view"] is True
+        assert payload["can_run"] is False
+        assert payload["can_approve"] is False
+
+    def test_an_operator_may_run_but_not_approve(self, client):
+        payload = as_(client, "ops", "operator").get("/api/me").json()
+        assert payload["can_run"] is True
+        assert payload["can_approve"] is False
+
+    def test_roles_are_reported_so_the_console_can_describe_itself(self, client):
+        payload = as_(client, "sam", "viewer,approver").get("/api/me").json()
+        assert payload["roles"] == ["approver", "viewer"]
+        assert payload["subject"] == "sam"

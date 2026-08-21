@@ -194,6 +194,29 @@ def approvals(orchestrator=Depends(get_orchestrator), principal=Depends(get_prin
 # --------------------------------------------------------------------- health
 
 
+@router.get("/me")
+def me(principal=Depends(get_principal)):
+    """
+    Who the caller is and what they may do.
+
+    The console reads this to describe itself honestly. Without it a read-only
+    visitor is shown controls that will refuse them, which reads as a broken
+    application rather than as a deliberate restriction.
+    """
+    from .security import Role, can_view
+
+    return {
+        "subject": principal.subject,
+        "display_name": principal.display_name,
+        "roles": sorted(role.value for role in principal.roles),
+        "can_view": can_view(principal),
+        # Starting anything that writes needs operator or admin, and every
+        # registered utility writes.
+        "can_run": principal.has(Role.OPERATOR, Role.ADMIN),
+        "can_approve": principal.has(Role.APPROVER, Role.ADMIN),
+    }
+
+
 @router.get("/health")
 def health(orchestrator=Depends(get_orchestrator)):
     """Unauthenticated: a liveness probe must work before anyone signs in."""

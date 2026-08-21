@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Certainti Tech Administration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* One hue for magnitude, reserved colours for state, cool slate neutrals.
+   Status never travels as colour alone — every pill carries a glyph and a word. */
+:root {
+  --ground:#F1F4F4; --surface:#FFFFFF; --sunk:#E7ECEC;
+  --ink:#0D1719; --body:#33474A; --muted:#5F7175; --line:#D6E0E0;
+  --accent:#0B6E63; --accent-soft:#E2F0EE;
+  --ok:#1A7F4B; --warn:#A65A07; --danger:#B3261E; --idle:#69787B;
+  --ok-bg:#E4F2EA; --warn-bg:#FBEEE0; --danger-bg:#FBE7E5; --idle-bg:#E9EEEE;
+  --display:"Archivo",system-ui,sans-serif;
+  --text:"Public Sans",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:#080F11; --surface:#0F1A1D; --sunk:#0A1315;
+    --ink:#E1EBEB; --body:#B4C6C7; --muted:#8A9C9E; --line:#203034;
+    --accent:#35C7B4; --accent-soft:#10312E;
+    --ok:#4ECB8B; --warn:#E0A45C; --danger:#F0837A; --idle:#7D8F92;
+    --ok-bg:#0F2A1E; --warn-bg:#2C2113; --danger-bg:#2E1917; --idle-bg:#172124;
+  }
+}
+:root[data-theme="dark"] {
+  --ground:#080F11; --surface:#0F1A1D; --sunk:#0A1315;
+  --ink:#E1EBEB; --body:#B4C6C7; --muted:#8A9C9E; --line:#203034;
+  --accent:#35C7B4; --accent-soft:#10312E;
+  --ok:#4ECB8B; --warn:#E0A45C; --danger:#F0837A; --idle:#7D8F92;
+  --ok-bg:#0F2A1E; --warn-bg:#2C2113; --danger-bg:#2E1917; --idle-bg:#172124;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--body);
+  font-family:var(--text);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 80px}
+h1,h2,h3{font-family:var(--display);color:var(--ink);margin:0;text-wrap:balance}
+h1{font-size:clamp(24px,3.4vw,34px);font-weight:700;letter-spacing:-.02em}
+h2{font-size:19px;font-weight:600}
+h3{font-size:15px;font-weight:600}
+code,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+a{color:var(--accent)}
+
+header.mast{background:var(--surface);border-bottom:1px solid var(--line)}
+.mast .wrap{padding-block:26px 22px;display:flex;flex-wrap:wrap;gap:16px;
+  align-items:flex-end;justify-content:space-between}
+.eyebrow{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--accent);margin:0 0 4px}
+.who{font-size:13.5px;color:var(--muted);text-align:right}
+.who strong{color:var(--ink);font-family:var(--display)}
+
+.notice{margin-top:22px;padding:14px 16px;border-radius:var(--radius);display:flex;gap:12px;
+  background:var(--warn-bg);border:1px solid color-mix(in srgb,var(--warn) 32%,transparent)}
+.notice .bar{width:3px;background:var(--warn);border-radius:2px;flex:none}
+.notice p{margin:0;font-size:14px}
+.notice strong{color:var(--ink);font-family:var(--display);font-weight:600}
+
+section{margin-top:40px}
+.shead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.shead p{margin:0;color:var(--muted);font-size:13.5px}
+.grid{display:grid;gap:14px;margin-top:18px}
+.g4{grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+
+article{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:17px;position:relative;overflow:hidden}
+article header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+article p{margin:9px 0 0;font-size:14px}
+.stripe::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--idle)}
+.s-ok::before{background:var(--ok)}.s-warn::before{background:var(--warn)}
+.s-danger::before{background:var(--danger)}
+
+/* Status: glyph + word + colour, never colour alone. */
+.pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--display);font-size:10.5px;
+  font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:4px;
+  white-space:nowrap;background:var(--idle-bg);color:var(--idle)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.danger{background:var(--danger-bg);color:var(--danger)}
+.pill .g{font-size:11px;line-height:1}
+
+.env h3{text-transform:uppercase;letter-spacing:.08em;font-size:12.5px}
+.readout{font-size:13px;color:var(--muted);margin-top:8px}
+.dbs{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.db{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.5px;
+  padding:3px 8px;border-radius:99px;background:var(--sunk);color:var(--muted)}
+.db i{width:6px;height:6px;border-radius:99px;background:var(--idle);flex:none}
+.db.on i{background:var(--ok)}
+/* After .on: a failing database is still a configured one, so this has to win. */
+.db.bad i{background:var(--danger)}
+.foot{font-size:12.5px;color:var(--muted);margin-top:10px}
+
+.id{font-family:var(--mono);font-size:12px;color:var(--muted);display:block;margin-top:3px}
+.meta{display:grid;gap:11px;margin-top:15px;padding-top:13px;border-top:1px solid var(--line)}
+.lbl{display:block;font-family:var(--display);font-size:10.5px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.meta>div>div{font-size:14px;color:var(--ink)}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:11.5px;padding:2px 7px;border-radius:4px;
+  background:var(--accent-soft);color:var(--accent)}
+
+/* Stat tiles: a headline number is not a chart. */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.stat{background:var(--surface);padding:15px 17px}
+.stat .v{font-family:var(--display);font-size:25px;font-weight:700;color:var(--ink);
+  font-variant-numeric:tabular-nums;line-height:1.15}
+.stat .k{font-size:12.5px;color:var(--muted);margin-top:2px}
+
+/* Magnitude across a few named things: one hue, direct labels, no legend needed. */
+.bars{display:grid;gap:9px;margin-top:16px}
+.bar-row{display:grid;grid-template-columns:150px 1fr auto;gap:11px;align-items:center;font-size:13.5px}
+.bar-track{background:var(--sunk);border-radius:4px;height:11px;overflow:hidden}
+.bar-fill{height:100%;background:var(--accent);border-radius:4px}
+.bar-row .n{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);font-size:13px}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);
+  background:var(--surface);margin-top:18px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px}
+th{font-family:var(--display);font-size:10.5px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 13px;
+  border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td code{font-size:12.5px;color:var(--ink)}
+.empty{padding:22px;text-align:center;color:var(--muted);font-size:14px}
+
+.muted{color:var(--muted)}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);
+  border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;
+  vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
+  color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<header class="mast"><div class="wrap">
+  <div>
+    <p class="eyebrow">Certainti</p>
+    <h1>Tech Administration</h1>
+  </div>
+  <div class="who" id="who"><span class="spin"></span>identifying…</div>
+</div></header>
+
+<div class="wrap">
+
+  <div class="notice" id="posture" hidden>
+    <div class="bar"></div>
+    <div><p id="posture-text"></p></div>
+  </div>
+
+  <section>
+    <div class="shead"><h2>Environments</h2>
+      <p>Credential readiness and reachability, per database.</p></div>
+    <div class="grid g4" id="envs"><p class="muted"><span class="spin"></span>loading…</p></div>
+  </section>
+
+  <section>
+    <div class="shead"><h2>Utilities</h2>
+      <p>Generated from the registry the service loads at start-up.</p></div>
+    <div class="grid g2" id="utils"><p class="muted"><span class="spin"></span>loading…</p></div>
+  </section>
+
+  <section>
+    <div class="shead"><h2>Data model</h2>
+      <p id="model-sub">The snapshot every destructive utility reads before it will write.</p></div>
+    <div id="model"><p class="muted"><span class="spin"></span>loading…</p></div>
+  </section>
+
+  <section>
+    <div class="shead"><h2>Jobs</h2><p>Runs submitted through this service.</p></div>
+    <div id="jobs"><p class="muted"><span class="spin"></span>loading…</p></div>
+  </section>
+
+  <section>
+    <div class="shead"><h2>Audit trail</h2>
+      <p>Written on every invocation, whether it succeeded, failed or was interrupted.</p></div>
+    <div id="audit"><p class="muted"><span class="spin"></span>loading…</p></div>
+  </section>
+
+  <footer>
+    <p><a href="/docs">API reference</a> · <a href="/api">service info</a> ·
+    <span id="version" class="muted"></span></p>
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// Every status reads as glyph + word, so it survives greyscale and colour-blindness.
+const GLYPH = { ok: "●", warn: "▲", danger: "■", idle: "○" };
+const pill = (tone, label) =>
+  `<span class="pill ${tone}"><span class="g" aria-hidden="true">${GLYPH[tone]}</span>${esc(label)}</span>`;
+
+async function get(path) {
+  const res = await fetch(path, { headers: { accept: "application/json" } });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+function fail(node, error) {
+  node.innerHTML = `<p class="muted">Could not load: ${esc(error.message)}</p>`;
+}
+
+/* ---------------------------------------------------------------- identity */
+
+async function loadWho() {
+  try {
+    const me = await get("/api/me");
+    const roles = me.roles.length ? me.roles.join(", ") : "none";
+    $("who").innerHTML =
+      `<strong>${esc(me.display_name)}</strong><br>roles: ${esc(roles)}`;
+
+    if (!me.can_run) {
+      $("posture-text").innerHTML =
+        `<strong>Read-only access.</strong> This sign-in carries the ` +
+        `<code>viewer</code> role, and starting any utility that writes needs ` +
+        `<code>operator</code> or <code>admin</code>. Every utility below writes, so ` +
+        `nothing here can be run from this session — by design, not by omission.`;
+      $("posture").hidden = false;
+    }
+  } catch (error) {
+    $("who").innerHTML = `<span class="muted">${esc(error.message)}</span>`;
+  }
+}
+
+/* ------------------------------------------------------------ environments */
+
+// The service already classifies each environment — `status` on the payload is
+// the same word the health module computes, and duplicating that logic here is
+// how a dashboard ends up disagreeing with the API it reads. So the pill follows
+// `status`, and the card only adds the detail behind it.
+const STATUS = {
+  good: ["ok", "Connected"],
+  warning: ["warn", "Model attention"],
+  critical: ["danger", "Unreachable"],
+  unconfigured: ["idle", "Credentials pending"],
+};
+
+function envCard(env) {
+  const total = env.databases.length;
+  const ready = env.databases.filter((d) => d.configured).length;
+  const reachable = env.databases.filter((d) => d.reachable === true).length;
+  const probed = env.databases.filter((d) => d.reachable != null).length;
+  const failed = env.databases.filter((d) => d.configured && d.reachable === false);
+  const latencies = env.databases.map((d) => d.latency_ms).filter((v) => v != null);
+
+  // Derived only when the payload predates `status`; the service is the authority.
+  const derived =
+    ready === 0 ? "unconfigured" : failed.length ? "critical" : ready < total ? "warning" : "good";
+  let [tone, label] = STATUS[env.status ?? derived] ?? ["idle", env.status ?? derived];
+
+  // "Model attention" is vague on its own — say which of the two it is.
+  if (label === "Model attention" && ready < total) label = `${ready} of ${total} configured`;
+  else if (label === "Model attention" && env.model && !env.model.present) label = "No snapshot yet";
+  else if (label === "Model attention" && env.model && env.model.stale) label = "Snapshot stale";
+
+  // Detail, not a second copy of the pill: what the state is made of.
+  const detail = [];
+  if (ready === 0) {
+    detail.push(`no credentials for ${total} ${total === 1 ? "database" : "databases"}`);
+  } else if (!probed) {
+    detail.push(`${ready} of ${total} configured, not probed`);
+  } else {
+    detail.push(`${reachable} of ${total} reachable`);
+    if (latencies.length) detail.push(`slowest ${Math.max(...latencies)}ms`);
+    if (failed.length) detail.push(`failing: ${failed.map((d) => d.db_key).join(", ")}`);
+  }
+  if (env.model?.present && env.model.fingerprint) {
+    detail.push(`model ${env.model.fingerprint.slice(0, 8)}${env.model.stale ? " (stale)" : ""}`);
+  } else if (ready > 0) {
+    detail.push("no model snapshot");
+  }
+
+  const dbs = env.databases.map((d) =>
+    `<span class="db ${d.configured ? "on" : ""}${d.reachable === false && d.configured ? " bad" : ""}"
+           title="${esc(d.error ?? "configured")}">
+       <i aria-hidden="true"></i>${esc(d.db_key)}${d.latency_ms != null ? ` ${d.latency_ms}ms` : ""}
+     </span>`).join("");
+
+  return `<article class="env stripe s-${tone}">
+    <header><h3>${esc(env.environment)}</h3>${pill(tone, label)}</header>
+    <p class="readout">${esc(detail.join(" \u00b7 "))}</p>
+    <div class="dbs">${dbs}</div>
+    ${env.environment === "prod" ? `<p class="foot">Production. Writes need a second approver.</p>` : ""}
+  </article>`;
+}
+
+async function loadEnvs() {
+  const node = $("envs");
+  try {
+    const data = await get("/api/health/environments");
+    node.innerHTML = data.environments.map(envCard).join("");
+  } catch (error) { fail(node, error); }
+}
+
+/* ---------------------------------------------------------------- utilities */
+
+const IMPACT = {
+  destructive: ["danger", "Destructive"],
+  writes: ["warn", "Writes"],
+  "read-only": ["ok", "Read only"],
+};
+
+function utilCard(u) {
+  const [tone, label] = IMPACT[u.impact] ?? ["idle", u.impact];
+  const dbs = u.databases.map((d) => `<span class="chip">${esc(d)}</span>`).join("");
+  const required = u.parameters.filter((p) => p.required).map((p) => p.flag);
+  return `<article class="stripe s-${tone}">
+    <header>
+      <div><h3>${esc(u.title)}</h3><code class="id">${esc(u.id)}</code></div>
+      ${pill(tone, label)}
+    </header>
+    <p>${esc(u.description)}</p>
+    <div class="meta">
+      <div><span class="lbl">Databases</span><div class="chips">${dbs}</div></div>
+      <div><span class="lbl">In production</span><div>${
+        u.requires_approval_in_prod ? "Requires a second approver" : "No approval required"
+      }</div></div>
+      <div><span class="lbl">Required arguments</span><div>${
+        required.length ? required.map((f) => `<code>${esc(f)}</code>`).join(" ") : "none"
+      }</div></div>
+    </div>
+  </article>`;
+}
+
+async function loadUtils() {
+  const node = $("utils");
+  try {
+    const data = await get("/api/utilities");
+    node.innerHTML = data.utilities.length
+      ? data.utilities.map(utilCard).join("")
+      : `<p class="muted">No utilities are registered.</p>`;
+  } catch (error) { fail(node, error); }
+}
+
+/* -------------------------------------------------------------- data model */
+
+function bars(entries) {
+  const max = Math.max(...entries.map(([, n]) => n), 1);
+  return `<div class="bars">${entries.map(([name, n]) => `
+    <div class="bar-row">
+      <span>${esc(name)}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(n / max) * 100}%"></div></div>
+      <span class="n">${n.toLocaleString()}</span>
+    </div>`).join("")}</div>`;
+}
+
+async function loadModel() {
+  const node = $("model");
+  // Production is the only environment with a snapshot; the others have never
+  // been analysed, and saying so beats an empty panel.
+  for (const env of ["prod", "stage", "qa", "dev"]) {
+    try {
+      const m = await get(`/api/model/${env}`);
+      const s = m.summary ?? {};
+      const dev = m.deviations ?? {};
+      $("model-sub").textContent =
+        `${env} · fingerprint ${m.fingerprint ?? "?"} · captured ${(m.generated_at ?? "").slice(0, 16).replace("T", " ")}`;
+      node.innerHTML = `
+        <div class="stats">
+          <div class="stat"><div class="v">${(s.schemas ?? 0).toLocaleString()}</div><div class="k">Tenant schemas</div></div>
+          <div class="stat"><div class="v">${(s.tables ?? 0).toLocaleString()}</div><div class="k">Tables</div></div>
+          <div class="stat"><div class="v">${(s.references ?? 0).toLocaleString()}</div><div class="k">Resolved references</div></div>
+          <div class="stat"><div class="v">${(s.deviations ?? 0).toLocaleString()}</div><div class="k">Naming deviations</div></div>
+        </div>
+        ${Object.keys(dev).length ? `<div class="shead" style="margin-top:26px"><h3>Deviations by kind</h3>
+          <p>What the model could not resolve, and how it was classified.</p></div>
+          ${bars(Object.entries(dev).sort((a, b) => b[1] - a[1]))}` : ""}`;
+      return;
+    } catch (error) { /* try the next environment */ }
+  }
+  node.innerHTML = `<p class="muted">No environment has a data-model snapshot yet.
+    Run <code>data-model-analysis</code> against one to create the first.</p>`;
+}
+
+/* --------------------------------------------------------------- jobs/audit */
+
+const OUTCOME = { success: "ok", failed: "danger", cancelled: "idle", running: "warn" };
+
+async function loadJobs() {
+  const node = $("jobs");
+  try {
+    const data = await get("/api/jobs");
+    if (!data.jobs?.length) {
+      node.innerHTML = `<div class="tablewrap"><p class="empty">No jobs have been submitted.</p></div>`;
+      return;
+    }
+    node.innerHTML = `<div class="tablewrap"><table>
+      <thead><tr><th>Utility</th><th>Env</th><th>State</th><th>Mode</th><th>Requested by</th></tr></thead>
+      <tbody>${data.jobs.map((j) => `<tr>
+        <td><code>${esc(j.utility_id)}</code></td><td>${esc(j.environment)}</td>
+        <td>${pill(OUTCOME[j.state] ?? "idle", j.state)}</td>
+        <td>${j.apply ? pill("warn", "apply") : pill("idle", "dry run")}</td>
+        <td>${esc(j.requested_by ?? "—")}</td></tr>`).join("")}</tbody></table></div>`;
+  } catch (error) { fail(node, error); }
+}
+
+async function loadAudit() {
+  const node = $("audit");
+  try {
+    const data = await get("/api/audit?limit=25");
+    if (!data.records?.length) {
+      node.innerHTML = `<div class="tablewrap"><p class="empty">No runs recorded on this host yet.
+        Utilities run from the command line are recorded here too.</p></div>`;
+      return;
+    }
+    node.innerHTML = `<div class="tablewrap"><table>
+      <thead><tr><th>Utility</th><th>Env</th><th>Mode</th><th>Outcome</th><th>Actor</th><th>Started</th></tr></thead>
+      <tbody>${data.records.map((r) => `<tr>
+        <td><code>${esc(r.utility)}</code></td><td>${esc(r.environment)}</td>
+        <td>${r.applied ? pill("warn", "apply") : pill("idle", "dry run")}</td>
+        <td>${pill(OUTCOME[r.outcome] ?? "idle", r.outcome ?? "—")}</td>
+        <td>${esc(r.actor)}</td>
+        <td class="num">${esc((r.started_at ?? "").slice(0, 19).replace("T", " "))}</td>
+      </tr>`).join("")}</tbody></table></div>`;
+  } catch (error) { fail(node, error); }
+}
+
+async function loadVersion() {
+  try {
+    const info = await get("/api");
+    $("version").textContent = `${info.service} · ${info.utilities} utilities loaded`;
+  } catch { /* the footer is decoration; a failure here is not worth reporting */ }
+}
+
+loadWho();
+loadEnvs();
+loadUtils();
+loadModel();
+loadJobs();
+loadAudit();
+loadVersion();
+</script>
+</body>
+</html>

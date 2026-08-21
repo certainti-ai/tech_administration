@@ -9,8 +9,10 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, JSONResponse
 from trd365_core.audit import JsonlAuditSink, default_audit_path
 from trd365_core.db import ConnectionPool
 from trd365_core.environments import Environment
@@ -26,6 +28,9 @@ from .security import ANONYMOUS, Principal, Role
 from .service import Orchestrator, OrchestratorConfig
 
 Authenticator = Callable[[Request], Principal]
+
+#: The console, shipped as package data beside this module.
+CONSOLE = Path(__file__).parent / "web" / "index.html"
 
 
 def header_authenticator(request: Request) -> Principal:
@@ -105,16 +110,41 @@ def create_app(
     )
     app.include_router(router, prefix="/api")
 
-    @app.get("/")
-    def index() -> dict:
+    def service_info() -> dict:
         return {
             "service": "trd365 orchestrator",
             "environments": [e.value for e in Environment],
             "docs": "/docs",
+            "console": "/",
             "authentication": "development headers" if dev_auth else "not configured",
             "utilities": len(app.state.orchestrator.registry),
             "discovered": discovered,
         }
+
+    @app.get("/api", include_in_schema=False)
+    def info() -> dict:
+        """Service description. This used to live at `/` — see `index` below."""
+        return service_info()
+
+    @app.get("/", include_in_schema=False)
+    def index():
+        """
+        The operator console.
+
+        `/` used to return the service description as JSON, which meant anyone
+        opening the deployment in a browser was shown a JSON object and
+        reasonably concluded there was no application. The description moved to
+        `/api`; this serves the console.
+
+        The page is one self-contained file with no build step, deliberately.
+        The VM has no Node runtime, so a bundled front end would mean either
+        installing a toolchain on a host that can purge production or committing
+        build output. Neither is worth it for a console that reads six endpoints.
+        A richer front end (PRD FR-4.x) can replace this without the API moving.
+        """
+        if not CONSOLE.exists():  # pragma: no cover - packaging failure
+            return JSONResponse(service_info())
+        return FileResponse(CONSOLE, media_type="text/html")
 
     return app
 
