@@ -22,7 +22,7 @@ import {
   renderShell,
   shellQuote,
 } from "../scripts/secrets/sync.mjs";
-import { resolveVaultName, vaultUrl } from "../scripts/secrets/client.mjs";
+import { armCredential, createVaultClient, resolveVaultName, vaultUrl } from "../scripts/secrets/client.mjs";
 
 /** In-memory stand-in for Azure's SecretClient. */
 function fakeVault(initial = {}) {
@@ -299,5 +299,33 @@ describe("resolveVaultName", () => {
 
   it("builds the vault URL", () => {
     expect(vaultUrl("certainti-kv")).toBe("https://certainti-kv.vault.azure.net");
+  });
+});
+
+describe("ARM_* credentials", () => {
+  it("builds a service-principal credential from ARM_* when all three are set", () => {
+    const credential = armCredential({
+      ARM_TENANT_ID: "t",
+      ARM_CLIENT_ID: "c",
+      ARM_CLIENT_SECRET: "s",
+    });
+    expect(credential).toBeTruthy();
+  });
+
+  it("returns null when ARM_* is incomplete, so the default chain still runs", () => {
+    // Half-configured must not produce a credential that fails at request time
+    // with a worse message than the chain's own.
+    expect(armCredential({ ARM_TENANT_ID: "t", ARM_CLIENT_ID: "c" })).toBeNull();
+    expect(armCredential({})).toBeNull();
+  });
+
+  it("prefers ARM_* over the default chain", () => {
+    // DefaultAzureCredential's EnvironmentCredential reads AZURE_*, not ARM_*,
+    // and ignoring that difference is what made the first real push fail with
+    // "EnvironmentCredential is unavailable" while a valid principal was set.
+    const client = createVaultClient("trd365-maint-kv-9qgdg5", {
+      env: { ARM_TENANT_ID: "t", ARM_CLIENT_ID: "c", ARM_CLIENT_SECRET: "s" },
+    });
+    expect(client.vaultUrl).toBe("https://trd365-maint-kv-9qgdg5.vault.azure.net");
   });
 });

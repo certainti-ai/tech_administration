@@ -1,16 +1,31 @@
-import { DefaultAzureCredential } from "@azure/identity";
+import { ClientSecretCredential, DefaultAzureCredential } from "@azure/identity";
 import { SecretClient } from "@azure/keyvault-secrets";
 
 /**
  * Key Vault client construction.
  *
- * `DefaultAzureCredential` is what lets one script serve every context without
- * branching: it tries environment credentials (the ARM_* service principal),
- * then workload identity, then managed identity, then the signed-in Azure CLI
- * user. So the same command works from a Claude Code session, a developer
- * laptop running `az login`, a GitHub Actions job authenticated over OIDC, and
- * a deployed service with a managed identity attached.
+ * `DefaultAzureCredential` covers most contexts without branching: workload
+ * identity, managed identity, a signed-in Azure CLI user, and its own
+ * `EnvironmentCredential`. That is what lets one command serve a developer
+ * laptop, a GitHub Actions job on OIDC, and a deployed service.
+ *
+ * It does **not** cover `ARM_*`. `EnvironmentCredential` reads `AZURE_CLIENT_ID`
+ * / `AZURE_TENANT_ID` / `AZURE_CLIENT_SECRET`; `ARM_*` is Terraform's naming and
+ * the SDK ignores it entirely. This project's environment provides only `ARM_*`,
+ * so relying on the default chain here fails with "EnvironmentCredential is
+ * unavailable" while a perfectly good service principal sits in the environment
+ * — which is exactly what happened on the first real push. So `ARM_*` is
+ * honoured explicitly, and only then does the chain take over.
  */
+
+/** Service-principal credential from `ARM_*`, or null if not fully configured. */
+export function armCredential(env = process.env) {
+  const tenant = env.ARM_TENANT_ID;
+  const client = env.ARM_CLIENT_ID;
+  const secret = env.ARM_CLIENT_SECRET;
+  if (!tenant || !client || !secret) return null;
+  return new ClientSecretCredential(tenant, client, secret);
+}
 
 /** Environment variable naming the target vault. */
 export const VAULT_ENV = "AZURE_KEY_VAULT_NAME";
@@ -34,10 +49,10 @@ export function vaultUrl(vaultName) {
   return `https://${vaultName}.vault.azure.net`;
 }
 
-export function createVaultClient(vaultName, { credential } = {}) {
+export function createVaultClient(vaultName, { credential, env = process.env } = {}) {
   return new SecretClient(
     vaultUrl(vaultName),
-    credential ?? new DefaultAzureCredential(),
+    credential ?? armCredential(env) ?? new DefaultAzureCredential(),
   );
 }
 

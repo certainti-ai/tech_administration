@@ -811,31 +811,57 @@ credentials: `configuration_status` reports every database unconfigured in all
 four environments, because no passwords have been supplied anywhere yet. That is
 the Key Vault's job, and it is the one thing still blocked.
 
-### Still outstanding — one permission
+### RBAC and the vault — resolved 2026-08-21
 
-Three resources could not be created:
+The first apply left three resources uncreated, all failing on
+`Microsoft.Authorization/roleAssignments/write`: the service principal held
+**Contributor**, which by design cannot create role assignments. The owner
+granted **User Access Administrator**, and the remaining apply completed.
 
-```
-azurerm_role_assignment.key_vault_secrets_user      (VM identity -> read secrets)
-azurerm_role_assignment.deployer_secrets_officer    (deployer -> write secrets)
-azurerm_key_vault_secret.admin_ssh_private_key      (depends on the above)
-```
-
-All three fail the same way:
+All 16 resources now exist. Verified end to end **from the VM**, using its own
+managed identity (`395de63d-…`) against the vault data plane:
 
 ```
-AuthorizationFailed: ... does not have authorization to perform action
-'Microsoft.Authorization/roleAssignments/write'
+IMDS token for vault.azure.net   2048 chars
+GET /secrets                     200  ['maintenance-vm-ssh-private-key']
+GET /secrets/maintenance-vm-…    200
 ```
 
-The service principal holds **Contributor** (`b24988ac-…`), which by design
-cannot create role assignments. It needs **User Access Administrator**
-(`18d7d88d-d35e-4fb5-a5c3-7773c20a72d9`) — scoped to the `trd365-maintenance`
-resource group is enough, and is preferable to subscription-wide. Then re-run
-`terraform apply`; the run is idempotent and everything else already exists.
+So the credential chain works: VM -> managed identity -> Key Vault -> secret.
 
-Until that is granted, the VM cannot read the vault, so no utility can connect to
-a database. Everything upstream of that is done.
+**The vault now holds the real database credentials.** `scripts/secrets/` ran
+against a live vault for the first time and wrote 26 secrets: the full maindb,
+orgdb and trd365ai sets. The Azure service principal is excluded by design — it
+authenticates to the vault, so it cannot live inside it.
+
+Two things were deliberately held back:
+
+- **`aws-*`.** `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` hash to the
+  *identical* digest, so both variables hold the same value and at least one is
+  wrong. This is open question 6 in §6, now with evidence. Pushing a
+  known-broken secret is worse than leaving the slot empty.
+- **`tf-var-repo-pat`.** The repository is public, so nothing needs it.
+
+### Still outstanding — the last link
+
+**Nothing on the VM can get the vault's secrets into a utility's environment.**
+`environments.py` resolves credentials from the process environment, and its own
+docstring says that environment is "populated from Azure Key Vault" — but on the
+VM nothing populates it:
+
+- no Python package reads Key Vault (`grep -rl keyvault packages/*/src` is empty);
+- `scripts/secrets/load.sh` would do it, but it is Node, and cloud-init installs
+  no Node runtime.
+
+So `configuration_status` still reports every database unconfigured on the VM,
+even though the values are sitting in a vault it can read. The fix is a small
+Python resolver in `trd365-core`: when an environment variable is absent, fetch
+the corresponding secret from the vault via the managed identity, using the same
+name transform as `scripts/secrets/naming.mjs` (`MAINDB_PASSWORD` ->
+`maindb-password`). It must be injectable so tests keep running against fakes,
+and the Azure SDK import should be lazy so the package does not hard-depend on it.
+
+**That is the only thing between here and a utility talking to a real database.**
 
 ### Four bugs the first live deploy found that no test could
 
