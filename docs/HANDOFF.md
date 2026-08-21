@@ -149,16 +149,61 @@ analysis now finds orphan rows and nothing removes them.
 
 ### Step 2 — the remaining purge entities
 
-`case`, `interaction`, `project`, `project_fiscal` in
-`legacy/trd365_maintenance/data_purge/`. The engine and CLI driver are entity
-agnostic and already built: each entity needs only a `manifest.py`, a
-`scoping.py` and a `__main__.py`, mirroring `account/`. Roughly a day each.
+**`case` and `interaction` are done** (`purge-case`, `purge-interaction`, both
+registered). They were cheap, as predicted: pure subtree deletes, so the shared
+engine did all the work and each entity is a manifest, a scoper and an entry
+point. What they share now lives in `trd365_data_purge/subtree.py`.
 
-- **Move `base_sql/*.sql` and `DELETION_ORDER.md` unchanged.** The SQL encodes
-  foreign-key deletion order; it is data, not code to rewrite.
-- `project_fiscal` carries extra flags in the legacy tool (`--sections`,
-  `--concurrency`, `--heartbeat`, `--backup-schema`, `--limit`). Port them or
-  consciously drop them; do not lose them silently.
+The one thing to know about them: `follow_foreign_keys` is a per-entity decision,
+not a default. A case follows them; an interaction does not, because
+`chat_sessions` carries an `interaction_rid` it does not own and any rule general
+enough to reach FK-linked tables reaches that one too. Three tests hold the line,
+and the guard was verified by adding `chat_sessions` to the manifest and watching
+two of them fail with two rows deleted.
+
+**`project` and `project_fiscal` remain, and they are a different animal.** They
+do not enumerate rows; they run the vendor's eight PL/pgSQL SECTION files, which
+delete *and recompute the financial aggregates* that survive — account fiscal
+totals, project rollups, QRE dollars. `trd365_data_purge/sections.py` is that
+runner and is built and tested (32 tests); the eight SQL files moved across
+unchanged. What is left is the entity layer: resolve a project fiscal, compute
+`is_last_fiscal`, iterate a project's fiscals, and report.
+
+#### The thing to know before touching those two
+
+**The vendor SQL is not a template.** Its FILL IN block contains real production
+identifiers — tenant schema `trd365_01379`, plus live account, project and
+project-fiscal rids, 23 occurrences across the eight files. They are not
+placeholders like `<schema>`; they are values that resolve. A substitution that
+fails to match therefore does not error and does not no-op — the section runs,
+succeeds, and deletes a fiscal year belonging to whoever those identifiers point
+at.
+
+The legacy runner checked that every value it was *given* got used. It did not
+check that every value in the *file* got replaced, and that is the direction the
+danger runs in: a renamed declaration is silent. `sections.prepare()` now refuses
+to return SQL containing any identifier-shaped literal it did not put there,
+anywhere in the file. Do not relax that check.
+
+**A dry run of these sections is not free.** Everywhere else in this package a dry
+run counts rows without touching them. Here it *executes* the deletes and the
+recompute inside a transaction that is then discarded — same locks, same work,
+result thrown away. It is the only way to dry-run SQL that recomputes, and an
+operator should be told so before running one against production.
+
+#### The legacy flags: what happens to each
+
+Decided rather than dropped silently, as the earlier note asked.
+
+| Flag | Decision |
+|---|---|
+| `--sections` | **Keep.** Re-running just the audit sections (4, 5, 8) after a failure is genuinely useful. |
+| `--heartbeat` | **Keep.** A `DO` block emits nothing for minutes; without it an operator cannot tell slow from hung. Implemented as `on_progress` in `sections.execute`. |
+| `--backup-schema` | **Keep.** Needed to resume into the schema an earlier run created. |
+| `--verbose` | **Keep.** Full NOTICE output rather than the summary lines. |
+| `--last-fiscal` / `--not-last-fiscal` | **Keep.** Decides whether the project row itself goes. |
+| `--concurrency` | **Drop.** It parallelised across projects in a CSV batch. One invocation is one target here, and running projects concurrently while they recompute *shared* account-level aggregates is a correctness hazard, not a feature. |
+| `--limit`, `--projects`, `--input` | **Drop.** CSV-batch flags. Batching is the orchestrator's job, where each target is a job with its own approval, log and outcome — the same decision already taken for the account purge. |
 
 ### Step 3 — validate the conventions against the live schema **on the VM**
 
@@ -187,8 +232,10 @@ for the real thing. **This step needs database access, so it runs on the VM.**
 3. `account_deletion` — **keep it**, alongside `data_purge/account`. The owner
    has deferred the decision; `PURGE_ACCOUNT.supersedes` already records the
    relationship so the UI can show it without either being deleted.
-4. `project_fiscal_year_deletion` — delete **only** after confirming its flags
-   exist in the `data_purge` equivalent (see Step 2).
+4. `project_fiscal_year_deletion` — its `base_sql/` is **byte-identical** to
+   `data_purge/project_fiscal/base_sql/` (verified with `diff -rq`), so it is a
+   CSV batch runner over the same SQL and nothing else. Its flags are decided in
+   the table above. Delete it once `project_fiscal` ships.
 5. Port `manual-rd-percent-update` JS → Python. Write characterisation tests
    from the JS behaviour *first*. It touches money. Its `index.js` header cites
    file and line references into `entity-module`, which lives in
