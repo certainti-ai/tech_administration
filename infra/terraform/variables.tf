@@ -128,6 +128,39 @@ variable "demo_username" {
   default     = "demo"
 }
 
+variable "demo_roles" {
+  description = <<-EOT
+    The roles Caddy injects for whoever gets through the login.
+
+    `viewer` is the safe default and the one to come back to: it can read
+    everything and start nothing.
+
+    `operator` lets the login start utilities. What keeps that defensible is not
+    the login — it is that an operator cannot finish anything consequential
+    alone:
+
+      * a production run that writes waits for a second person, and
+        self-approval is refused (`can_approve`, PRD FR-4.3);
+      * a production *preview* of the project purges waits too, because their
+        preview executes the delete-and-recompute and rolls it back rather than
+        counting rows (`dry_run_executes`);
+      * dev, QA and stage have no credentials in this deployment, so an apply
+        there fails at connect.
+
+    So an operator through this login can preview freely, and every production
+    write still needs somebody who is not them. Add `approver` only if you
+    intend this login to be able to complete production writes by itself — with
+    one shared password, that is not a posture to hold for long.
+  EOT
+  type        = string
+  default     = "viewer"
+
+  validation {
+    condition     = alltrue([for r in split(",", var.demo_roles) : contains(["viewer", "operator", "approver", "admin"], trimspace(r))])
+    error_message = "demo_roles must be a comma-separated list of viewer, operator, approver or admin."
+  }
+}
+
 variable "demo_password" {
   description = <<-EOT
     Password for the Caddy login. Only used when expose_publicly is set.

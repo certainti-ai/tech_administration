@@ -288,17 +288,32 @@ class TestConsole:
 
         assert CONSOLE.is_file(), f"{CONSOLE} is not installed"
 
-    def test_the_console_only_fetches_endpoints_that_exist(self, client):
+    def test_the_console_only_calls_endpoints_that_exist(self, client):
+        # Matches the console's own request helper. This test was briefly worthless
+        # after a refactor renamed that helper — the pattern found nothing and the
+        # loop passed over an empty set — so it now asserts it found something.
         import re
 
         from trd365_orchestrator.app import CONSOLE
 
+        console = CONSOLE.read_text()
         paths = set(client.app.openapi()["paths"])
-        wanted = set(re.findall(r'get\("(/api[^"?]*)', CONSOLE.read_text()))
+
+        literal = set(re.findall(r'api\("(/api[^"?]*)', console))
+        # Template literals: /api/model/${env} and /api/utilities/${id}/preview.
+        templated = {
+            re.sub(r"\$\{[^}]+\}", "{}", found)
+            for found in re.findall(r"api\(`(/api[^`?]*)", console)
+        }
+        wanted = literal | templated
+        assert wanted, "found no API calls in the console; has the request helper moved?"
+
         for path in wanted - {"/api"}:  # /api is excluded from the schema
-            template = re.sub(r"/(prod|stage|qa|dev)$", "/{environment}", path)
+            template = path.replace("/api/model/{}", "/api/model/{environment}")
+            template = template.replace("/api/utilities/{}/", "/api/utilities/{utility_id}/")
+            template = re.sub(r"/(prod|stage|qa|dev)$", "/{environment}", template)
             assert template in paths, (
-                f"the console fetches {path}, which the API does not serve"
+                f"the console calls {path}, which the API does not serve"
             )
 
 
@@ -329,12 +344,14 @@ class TestConsole:
         assert emitted <= known, f"the console has no tone for {sorted(emitted - known)}"
 
 
-    def test_the_console_only_reads_audit_fields_the_api_sends(self, client):
+    def test_the_console_only_reads_fields_the_api_sends(self, client):
         # This test exists because it was wrong in production. The console rendered
         # the audit trail's mode from `record.applied`, which the API does not
         # serialise — it sends `mode` ("apply" / "dry-run"). `undefined` is falsy,
         # so every applied run in the audit trail was labelled "dry run". An audit
         # trail that mislabels writes as dry runs is worse than no audit trail.
+        #
+        # Checked for both tables, since the same mistake is available in each.
         import re
 
         from trd365_core.audit import RunRecord
@@ -353,19 +370,33 @@ class TestConsole:
                 outcome="success",
             )
         )
-        payload = as_(client, "v", "viewer").get("/api/audit").json()
-        assert payload["records"], "the seeded record did not come back"
-        sent = set(payload["records"][0])
+        console = CONSOLE.read_text()
+        viewer = as_(client, "v", "viewer")
 
-        body = re.search(
-            r"async function loadAudit\(\) \{(.*?)\nloadAudit", CONSOLE.read_text(), re.S
-        )
-        assert body, "the console no longer has a loadAudit function"
-        read = set(re.findall(r"\br\.(\w+)", body.group(1)))
+        for function, variable, endpoint in (
+            ("auditTable", "r", "/api/audit"),
+            ("jobsTable", "j", "/api/jobs"),
+        ):
+            body = re.search(rf"function {function}\((.*?)\n}}\n", console, re.S)
+            assert body, f"the console no longer has a {function} function"
+            read = set(re.findall(rf"\b{variable}\.(\w+)", body.group(1)))
+            assert read, f"found no fields being read in {function}"
 
-        assert read, "found no audit fields being read"
-        unknown = sorted(read - sent)
-        assert not unknown, f"the console reads {unknown}, which /api/audit does not send"
+            payload = viewer.get(endpoint).json()
+            records = payload.get("records") or payload.get("jobs")
+            if not records:
+                # /api/jobs is empty until something is submitted; fall back to the
+                # dataclass's own field names, which are what it serialises.
+                from trd365_orchestrator.jobs import Job
+
+                sent = set(Job.__dataclass_fields__) | {"mode", "state"}
+            else:
+                sent = set(records[0])
+
+            unknown = sorted(read - sent)
+            assert not unknown, (
+                f"the console reads {unknown} from {endpoint}, which it does not send"
+            )
 
     def test_an_applied_run_is_not_shown_as_a_dry_run(self):
         # The specific regression, pinned separately from the contract check above

@@ -61,13 +61,19 @@ write_files:
 
   # Caddy: TLS, a login, and a deliberately powerless identity upstream.
   #
-  # The injected role is `viewer` and nothing else. Every registered utility
-  # writes, and the service requires operator or admin to start anything that
-  # writes, so a caller arriving through this login reads the catalogue, health,
-  # the audit trail and the data model, and cannot run a single utility. That is
-  # the property that makes exposing this host tolerable: it holds credentials
-  # that can delete production data, and no login page is strong enough to be
-  # the only thing standing in the way.
+  # The identity handed upstream is whatever `demo_roles` says — `viewer` by
+  # default, which can read everything and start nothing.
+  #
+  # With `operator`, the login can start utilities, and what makes that tolerable
+  # is not the login: it is that an operator cannot finish anything consequential
+  # alone. A production run that writes waits for a second person and cannot be
+  # self-approved; a production preview of the project purges waits too, because
+  # their preview executes the work and rolls it back rather than counting rows.
+  # See the `demo_roles` variable for the full reasoning.
+  #
+  # This host holds credentials that can delete production data, and no login
+  # page is strong enough to be the only thing standing in the way — so the
+  # second-approver rule is the thing being relied on, and it is tested.
   # Staged here, NOT at /etc/caddy/Caddyfile. That path is a dpkg conffile owned
   # by the caddy package: pre-creating it makes `apt-get install caddy` stop at a
   # "keep your currently-installed version?" prompt, and with no stdin dpkg
@@ -89,7 +95,7 @@ write_files:
 
         reverse_proxy 127.0.0.1:${app_port} {
           header_up X-Dev-User {http.auth.user.id}
-          header_up X-Dev-Roles viewer
+          header_up X-Dev-Roles ${demo_roles}
         }
 
         header {

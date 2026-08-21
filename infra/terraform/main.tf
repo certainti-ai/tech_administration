@@ -48,6 +48,7 @@ resource "azurerm_linux_virtual_machine" "maintenance" {
     caddy_site           = local.caddy_site
     demo_username        = var.expose_publicly ? var.demo_username : ""
     demo_password        = var.expose_publicly ? coalesce(var.demo_password, "") : ""
+    demo_roles           = var.demo_roles
     key_vault_name       = local.key_vault_name
     client_id            = azurerm_user_assigned_identity.vm.client_id
     repository_url       = var.app_repository_url
