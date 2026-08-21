@@ -771,3 +771,92 @@ Built this session:
 **Resume at §11 — deploy.** It unblocks everything that has been waiting on a
 real database: the live-schema extraction (§4 Step 3), the first
 `data-model-analysis --apply`, and integration testing at all.
+
+---
+
+## 12. The deployment, as it actually happened (2026-08-21)
+
+**The VM is live and serving.** `trd365-maint-vm`, private IP `10.80.1.4`, in
+`trd365-maintenance` / `centralus`, subscription `b8e81c74…` "Certainti.Ai -
+Platform". Nothing pre-existing was touched.
+
+```
+GET / ->  {"service":"trd365 orchestrator",
+           "environments":["dev","qa","stage","prod"],
+           "utilities":2,"discovered":["analysis","data-purge"]}
+GET /api/health -> 200
+```
+
+Entry-point discovery works in production: the service found both utility
+packages without a list naming them. The deploy ran the **full test suite on the
+VM** and only then restarted the service. `trd365-deploy.timer` is enabled, next
+run three-hourly.
+
+State lives in `trd365-tfstate` / `trd365tfstated82a2003` / `tfstate`, blob
+versioning on. The account key printed during bootstrap was rotated afterwards.
+
+### Network reachability, measured from the VM
+
+The thing no Claude session could ever test:
+
+| Target | Result |
+|---|---|
+| IMDS managed identity | **200** — the identity works |
+| SSH bastion `172.203.151.166:22` | **open** |
+| `trd365ai` `4.246.251.140:5432` | **open** |
+| `maindb` private endpoint, DNS | does not resolve — expected, hence the bastion |
+
+**So the path to every database exists from this host.** What is missing is
+credentials: `configuration_status` reports every database unconfigured in all
+four environments, because no passwords have been supplied anywhere yet. That is
+the Key Vault's job, and it is the one thing still blocked.
+
+### Still outstanding — one permission
+
+Three resources could not be created:
+
+```
+azurerm_role_assignment.key_vault_secrets_user      (VM identity -> read secrets)
+azurerm_role_assignment.deployer_secrets_officer    (deployer -> write secrets)
+azurerm_key_vault_secret.admin_ssh_private_key      (depends on the above)
+```
+
+All three fail the same way:
+
+```
+AuthorizationFailed: ... does not have authorization to perform action
+'Microsoft.Authorization/roleAssignments/write'
+```
+
+The service principal holds **Contributor** (`b24988ac-…`), which by design
+cannot create role assignments. It needs **User Access Administrator**
+(`18d7d88d-d35e-4fb5-a5c3-7773c20a72d9`) — scoped to the `trd365-maintenance`
+resource group is enough, and is preferable to subscription-wide. Then re-run
+`terraform apply`; the run is idempotent and everything else already exists.
+
+Until that is granted, the VM cannot read the vault, so no utility can connect to
+a database. Everything upstream of that is done.
+
+### Four bugs the first live deploy found that no test could
+
+Each of these passed lint, static analysis and 452 unit tests, and each broke on
+a real machine. Worth remembering before trusting the next untested path.
+
+1. **`deploy.sh` was never on the VM.** The unit ran
+   `ExecStart=/opt/trd365/deploy.sh`, but that file lives in the repository, and
+   the repository is cloned *by* `deploy.sh`. Circular; the box could never
+   deploy itself. cloud-init now makes the first clone.
+2. **`app_branch` defaulted to `main`, which does not exist** on the remote. The
+   clone would have failed outright — hidden until something actually cloned.
+3. **The service account could not restart the service it deploys.** No sudo
+   rights. Now scoped to exactly two verbs on exactly that one unit.
+4. **`deploy.sh` rewrote itself mid-run.** Bash reads a script incrementally, so
+   after `git reset` replaced the file, bash continued reading the *new* bytes
+   from the *old* offset — executing a splice of two versions. This is why a
+   fixed install step kept failing with the pre-fix error message on a VM that
+   had already fetched the fix. The script now re-execs from a `/tmp` snapshot.
+
+Plus two ordering faults: the packages depend on each other, so installing them
+one at a time in directory order sent pip to PyPI for `trd365-core`; and the
+"already at this revision" fast path skipped install and tests on a fresh box
+where cloud-init had cloned the same commit.
