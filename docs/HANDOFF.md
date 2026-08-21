@@ -1138,6 +1138,28 @@ where cloud-init had cloned the same commit.
 
 ---
 
+### Running a long utility on the VM
+
+`az vm run-command` holds stdout until the command exits and occupies the single
+run-command slot while it does, so a twenty-minute job is opaque for twenty
+minutes *and* blocks anything asking how it is going. The first data-model
+snapshot was exactly that: it logged progress per tenant schema, and none of it
+could be seen.
+
+`infra/deploy/run-utility.sh` runs a utility under a transient systemd unit
+instead, so journald captures the progress it was already writing and the
+run-command that started it returns at once:
+
+```bash
+run-utility.sh start  snapshot-dev trd365_analysis --env dev --apply
+run-utility.sh log    snapshot-dev 40
+run-utility.sh status snapshot-dev
+run-utility.sh stop   snapshot-dev
+```
+
+It refuses to start a second run under the same name: two snapshots of one
+environment writing the same model file is a corrupted snapshot, not two.
+
 ## 13. The live site
 
 **https://tech-controlcentre.certainti.ai/** — Microsoft sign-in, certainti.ai
