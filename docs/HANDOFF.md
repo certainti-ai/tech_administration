@@ -552,11 +552,25 @@ host that can purge production databases — the list is in the next section, an
 switching to it later costs nothing — but Full unblocks the work now, and that
 was the owner's call to make.
 
-**This does not affect any session already running**, including the one that
-wrote this. An environment's configuration is applied when a session's VM is
-provisioned. Re-tested immediately after the change: still 403. **A new session
-is required**, and the first thing it should do is
-`bash tools/check_azure_reachability.sh`.
+**A session captures its environment's configuration when the session is
+created, and reprovisioning its container does not re-read it.** Tested on
+2026-08-21 in this session, after the change, on a container that had just booted
+0 minutes earlier:
+
+| Host | Result | Meaning |
+|---|---|---|
+| `example.com`, `wikipedia.org`, `icanhazip.com` | blocked | **not Full** — Full permits any domain |
+| `registry.npmjs.org`, `pypi.org`, `releases.hashicorp.com` | HTTP 200 | the Trusted allowlist, still in force |
+
+So a browser refresh does not pick it up, and neither does a fresh container. **A
+genuinely new session is required.**
+
+`tools/check_azure_reachability.sh` now reports which level is actually in force,
+using exactly that discriminator — because "I changed it to Full" and "this
+session is on Full" are different claims and only the second one matters. Run it
+first in any new session. If a new session still reports Trusted, the edit did not
+save, or it was made on the wrong environment (there are two, and their names are
+similar in the selector).
 
 ### The narrower alternative, if you want it later
 

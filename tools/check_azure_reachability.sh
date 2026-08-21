@@ -120,3 +120,29 @@ for host in registry.terraform.io vault.azure.net graph.microsoft.com; do
     pass "$host reachable (HTTP $hostcode)"
   fi
 done
+
+# Which policy is actually in force, as opposed to which one the dialog shows.
+# Editing an environment does not change a session that already exists — the
+# configuration is captured when the session is created, and reprovisioning its
+# container does not re-read it. So "I changed it to Full" and "this session is
+# on Full" are different claims, and only this test settles the second one.
+echo
+echo "== which network access level is in force? =="
+reachable=0
+for host in example.com wikipedia.org; do
+  hostcode=$(curl -s -o /dev/null -w '%{http_code}' --max-time 12 "https://$host/" 2>/dev/null)
+  [[ "$hostcode" != "000" ]] && reachable=$((reachable + 1))
+done
+
+control=$(curl -s -o /dev/null -w '%{http_code}' --max-time 12 https://pypi.org/ 2>/dev/null)
+if [[ "$control" == "000" ]]; then
+  bad "even pypi.org is unreachable — this is None, or egress is broken entirely"
+elif [[ "$reachable" -gt 0 ]]; then
+  pass "arbitrary domains resolve — Full (or a Custom list wide enough)"
+else
+  warn "arbitrary domains blocked, allowlisted ones work — this session is on Trusted"
+  echo "        Changing the environment does not affect a session that already"
+  echo "        exists, and restarting its container does not re-read the setting."
+  echo "        Start a NEW session. If a new one still reports Trusted, check that"
+  echo "        the edit was saved on the right environment."
+fi
