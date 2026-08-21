@@ -180,13 +180,6 @@ SECTION_PARAMETERS: tuple[Parameter, ...] = (
     ),
 )
 
-_NOT_FREE = (
-    "A DRY RUN OF THIS UTILITY IS NOT FREE. It runs the vendor's delete-and-recompute "
-    "SQL inside a transaction it then rolls back — same locks, same work, result "
-    "discarded — because SQL that recomputes financial aggregates cannot be previewed "
-    "any other way. In production a preview needs an approver for that reason."
-)
-
 PURGE_PROJECT_FISCAL = Utility(
     id="purge-project-fiscal",
     title="Purge project fiscal year",
@@ -224,10 +217,12 @@ PURGE_PROJECT_FISCAL = Utility(
         ),
         *SECTION_PARAMETERS,
     ),
+    # No note about the preview not being free: `dry_run_executes` above is that
+    # fact in structured form, and repeating it as prose is how a panel ends up
+    # saying the same thing twice.
     notes=(
         "is_last_fiscal is TRUE only when this is the project's only remaining fiscal, "
-        "in which case the project row goes too and the account totals are recomputed. "
-        + _NOT_FREE
+        "in which case the project row goes too and the account totals are recomputed."
     ),
 )
 
@@ -261,8 +256,7 @@ PURGE_PROJECT = Utility(
     ),
     notes=(
         "Stops at the first failing fiscal by default: a failed fiscal means the "
-        "recompute chain is already inconsistent, and pressing on compounds it. "
-        + _NOT_FREE
+        "recompute chain is already inconsistent, and pressing on compounds it."
     ),
     supersedes="project_fiscal_year_deletion",
 )
