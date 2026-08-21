@@ -123,6 +123,36 @@ history. A field the environment has no use for is reported as ignored, never
 quietly stored: a password sitting under a name nothing reads is a password
 somebody believes is in place.
 
+### Reading the vault from a session
+
+A session's environment is fixed when its container starts, so credentials added
+to the environment definition afterwards are invisible to a session already
+running. The vault is not: it can be read at any time, which makes it the way to
+give a long-running session credentials it did not start with.
+
+```bash
+python3 -m pip install azure-identity azure-keyvault-secrets
+
+PYTHONPATH=packages/trd365-core/src \
+AZURE_KEY_VAULT_NAME=trd365-maint-kv-9qgdg5 \
+AZURE_CLIENT_ID="$ARM_CLIENT_ID" \
+AZURE_TENANT_ID="$ARM_TENANT_ID" \
+AZURE_CLIENT_SECRET="$ARM_CLIENT_SECRET" \
+python3 -c "
+from trd365_core.environments import Environment, describe
+from trd365_core.vault import KeyVaultSecrets
+print(describe(Environment.QA, 'maindb', {}, KeyVaultSecrets('trd365-maint-kv-9qgdg5')).redacted())
+"
+```
+
+The Azure SDK is an extra rather than a dependency, because `import trd365_core`
+has to work without it — CI and most sessions have no vault to reach.
+
+Worth knowing when testing this way: the deployment service principal reaching
+the vault is **not** how the VM does it. The VM uses its own managed identity,
+which holds Key Vault Secrets *User* — read only. A credential that resolves here
+and not there is a role assignment, not a missing secret.
+
 ### Checking it worked
 
 A secret written under a name nothing reads looks exactly like a secret that
