@@ -5,12 +5,11 @@ and how access is controlled once it is.
 
 The code is written, tested and inert: with none of the `entra_*` Terraform
 variables set, the deployment behaves exactly as it does today. Turning it on is
-the checklist in §3, and everything in it happens in Entra ID — nothing here can
-create an app registration, because the deployer service principal has no
-directory permissions (verified: Microsoft Graph returns 403 for it, which is the
-right answer).
+three things — a DNS record (§3), an app registration (§4), and a `terraform
+apply` (§4, step 3).
 
 Tenant: `b6734060-665c-4b7b-94e2-716458c1d933`.
+Hostname: `tech-controlcentre.certainti.ai`.
 
 ---
 
@@ -38,8 +37,9 @@ shared password has to go:
   `purge-project` or `purge-project-fiscal`, because those preview by executing
   the delete-and-recompute and rolling it back — same locks, same work.
 * **"No access" is enforced twice.** Entra can refuse the sign-in before it
-  reaches us (§3, step 6), and the application refuses it again if it arrives
-  anyway. Belt and braces, because the two are maintained by different people.
+  reaches us (§4, "assignment required"), and the application refuses it again if
+  it arrives anyway. Belt and braces, because the two are maintained by different
+  people.
 
 ### Recommended assignment
 
@@ -82,35 +82,128 @@ injecting a role. A host with both cannot be signed into by naming your own role
 
 ---
 
-## 3. The checklist
+## 3. DNS
 
-All of this is in the Entra admin centre, in the certainti.ai tenant.
+One record, in GoDaddy, where `certainti.ai` is hosted (`pdns11.domaincontrol.com`
+/ `pdns12.domaincontrol.com` — the `certainti.ai-dns` zone in Azure holds no A
+records and does not serve the domain).
 
-**1. Register the application.**
-Entra ID → App registrations → New registration.
+| Field | Value |
+|---|---|
+| Type | `A` |
+| Name / Host | `tech-controlcentre` |
+| Value / Points to | `52.173.109.182` |
+| TTL | 600 seconds (10 minutes) — or the shortest offered |
+
+An `A` record and not a `CNAME`: `CNAME` would need a name to point at, and the
+VM has none — an Azure public IP only gets a `*.cloudapp.azure.com` label if one
+is configured, and adding a layer whose only job is to be renamed later is not
+worth it. The IP is a **Static** Standard address, so it survives deallocation
+and reboots; it changes only if the public IP resource is destroyed and recreated.
+
+Nothing else is needed. No `www`, no `TXT`, no CAA unless the domain already has
+one — if it does, it must permit `letsencrypt.org` or the certificate cannot be
+issued.
+
+**Then TLS happens by itself.** Caddy asks Let's Encrypt for a certificate over
+the HTTP-01 challenge, which needs inbound port 80 — already open, and already how
+the current certificate was obtained.
+
+Once the record resolves, point the running host at it:
+
+```bash
+# From this repo, against the live VM.
+az vm run-command invoke -g trd365-maintenance -n trd365-maint-vm \
+  --command-id RunShellScript \
+  --scripts "/opt/trd365/app/infra/deploy/set-hostname.sh tech-controlcentre.certainti.ai"
+```
+
+That script refuses to do anything until the name resolves to this VM, because a
+reload with a name that does not is a failed ACME challenge and Let's Encrypt
+rate-limits those. Follow it with `terraform apply -var
+public_hostname=tech-controlcentre.certainti.ai` so a future rebuild comes up with
+the same name — `cloud-init` writes the Caddyfile only at first boot, which is
+precisely why the script exists.
+
+---
+
+## 4. Turning sign-in on
+
+Two routes. They produce the same thing; pick by who is doing it.
+
+### Route A — `infra/entra`, as code
+
+`infra/entra/` is a small Terraform root module that creates the registration, the
+four roles, the "assignment required" switch, and both secrets — writing them
+straight into the vault the VM reads. See its README. It needs directory rights,
+so it is applied by a person, from their own machine, once:
+
+```bash
+cd infra/entra
+terraform init
+az login --tenant b6734060-665c-4b7b-94e2-716458c1d933
+
+terraform apply \
+  -var public_hostname=tech-controlcentre.certainti.ai \
+  -var key_vault_name=trd365-maint-kv-9qgdg5
+```
+
+It prints the client id and what to do with it. Then assign somebody (§1), and
+apply the VM deployment with the three variables in step 3 below.
+
+**Who can run it:** *Application Administrator* (or Cloud Application
+Administrator) to create the registration, plus *Key Vault Secrets Officer* on
+`trd365-maint-kv-9qgdg5` to store the secrets. If you hold the first and not the
+second, add `-var write_secrets_to_vault=false` and hand the two outputs to
+somebody who does.
+
+**If you would rather this ran unattended** — from the deployment service
+principal `7b8767e1-1618-424a-a206-b66e892fc91e` rather than from a person — it
+needs exactly one Microsoft Graph **application** permission, with admin consent:
+
+| Permission | Type | Why this one |
+|---|---|---|
+| `Application.ReadWrite.OwnedBy` | Application | Create and manage app registrations **it owns** — enough for this module, and it cannot touch any other application in the tenant. |
+
+That is the whole ask. Two permissions people commonly add alongside it are worth
+declining:
+
+* `Application.ReadWrite.All` — the same capability over *every* registration in
+  the tenant, including ones that guard other systems. `OwnedBy` is the same job
+  with a blast radius of one.
+* `AppRoleAssignment.ReadWrite.All` — would let the module assign the groups in
+  §1 too. It also lets its holder grant *any* app role of *any* application to
+  *any* principal, which includes granting itself Graph roles. Deciding who can
+  delete production data is a governance act with a human on the end of it; it
+  should not be a Terraform variable. Leave the assignment lists empty and assign
+  in the portal.
+
+The module already assumes this: `app_role_assignment_required = true` means the
+registration existing grants nobody anything until somebody is deliberately
+assigned.
+
+### Route B — the portal
+
+Everything Route A does, by hand. In the Entra admin centre, certainti.ai tenant.
+
+**1. Register the application.** Entra ID → App registrations → New registration.
 
 * Name: `Certainti Tech Administration`
 * Supported account types: **Accounts in this organizational directory only**
   (single tenant). Anything wider is a larger blast radius for no benefit; the
   application checks the `tid` claim and would refuse other tenants anyway.
-* Redirect URI: **Web** → `https://<your-host>/auth/callback`
+* Redirect URI: **Web** → `https://tech-controlcentre.certainti.ai/auth/callback`
 
-Note the **Application (client) ID**.
+Note the **Application (client) ID**. The redirect URI must match what Caddy
+serves exactly — Terraform derives it from `public_hostname` for that reason, and
+a mismatch produces `AADSTS50011` with nothing on this side to explain it.
 
-> The host must match what Caddy serves. Terraform derives the redirect URI from
-> it for exactly this reason — the two disagreeing produces a redirect-URI
-> mismatch with no obvious cause. Set `public_hostname` to a real name before
-> turning SSO on; the `nip.io` fallback works, but the URI changes if the VM's
-> public IP ever does.
+**2. Create a client secret.** Certificates & secrets → New client secret. Copy it
+now; it is not shown again. A certificate is better if you would rather not rotate
+a secret — say so and I will switch the code to one.
 
-**2. Create a client secret.**
-Certificates & secrets → New client secret. Copy it now; it is not shown again.
-A certificate is better if you would rather not rotate a secret — say so and I
-will switch the code to one.
-
-**3. Define the four app roles.**
-App roles → Create app role, four times. The **value** is what the application
-reads and must be exactly:
+**3. Define the four app roles.** App roles → Create app role, four times. The
+**value** is what the application reads and must be exactly:
 
 | Display name | Value | Allowed member types |
 |---|---|---|
@@ -119,16 +212,15 @@ reads and must be exactly:
 | Approver | `approver` | Users/Groups |
 | Administrator | `admin` | Users/Groups |
 
-**4. Emit the roles.** Token configuration → the `roles` claim is included for
-app roles automatically. Nothing to do unless you chose groups instead — see §5.
+**4. Emit the roles.** Token configuration → the `roles` claim is included for app
+roles automatically. Nothing to do unless you chose groups instead — see §6.
 
-**5. Assign people.**
-Enterprise applications → Certainti Tech Administration → Users and groups → Add
-user/group, choosing a role each time. Groups are better than people.
+**5. Assign people.** Enterprise applications → Certainti Tech Administration →
+Users and groups → Add user/group, choosing a role each time. Groups are better
+than people.
 
-**6. Require assignment.**
-Enterprise applications → the same app → Properties → **Assignment required:
-Yes**.
+**6. Require assignment.** Enterprise applications → the same app → Properties →
+**Assignment required: Yes**.
 
 This is the one that answers "I don't want everyone with a certainti.ai id to get
 in". With it on, an unassigned person cannot complete sign-in at all — Entra stops
@@ -150,34 +242,36 @@ az keyvault secret set --vault-name $AZURE_KEY_VAULT_NAME \
 The VM reads both through its managed identity, so neither ends up in a unit file
 or a process listing.
 
-**8. Turn it on.**
+### Then, either way — turn it on
 
 ```hcl
 entra_tenant_id = "b6734060-665c-4b7b-94e2-716458c1d933"
-entra_client_id = "<from step 1>"
-public_hostname = "techadmin.certainti.ai"   # or whatever DNS name you use
+entra_client_id = "<the client id>"
+public_hostname = "tech-controlcentre.certainti.ai"
 ```
 
-`terraform apply`. Caddy's password prompt disappears and `/` redirects to
-Microsoft.
+`terraform apply`. Caddy's password prompt disappears and the console offers
+"Sign in with Microsoft".
 
-**9. Take away the shared password.** Set `demo_password = null` and
+**Last, take away the shared password.** Set `demo_password = null` and
 `demo_roles = "viewer"`, or turn `expose_publicly` off entirely if the host should
 only be reachable from the office. A credential that still works is still a
 credential.
 
 ---
 
-## 4. Verifying it
+## 5. Verifying it
 
 ```bash
+HOST=tech-controlcentre.certainti.ai
+
 # Says which authenticator is in force.
-curl -s https://<host>/api | jq .authentication      # -> "entra id"
+curl -s https://$HOST/api | jq .authentication      # -> "entra id"
 
 # No session: nothing readable, even with a forged role header.
-curl -s -o /dev/null -w '%{http_code}\n' https://<host>/api/utilities            # 403
+curl -s -o /dev/null -w '%{http_code}\n' https://$HOST/api/utilities            # 403
 curl -s -o /dev/null -w '%{http_code}\n' -H 'X-Dev-Roles: admin' \
-  https://<host>/api/utilities                                                    # 403
+  https://$HOST/api/utilities                                                    # 403
 ```
 
 Then sign in through a browser and check the sidebar shows your name and the roles
@@ -186,7 +280,7 @@ than `demo`, which is the practical reason to do this at all.
 
 ---
 
-## 5. If you would rather assign existing security groups
+## 6. If you would rather assign existing security groups
 
 Some tenants prefer this to creating app roles. Both work, and both can be on at
 once — the roles are unioned.
@@ -210,11 +304,13 @@ is a reasonable position and should not be a reason to stay on a shared password
 
 ---
 
-## 6. What is deliberately not done
+## 7. What is deliberately not done
 
-* **No Graph permissions.** The application reads identity from the token and
-  nothing else. No directory read, no mail, no profile photo. A permission not
-  requested is one nobody has to review.
+* **No Graph permissions for the application.** It reads identity from the token
+  and nothing else. No directory read, no mail, no profile photo. A permission not
+  requested is one nobody has to review. (The *deployment* permission in §4 Route
+  A is a different thing: it creates the registration, and the application itself
+  still asks for nothing.)
 * **No refresh tokens.** A session lasts eight hours and then Entra is asked
   again. Long-lived offline access to an application that can delete production
   data is not worth the convenience.

@@ -351,8 +351,13 @@ Ask these before building past them:
    Recorded as `Environment.platform_workspace` in `trd365_core.environments`,
    with a test, rather than only in prose — anything naming a platform resource
    has to translate, and Dev is `development` there too.
-9. **Entra ID** — which tenant and app registration should the SPA use, and
-   which groups map to `viewer`/`operator`/`approver`/`admin`?
+9. **Entra ID** — ~~which tenant and app registration?~~ **Partly answered
+   2026-08-21.** Tenant `b6734060-665c-4b7b-94e2-716458c1d933`; the registration
+   is created by `infra/entra` (`docs/SSO.md` §4), which also fixes the four app
+   role ids so they survive re-apply. Still open: **which groups** map to
+   `viewer`/`operator`/`approver`/`admin`. That one is deliberately not inferred
+   — the module leaves the assignment lists empty and relies on "assignment
+   required", so the registration existing grants nobody anything.
 
 ## 7. Working agreements for this repo
 
@@ -1101,6 +1106,25 @@ would fill the panel, the audit trail and the jobs list with real figures in one
 pass. It is read-only against the databases; it is the snapshot it writes.
 
 Provisioned by `terraform apply -var expose_publicly=true -var demo_password=…`.
+
+### Moving it to `tech-controlcentre.certainti.ai`
+
+Two steps, in this order, and the first is not ours to do.
+
+1. **The A record.** `certainti.ai` is on GoDaddy (`pdns11`/`pdns12.domaincontrol.com`);
+   the `certainti.ai-dns` zone in `website_production_team_rg` holds no A records
+   and does not serve the domain, so nothing here can create it. One record:
+   `A` / `tech-controlcentre` / `52.173.109.182` / TTL 600. The IP is a Static
+   Standard address, so it does not move.
+2. **The host.** `infra/deploy/set-hostname.sh <name>`, over
+   `az vm run-command`. It exists because cloud-init's `write_files` runs once, at
+   first boot: `terraform apply` with a new `public_hostname` changes the plan and
+   nothing on a running VM. The script rewrites the site address in the staged and
+   live Caddyfiles, validates before reloading, and refuses outright until the
+   name resolves to this host — a reload with a name that does not is a failed
+   ACME challenge, and Let's Encrypt rate-limits those. Follow it with
+   `terraform apply -var public_hostname=…` so a rebuild comes up with the same
+   name.
 
 ### Why exposing this host is defensible
 

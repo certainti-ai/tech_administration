@@ -60,10 +60,14 @@ jobs:
       # and a cloud-init input that templatefile() forgets to supply — which
       # otherwise fails at apply time, after resources exist.
       - run: python tools/check_terraform.py infra/terraform
+      # infra/entra is a second root module — the app registration, applied by a
+      # person with directory rights rather than by the deployment. Checked here
+      # so it cannot rot while nothing exercises it.
+      - run: python tools/check_terraform.py infra/entra
       - name: Formatting
         run: |
           curl -fsSL https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip -o tf.zip
-          unzip -q tf.zip && ./terraform fmt -check -recursive infra/terraform
+          unzip -q tf.zip && ./terraform fmt -check -recursive infra/terraform infra/entra
       - name: Shell scripts
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
