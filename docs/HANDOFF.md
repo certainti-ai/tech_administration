@@ -1133,6 +1133,30 @@ pass. It is read-only against the databases; it is the snapshot it writes.
 
 Provisioned by `terraform apply -var expose_publicly=true -var demo_password=…`.
 
+### The Entra registration exists
+
+Applied 2026-08-21 from `infra/entra`, once the deployment service principal was
+granted `Application.ReadWrite.OwnedBy` — one Graph application permission, which
+is enough to manage the registration it owns and nothing else in the directory.
+
+* Client id `d1db5f12-d7fb-4f14-8a01-71dc5bd5cf4a`, recorded in
+  `infra/terraform/deployment.auto.tfvars`.
+* Enterprise application object id `e97f06cf-b8ef-4cf3-a76c-00857fcf7507` — this
+  is what users and groups get assigned to.
+* Read back from Graph rather than taken from Terraform's output: single tenant,
+  one redirect URI (`https://tech-controlcentre.certainti.ai/auth/callback`), both
+  implicit grants off, four app roles on their fixed ids, three delegated Graph
+  scopes and **no** application permissions, assignment required **true**.
+* `entra-client-secret` and `session-signing-secret` are in the vault, read by
+  the VM's managed identity.
+
+**Nobody is assigned, so sign-in is not switched on yet.** Turning it on before
+somebody holds a role would take the shared password away and put nothing in its
+place — the site would be reachable and unusable. The order is: assign a group,
+then `infra/deploy/set-entra.sh <tenant-id> <client-id>` on the VM, which is the
+live-host counterpart to cloud-init and rolls itself back if the service does not
+come up reporting `entra id`.
+
 ### Moving it to `tech-controlcentre.certainti.ai`
 
 Two steps, in this order, and the first is not ours to do.

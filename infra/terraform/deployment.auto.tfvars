@@ -20,4 +20,4 @@ public_hostname = "tech-controlcentre.certainti.ai"
 # empty means the shared login is still in force, which the service reports at
 # /api as "development headers" rather than "entra id".
 entra_tenant_id = "b6734060-665c-4b7b-94e2-716458c1d933"
-entra_client_id = ""
+entra_client_id = "d1db5f12-d7fb-4f14-8a01-71dc5bd5cf4a"
