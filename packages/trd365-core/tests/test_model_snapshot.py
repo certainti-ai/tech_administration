@@ -36,13 +36,21 @@ COLUMNS = {
 
 
 def fetcher(columns=None, schemas=None):
+    """
+    A catalog reader over a ``{schema: [(table, column), …]}`` mapping.
+
+    ``schemas`` defaults to the tenant schemas in ``columns``, so the main schema
+    can be supplied without being analysed as a tenant.
+    """
     columns = COLUMNS if columns is None else columns
     schemas = list(columns) if schemas is None else schemas
 
     def fetch(db_key, query, params=None):
         if "pg_namespace" in query:
             return [(name,) for name in schemas]
-        return list(columns[params[0]])
+        # A schema with nothing in it returns no rows, which is what Postgres
+        # does; raising here would make "no main schema" look like a bug.
+        return list(columns.get(params[0], []))
 
     return fetch
 

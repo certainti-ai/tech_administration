@@ -302,20 +302,29 @@ def build_snapshot(
         main_schema=main_schema,
     )
 
+    # The main schema's tables, loaded once. Every tenant references the same
+    # shared lookups — status, country, currency and dozens more live here, not
+    # in the tenant schema — so without this every one of those columns looks
+    # like a foreign key to a table that does not exist.
+    main_catalog = load_catalog(fetch, "maindb", main_schema)
+    main_tables = frozenset(main_catalog.tables_with_pk)
+
     for name in names:
         if on_schema is not None:
             on_schema(name)
 
         catalog = load_catalog(fetch, "orgdb", name)
-        known = set(catalog.real_tables())
+        known = set(catalog.real_tables()) | set(main_tables)
         deviations = {
             prefix: classify_deviation(prefix, tables, known)
-            for prefix, tables in unresolved_columns(catalog).items()
+            for prefix, tables in unresolved_columns(catalog, main_tables).items()
         }
         snapshot.schemas[name] = SchemaModel(
             schema=name,
             catalog=catalog,
-            references=references(catalog, main_schema=main_schema),
+            references=references(
+                catalog, main_schema=main_schema, main_tables=main_tables
+            ),
             deviations=deviations,
         )
 

@@ -218,3 +218,78 @@ class TestIntrospection:
             return [("trd365_00042",), ("trd365_00099",)]
 
         assert dm.tenant_schemas(fetch) == ["trd365_00042", "trd365_00099"]
+
+
+class TestSharedLookupsInTheMainSchema:
+    """
+    Foreign keys into the shared main schema.
+
+    Found by running against production: 1,165 foreign-key columns had "no
+    parent table" — ``status_rid`` in 691 of them, ``country_rid`` in 461,
+    ``region_rid`` in 349, ``currency_rid`` in 323. Every one resolves to a real
+    table in ``maindb.trd365``; none of those tables exists in any tenant schema.
+    They are shared lookups, and structurally identical to ``account_rid``, which
+    was the only cross-database edge the resolver knew about.
+    """
+
+    @staticmethod
+    def catalog(columns):
+        rows = [(table, col) for table, cols in columns.items() for col in cols]
+        return catalog_from(rows)
+
+    def test_a_column_resolving_into_the_main_schema_is_a_cross_db_reference(self):
+        refs = dm.references(
+            self.catalog({"project": ["rid", "status_rid"]}),
+            main_tables=frozenset({"status"}),
+        )
+        (ref,) = [r for r in refs if r.column == "status_rid"]
+        assert ref.to_table == "status"
+        assert ref.to_schema == dm.DEFAULT_MAIN_SCHEMA
+        assert ref.to_db == "maindb"
+        assert ref.cross_db is True
+
+    def test_the_tenant_schema_wins_when_both_have_the_table(self):
+        # A tenant-local table is the nearer parent, and treating it as remote
+        # would point the model at another tenant's rows.
+        catalog = self.catalog({"project": ["rid", "status_rid"], "status": ["rid"]})
+        refs = dm.references(catalog, main_tables=frozenset({"status"}))
+
+        (ref,) = [r for r in refs if r.column == "status_rid"]
+        assert ref.to_schema == catalog.schema
+        assert ref.cross_db is False
+
+    def test_pluralisation_still_applies_in_the_main_schema(self):
+        refs = dm.references(
+            self.catalog({"case_task": ["rid", "country_rid"]}),
+            main_tables=frozenset({"countries"}),
+        )
+        (ref,) = [r for r in refs if r.column == "country_rid"]
+        assert ref.to_table == "countries"
+        assert "plural" in ref.note
+
+    def test_a_shared_lookup_is_no_longer_reported_as_a_deviation(self):
+        catalog = self.catalog({"project": ["rid", "status_rid", "mystery_rid"]})
+
+        assert set(dm.unresolved_columns(catalog)) == {"status", "mystery"}
+        assert set(dm.unresolved_columns(catalog, frozenset({"status"}))) == {"mystery"}, (
+            "a correct cross-database reference must not be reported as a "
+            "deviation; 1,165 of them buried the real problems"
+        )
+
+    def test_interaction_status_is_not_a_typo(self):
+        # It was classified as a likely misspelling in the production report.
+        # interaction_status is simply a table in the main schema.
+        catalog = self.catalog({"interactions": ["rid", "interaction_status_rid"]})
+        assert dm.unresolved_columns(catalog, frozenset({"interaction_status"})) == {}
+
+    def test_no_main_tables_supplied_keeps_the_old_behaviour(self):
+        # Callers without a main-schema catalog must be unaffected.
+        catalog = self.catalog({"project": ["rid", "status_rid"]})
+        assert set(dm.unresolved_columns(catalog)) == {"status"}
+        assert [r.column for r in dm.references(catalog)] == []
+
+    def test_account_rid_still_points_at_the_account_table(self):
+        # account_rid predates this and is resolved by name, not by lookup.
+        catalog = self.catalog({"project": ["rid", "account_rid"]})
+        (ref,) = dm.references(catalog, main_tables=frozenset({"account"}))
+        assert (ref.to_table, ref.to_entity, ref.cross_db) == ("account", "account", True)

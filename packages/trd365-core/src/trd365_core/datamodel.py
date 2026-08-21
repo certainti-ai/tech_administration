@@ -234,13 +234,31 @@ class SchemaCatalog:
         return catalog
 
 
-def references(catalog: SchemaCatalog, main_schema: str = DEFAULT_MAIN_SCHEMA) -> list[Reference]:
+def references(
+    catalog: SchemaCatalog,
+    main_schema: str = DEFAULT_MAIN_SCHEMA,
+    main_tables: set[str] | frozenset[str] = frozenset(),
+) -> list[Reference]:
     """
     Every resolvable foreign-key relationship in a tenant schema.
 
-    Backup tables are skipped, polymorphic columns are omitted (they have no
-    single parent), and ``account_rid`` is emitted as a cross-database edge
-    into the main schema.
+    Backup tables are skipped and polymorphic columns are omitted, having no
+    single parent. Resolution is tried against the tenant schema first, then
+    against ``main_tables`` — the main schema's tables — and a match there is
+    emitted as a cross-database edge.
+
+    That second pass is not a refinement. Running this against production
+    revealed 1,165 foreign-key columns whose parent "did not exist": ``status``
+    (691 columns), ``country`` (461), ``region`` (349), ``currency`` (323) and
+    dozens more. Every one of them is a real table — in ``maindb.trd365``, not in
+    the tenant schema. They are shared lookups, referenced from every tenant, and
+    the same shape as ``account_rid``, which this function had special-cased as
+    the *only* cross-database edge. Everything else was reported as unresolvable
+    or, worse, misclassified as a typo: ``interaction_status_rid`` was flagged as
+    a likely misspelling when ``interaction_status`` is simply a main-schema table.
+
+    Pass ``main_tables`` empty and the behaviour is the old tenant-only
+    resolution, which is what a caller with no main-schema catalog to hand gets.
     """
     resolved: list[Reference] = []
     with_pk = catalog.tables_with_pk
@@ -267,31 +285,55 @@ def references(catalog: SchemaCatalog, main_schema: str = DEFAULT_MAIN_SCHEMA) -
                 continue
 
             parent, note = resolve_parent_table(column, with_pk)
-            if parent is None:
+            if parent is not None:
+                resolved.append(
+                    Reference(
+                        from_table=table_name,
+                        column=column,
+                        to_entity=TABLE_TO_ENTITY.get(parent),
+                        to_db=catalog.db_key,
+                        to_schema=catalog.schema,
+                        to_table=parent,
+                        note=note,
+                    )
+                )
                 continue
 
-            resolved.append(
-                Reference(
-                    from_table=table_name,
-                    column=column,
-                    to_entity=TABLE_TO_ENTITY.get(parent),
-                    to_db=catalog.db_key,
-                    to_schema=catalog.schema,
-                    to_table=parent,
-                    note=note,
+            # Not in this tenant schema. Try the shared main schema.
+            shared, shared_note = resolve_parent_table(column, main_tables)
+            if shared is not None:
+                resolved.append(
+                    Reference(
+                        from_table=table_name,
+                        column=column,
+                        to_entity=TABLE_TO_ENTITY.get(shared),
+                        to_db=ENTITIES_BY_NAME["account"].db_key,
+                        to_schema=main_schema,
+                        to_table=shared,
+                        cross_db=True,
+                        note=("cross-DB shared lookup"
+                              + (f"; {shared_note}" if shared_note else "")),
+                    )
                 )
-            )
 
     return resolved
 
 
-def unresolved_columns(catalog: SchemaCatalog) -> dict[str, list[str]]:
+def unresolved_columns(
+    catalog: SchemaCatalog,
+    main_tables: set[str] | frozenset[str] = frozenset(),
+) -> dict[str, list[str]]:
     """
     Foreign-key columns with no parent table, grouped by prefix.
 
     These are the input to deviation classification: a prefix seen in many
     tables is probably a shared lookup entity living elsewhere, while one seen
     once and closely resembling a real table is probably a typo.
+
+    ``main_tables`` is checked as well, so a column that resolves into the shared
+    main schema is not reported as a deviation at all. Without it the report is
+    dominated by correct cross-database references — 1,165 of them against
+    production — and the handful of genuine problems is invisible.
     """
     with_pk = catalog.tables_with_pk
     grouped: dict[str, list[str]] = {}
@@ -301,8 +343,12 @@ def unresolved_columns(catalog: SchemaCatalog) -> dict[str, list[str]]:
             if column == "account_rid" or is_polymorphic(column):
                 continue
             parent, _ = resolve_parent_table(column, with_pk)
-            if parent is None:
-                grouped.setdefault(fk_prefix(column), []).append(table_name)
+            if parent is not None:
+                continue
+            shared, _ = resolve_parent_table(column, main_tables)
+            if shared is not None:
+                continue
+            grouped.setdefault(fk_prefix(column), []).append(table_name)
 
     return grouped
 
