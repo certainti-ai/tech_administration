@@ -100,8 +100,13 @@ write_files:
           -Server
         }
 
+        # To the journal, not a file. The packaged unit sandboxes the
+        # filesystem, so a file under /var/log is "permission denied" no matter
+        # who owns it — and journald already handles rotation and retention,
+        # which a file here would need configuring separately.
+        #   journalctl -u caddy -f
         log {
-          output file /var/log/caddy/access.log
+          output stderr
         }
       }
 

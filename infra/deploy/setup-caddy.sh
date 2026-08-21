@@ -32,7 +32,7 @@ fail() { printf '[caddy] ERROR: %s\n' "$*" >&2; exit 1; }
 
 [[ -r "$STAGED" ]] || fail "$STAGED is missing; cloud-init should have written it"
 
-install -d -m 0755 /etc/caddy /var/log/caddy /etc/systemd/system/caddy.service.d
+install -d -m 0755 /etc/caddy /etc/systemd/system/caddy.service.d
 
 # ------------------------------------------------------------------- install
 
@@ -70,7 +70,6 @@ HASH=$(caddy hash-password --plaintext "$PASSWORD")
 printf 'TRD365_DEMO_USER=%s\nTRD365_DEMO_HASH=%s\n' "$USERNAME" "$HASH" > "$CREDENTIALS"
 chown root:caddy "$CREDENTIALS"
 chmod 0640 "$CREDENTIALS"
-chown -R caddy:caddy /var/log/caddy
 
 # --------------------------------------------------------------------- start
 
