@@ -122,6 +122,21 @@ variable "allowed_ssh_source_prefixes" {
   }
 }
 
+variable "auto_deploy_schedule" {
+  description = <<-EOT
+    systemd OnCalendar expression for self-updating deploys. Every three hours
+    by default; set to "" to disable and deploy by hand.
+
+    The timer runs deploy.sh, which fetches the deployed branch, installs it, and
+    restarts the service **only if the test suite passes** — otherwise it rolls
+    the checkout back and leaves the running service where it was. That gate
+    matters here: this host holds credentials that can delete production data, so
+    a bad commit arriving unattended must not end up serving.
+  EOT
+  type        = string
+  default     = "*-*-* 00/3:00:00"
+}
+
 variable "app_port" {
   description = "Port the application listens on, reachable only inside the VNet."
   type        = number

@@ -41,12 +41,13 @@ resource "azurerm_linux_virtual_machine" "maintenance" {
   boot_diagnostics {}
 
   custom_data = base64encode(templatefile("${path.module}/cloud-init.yaml.tftpl", {
-    admin_username = var.admin_username
-    app_port       = var.app_port
-    key_vault_name = local.key_vault_name
-    client_id      = azurerm_user_assigned_identity.vm.client_id
-    repository_url = var.app_repository_url
-    branch         = var.app_branch
+    admin_username       = var.admin_username
+    app_port             = var.app_port
+    auto_deploy_schedule = var.auto_deploy_schedule
+    key_vault_name       = local.key_vault_name
+    client_id            = azurerm_user_assigned_identity.vm.client_id
+    repository_url       = var.app_repository_url
+    branch               = var.app_branch
   }))
 
   lifecycle {

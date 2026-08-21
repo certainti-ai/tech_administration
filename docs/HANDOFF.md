@@ -501,11 +501,49 @@ for every result observed on 2026-08-20:
 | `checkpoint-api.hashicorp.com` | **no** — `hashicorp.com` does not cover subdomains | 403 |
 | `vault.azure.net` | **no** | 403 — the secrets tooling cannot reach the vault |
 
-So a token can be obtained and then used against nothing. The sibling
-`incentiwise-beta` environment deploys because it is not on Trusted — not because
-it does anything different. Both build infra from scratch with Terraform.
+So a token can be obtained and then used against nothing.
 
-### The fix
+### What the sibling session actually does — corrected 2026-08-21
+
+An earlier version of this section claimed `incentiwise-beta` deploys because its
+environment permits Azure. **That was an inference and it was wrong.** The owner
+said they had never changed a network setting, which prompted actually reading
+`certainti-ai/incentiwise-beta`. Its `deploy/azure/README.md` settles it:
+
+> Prerequisites: An Azure subscription you're allowed to provision into, and
+> `az login` completed locally.
+>
+> ```
+> # 1. Authenticate to Azure (interactive; not run by OpenTofu itself)
+> az login
+> ...
+> # 4. Apply — THIS IS THE HUMAN-GATED STEP.
+> ```
+
+That session **never reached Azure either.** It wrote the OpenTofu and documented
+it; a human ran `az login` and `tofu apply` from their own machine. `az login` is
+interactive and cannot happen in a cloud session at all.
+
+The "deploying every 3 hours" is a different mechanism: `deploy/demo/deploy.sh
+redeploy` does `git pull` + rebuild + up, and it runs **on the VM**. Once the box
+exists it updates itself from git. The session's hourly Routine was repo work —
+a BA→Dev→Test→PR pipeline — not an infra deploy.
+
+So the model to copy is:
+
+1. **A human applies the Terraform once**, locally, from a machine with `az`.
+   No session can do this, and no network policy change makes it possible.
+2. **The VM then updates itself from git**, which is `trd365-deploy.timer`.
+
+Step 2 was missing here until 2026-08-21: `deploy.sh` was idempotent but nothing
+ever invoked it. It now runs every three hours by default.
+
+The allowlist below is still worth applying — it would let a session read the
+vault, run `terraform plan`, and query ARM to check what exists — but it is an
+improvement, not the thing standing between this build and a deployment. **The
+thing standing in the way is step 1, and it needs a human at a terminal.**
+
+### Widening the network policy (useful, not sufficient)
 
 At [claude.ai/code](https://claude.ai/code), open the environment selector — the
 cloud icon showing the environment name, in the row above the message box; there
@@ -545,3 +583,67 @@ with. A fresh container inside an existing session is not enough — confirmed o
 On a Team or Enterprise plan the same fields exist for organization-shared
 environments, under **Cloud environments** in
 [admin settings](https://claude.ai/admin-settings).
+
+---
+
+## 11. Deploying, end to end
+
+### Step 1 — a human applies the Terraform, once
+
+Needs a machine with `az` and Terraform (or OpenTofu). No Claude session can do
+this: `az login` is interactive.
+
+```bash
+git clone -b claude/certainti-tech-admin-y4c4ul \
+    https://github.com/certainti-ai/tech_administration
+cd tech_administration/infra/terraform
+
+az login
+az account set --subscription "$ARM_SUBSCRIPTION_ID"
+
+terraform init
+terraform plan          # no variables are required; review what it will create
+terraform apply
+```
+
+It creates its own resource group, virtual network, subnet, NSG, Key Vault,
+managed identity, SSH key and VM, and touches nothing that already exists.
+`terraform output next_steps` prints what to do afterwards.
+
+### Step 2 — the VM keeps itself current
+
+`trd365-deploy.timer` fires every three hours (`auto_deploy_schedule`, a systemd
+`OnCalendar` expression; `""` disables it). Each run:
+
+1. fetches the deployed branch and hard-resets to it — the VM is a deployment
+   target, so local divergence is corruption, not work;
+2. installs every package;
+3. **runs the full test suite**;
+4. restarts the service only if the suite passed.
+
+If the suite fails, or the service does not come up, the checkout is rolled back
+to the revision that was serving and the running service is never touched. That
+gate is the point: this host holds credentials that can delete production data,
+and an unattended deploy means code arrives with nobody watching. A VM sitting on
+last week's good commit is a nuisance; a VM running a broken build against
+production is not.
+
+To deploy immediately rather than waiting for the timer:
+
+```bash
+az vm run-command invoke -g <rg> -n <vm> --command-id RunShellScript \
+  --scripts 'sudo -u trd365 /opt/trd365/deploy.sh'
+```
+
+`--skip-tests` forces a deploy past the gate. It exists for the case where the
+suite is broken and you know why; it is not a normal option.
+
+### Step 3 — prove it can see the databases
+
+```bash
+sudo -u trd365 /opt/trd365/verify.sh
+```
+
+Read-only. It checks the managed identity can read the vault and that all three
+databases answer. This is the first moment anything in this project touches a
+real database, so expect to learn something here.

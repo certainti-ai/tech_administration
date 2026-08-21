@@ -21,6 +21,7 @@ check() {
 }
 
 echo "== environment =="
+# shellcheck source=/dev/null  # written by cloud-init; absent at lint time
 [[ -r "$ENV_FILE" ]] && { set -a; source "$ENV_FILE"; set +a; }
 printf '  vault: %s\n' "${AZURE_KEY_VAULT_NAME:-(unset)}"
 printf '  model dir: %s\n' "${TRD365_MODEL_DIR:-(unset)}"
@@ -33,7 +34,7 @@ echo "== python packages =="
 check "trd365_core imports" "$VENV/bin/python" -c "import trd365_core"
 
 echo "== database reachability (prod) =="
-"$VENV/bin/python" - <<'PY'
+if ! "$VENV/bin/python" - <<'PY'
 import sys
 from trd365_core import ConnectionPool, Environment, DB_KEYS
 try:
@@ -49,7 +50,9 @@ except Exception as exc:
     print(f"  FAIL  pool: {type(exc).__name__}: {str(exc)[:160]}")
     sys.exit(1)
 PY
-[[ $? -ne 0 ]] && failures=$((failures + 1))
+then
+  failures=$((failures + 1))
+fi
 
 echo
 if [[ $failures -eq 0 ]]; then

@@ -47,6 +47,49 @@ write_files:
       TRD365_REPO_URL=${repository_url}
       TRD365_BRANCH=${branch}
 
+  # Self-updating deploys. The timer runs deploy.sh, which fetches the deployed
+  # branch, installs it, and restarts the service only if the test suite passes —
+  # otherwise it rolls the checkout back and leaves the running service alone.
+  # Set auto_deploy_schedule to "" in Terraform to disable and deploy by hand.
+  - path: /etc/systemd/system/trd365-deploy.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Fetch, test and deploy the latest Certainti Tech Administration commit
+      Documentation=https://github.com/certainti-ai/tech_administration
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      User=trd365
+      Group=trd365
+      EnvironmentFile=/etc/trd365/environment
+      ExecStart=/opt/trd365/deploy.sh
+      # A deploy that hangs must not block every later one.
+      TimeoutStartSec=1800
+      StandardOutput=journal
+      StandardError=journal
+      SyslogIdentifier=trd365-deploy
+
+  - path: /etc/systemd/system/trd365-deploy.timer
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Deploy the latest commit on a schedule
+
+      [Timer]
+      OnCalendar=${auto_deploy_schedule}
+      # Catch up after the VM has been off, rather than waiting for the next slot.
+      Persistent=true
+      # Keeps a fleet from all pulling at the same instant, and makes it obvious
+      # in the log that the run time is not meant to be exact.
+      RandomizedDelaySec=300
+      Unit=trd365-deploy.service
+
+      [Install]
+      WantedBy=timers.target
+
   - path: /etc/systemd/system/trd365-admin.service
     permissions: "0644"
     content: |
@@ -98,6 +141,8 @@ runcmd:
   - chown -R trd365:trd365 /opt/trd365/venv
   - git config --system --add safe.directory /opt/trd365/app
   - systemctl daemon-reload
+  # Enabled only when a schedule was configured; deploy.sh still runs by hand.
+  - test -z "${auto_deploy_schedule}" || systemctl enable --now trd365-deploy.timer
   # Enabled but not started: nothing to run until Phase 2 lands and deploy.sh
   # has installed it. Starting now would produce a restart loop in the journal.
   - systemctl enable trd365-admin.service

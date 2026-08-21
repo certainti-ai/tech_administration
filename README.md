@@ -77,13 +77,17 @@ source scripts/secrets/load.sh
 | 1 | `trd365-core`, `trd365-data-purge`, `trd365-analysis` **done**; remaining utility packages, JS→Python port | **In progress** |
 | 2 | FastAPI orchestrator, job execution, audit log | **Done** |
 | 3 | React SPA — invocation, health dashboard, audit, SSO | Not started |
-| 4 | Maintenance VM, Terraform, deployment | **Terraform written, never applied** |
+| 4 | Maintenance VM, Terraform, self-updating deploys | **Written and statically checked, never applied** |
 
 Two constraints worth knowing before you plan work:
 
 - **No Claude Code session can reach the databases.** The private endpoints do
   not resolve and the proxy blocks the bastion. Verification here is unit tests
   and fakes; integration testing happens on the maintenance VM.
+- **Deploying needs a human once.** `terraform apply` requires `az login`, which
+  is interactive and impossible from a Claude session — see `docs/HANDOFF.md` §11.
+  After that first apply the VM updates itself from git every three hours, gated
+  on the test suite.
 - **Destructive utilities are the point of this system.** Safety defaults, an
   audit trail, and per-environment authorization are load-bearing requirements,
   not later polish.

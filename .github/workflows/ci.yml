@@ -45,6 +45,30 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  terraform:
+    name: Terraform (static)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # `terraform validate` needs `init`, `init` needs the provider registry,
+      # and the registry is unreachable from the sessions that write this code
+      # (docs/HANDOFF.md §10). These are the checks that catch what actually
+      # goes wrong: an undeclared variable, a local left behind by a refactor,
+      # and a cloud-init input that templatefile() forgets to supply — which
+      # otherwise fails at apply time, after resources exist.
+      - run: python tools/check_terraform.py infra/terraform
+      - name: Formatting
+        run: |
+          curl -fsSL https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip -o tf.zip
+          unzip -q tf.zip && ./terraform fmt -check -recursive infra/terraform
+      - name: Shell scripts
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          shellcheck infra/deploy/*.sh
+
   # Placeholder until packages/ is populated in Phase 1 — see docs/HANDOFF.md.
   # Kept in place so the job name is stable once Python lands.
   python:

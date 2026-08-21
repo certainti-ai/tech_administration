@@ -30,6 +30,16 @@
 # vnet_address_space    = ["10.80.0.0/16"]       unroutable to anything else by design
 # subnet_address_prefix = "10.80.1.0/24"
 
+# --- self-updating deploys --------------------------------------------------
+#
+# The VM fetches the deployed branch on a timer, installs it, runs the test
+# suite, and restarts the service only if the suite passes — otherwise it rolls
+# the checkout back and leaves the running service where it was. Every three
+# hours by default.
+#
+# auto_deploy_schedule = "*-*-* 00/3:00:00"   systemd OnCalendar; "" disables
+# app_branch           = "main"
+
 # --- optional ---------------------------------------------------------------
 
 # Join an existing subnet instead of creating a network. Only do this if you
