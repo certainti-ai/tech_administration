@@ -171,23 +171,19 @@ _PROD_BASTION = {
     "ssh_user": "thinkrd_DevOps",
 }
 
-#: Stage's bastion, and the open question in this file.
+#: Stage's own bastion, with its own account.
 #:
-#: Stage cannot be reached through the production one. Each environment has its
-#: own private DNS zone, all four named `privatelink.postgres.database.azure.com`,
-#: and a virtual network can link to only one zone of a given name — so the
-#: production bastion resolves production's private endpoint and *nothing* for
-#: preprod, failing with "Name or service not known" from inside the tunnel.
-#:
-#: `Resource-Platform-Pre-Production-VM` (40.71.82.6) sits in
-#: `Platform_Pre_Production_Virtual_Network`, which *is* linked to preprod's zone,
-#: so it is almost certainly the right host. The credentials supplied for Stage
-#: are the production bastion's — they authenticate there and are refused here —
-#: so its own are still needed. Until then Stage stays unreachable and says so.
+#: Stage cannot be reached through the production one, and this is the reason
+#: worth keeping: each environment has its own private DNS zone, all four named
+#: `privatelink.postgres.database.azure.com`, and a virtual network can link to
+#: only one zone of a given name. So the production bastion resolves production's
+#: private endpoint and *nothing* for preprod — the tunnel opens and then dies
+#: with "Name or service not known" from the far side, which reads like a typo in
+#: the hostname rather than the network boundary it actually is.
 _STAGE_BASTION = {
-    "ssh_host": "40.71.82.6",
+    "ssh_host": "172.191.201.111",
     "ssh_port": 22,
-    "ssh_user": PLACEHOLDER,
+    "ssh_user": "preprod_DevOps",
 }
 
 _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {

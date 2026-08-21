@@ -128,13 +128,14 @@ class TestTheNonProdTopology:
         assert tunnel.ssh_host == "172.203.151.166"
         assert tunnel.ssh_user == "thinkrd_DevOps"
 
-    def test_stage_is_unreachable_until_its_bastion_account_is_supplied(self):
-        # Its host is known; the account is not, so Stage must refuse rather than
-        # try the production credentials against a host that rejects them.
-        settings = envs.describe(Environment.STAGE, "maindb", {})
-        assert settings.ssh_tunnel.ssh_host == "40.71.82.6"
-        assert settings.ssh_tunnel.ssh_user == envs.PLACEHOLDER
-        assert settings.is_placeholder
+    def test_stage_has_its_own_bastion_account(self):
+        tunnel = envs.describe(Environment.STAGE, "maindb", {}).ssh_tunnel
+        assert tunnel.ssh_host == "172.191.201.111"
+        # A different account as well as a different host. Reusing production's
+        # username here is what made the first attempt look like a wrong password
+        # rather than the wrong machine.
+        assert tunnel.ssh_user == "preprod_DevOps"
+        assert tunnel.ssh_user != envs.describe(Environment.PROD, "maindb", {}).ssh_tunnel.ssh_user
 
     @pytest.mark.parametrize("env", [Environment.DEV, Environment.QA, Environment.STAGE])
     def test_trd365ai_is_unknown_outside_prod(self, env):
