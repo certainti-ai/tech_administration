@@ -895,21 +895,72 @@ Both passed 482 unit tests, lint and static analysis.
    *next* run. Correct, and surprising: expect to run a deploy twice when the
    change is to `deploy.sh`.
 
-### Next — needs a decision, not code
+### The model, from production
 
-`data-model-analysis --env prod --apply` is ready and was **refused by the
-harness**, which declines to run a utility against production unattended. That is
-the guard working. The run is read-only against the database and writes only a
-local snapshot, but it is production, so it wants a human saying go.
+`data-model-analysis --env prod --apply --no-orphans` has run. The current
+snapshot is `0c0f5d1129eab815`.
 
-Running it produces the first real `ModelSnapshot`, which unblocks:
+```
+schemas     : 26
+tables      : 2791
+references  : 8518
+deviations  : 878   (global-lookup 107, typo 33, unknown 738)
+```
 
-- `purge-account --apply`, which correctly refuses without a snapshot;
-- the live-schema extraction (§4 Step 3), replacing the checked-in `pg_dump`;
-- the orphan and deviation counts the Phase-3 dashboard needs (FR-4.5).
+The first run told a different and wrong story — 5,273 references and 1,650
+deviations — and correcting it found two real defects, described below. Both are
+fixed, and the numbers above are after.
 
-Start with `--no-orphans` across all 26 schemas: structure and naming only, much
-cheaper, and enough to prove the path before the expensive scan.
+### What the first production run exposed
+
+**1. Only one cross-database edge was known.** `references()` special-cased
+`account_rid` and treated every other reference to a table outside the tenant
+schema as unresolvable. That accounted for 1,165 "unknown" deviations, led by
+`status_rid` (691 columns), `country_rid` (461), `region_rid` (349) and
+`currency_rid` (323).
+
+A query against the live databases settled it: `country`, `currency`, `industry`,
+`interaction_level`, `interaction_status`, `project_classification`,
+`project_type`, `resource_type`, `state`, `status` and `task_type` are all real
+tables in `maindb.trd365`, and **none of them exists in any tenant schema**. They
+are shared lookups referenced from all 26 tenants — structurally identical to
+`account_rid`. `interaction_status_rid` had even been flagged as a likely typo,
+when `interaction_status` is simply a main-schema table.
+
+Resolution now falls back to the main schema. References went 5,273 -> **8,518**.
+
+**2. The report recomputed deviations and ignored the fix.** With references
+corrected, the deviation count did not move — the analysis derives deviations from
+the tenant catalog alone rather than from what the snapshot resolved. So the
+snapshot was right and the report was still wrong. Deviations then went 1,650 ->
+**878**, and likely-typos 66 -> **33**.
+
+This matters beyond tidiness: deviations are the health signal the Phase-3
+dashboard is built on (FR-4.5), and a signal that is 70% correct cross-database
+references is not a signal.
+
+### The next clear improvement — qualified prefixes
+
+Reading what remains, one pattern accounts for a large share: a column whose
+prefix is a *qualified* form of the table name.
+
+```
+old_status_rid, new_status_rid          -> status
+parent_case_rid                        -> cases
+parent_interaction_rid                 -> interactions
+current_branch_rid                     -> branch
+assigned_skill_role_type_rid           -> skill_role_type
+case_owner_rid, sent_by, uploaded_by_user -> a person/user table
+```
+
+`resolve_parent_table` tries only the bare prefix and its plurals. Stripping a
+short list of qualifiers — `old_`, `new_`, `parent_`, `current_`, `source_`,
+`target_`, `assigned_` — and retrying would resolve well over a hundred more.
+Worth doing, and worth doing carefully: a wrong qualifier rule invents a parent
+that is not there, which is worse than reporting the column unresolved.
+
+Genuinely unexplained and worth a human: `session` (208 columns) and `task` (179)
+resolve nowhere — not in any tenant schema and not in the main schema.
 
 ### Four bugs the first live deploy found that no test could
 
