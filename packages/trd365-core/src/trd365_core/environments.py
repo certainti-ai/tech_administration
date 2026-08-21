@@ -138,25 +138,56 @@ class ConnectionSettings:
 # connection timeout, and one that is missing fails with a DNS error, and neither
 # message says "this environment has a bastion and you did not use it".
 #
-# **The database names are the same in all four.** So the only thing any
-# environment still needs from the vault is a password. A wrong database name on
-# the right server is the one mistake in this file that would connect
-# successfully and then operate on the wrong data, so it is written once as a
-# constant rather than four times as a literal.
+# **The database name follows the server name.** `-pvt-` in the server means
+# `pvt` in the database: Stage and Prod are `thinkrd365_pvt_main`, Dev and QA are
+# `thinkrd365_main`. Both halves of that were checked against the servers rather
+# than assumed, because a wrong database name on the right server is the one
+# mistake here that authenticates first and fails afterwards.
 # --------------------------------------------------------------------------
 
-#: Every environment uses the same two database names. Stated by the owner
-#: 2026-08-21: "dbnames for main and org are same as production". They keep the
-#: `pvt` in the name even where the server itself is not a private endpoint, so
-#: this is not derivable from the hostname and is recorded rather than inferred.
-_MAIN_DBNAME = "thinkrd365_pvt_main"
-_ORG_DBNAME = "thinkrd365_pvt_org"
+# The database names track the server names: where the server has `-pvt-`, the
+# database has `pvt`. Read off the servers themselves — `SELECT datname FROM
+# pg_database` on Dev and QA returned `thinkrd365_main` and `thinkrd365_org`,
+# with no `pvt`, which is *not* what "the same as production" turned out to mean.
+#
+# Worth keeping in mind if a fifth environment appears: the way this was found
+# was a login that succeeded and a database that did not exist. Postgres
+# authenticates before it resolves the database, so a wrong name here looks
+# exactly like a working credential — the failure is late and clear, but only if
+# somebody reads it.
+_MAIN_DBNAME = "thinkrd365_main"
+_ORG_DBNAME = "thinkrd365_org"
 
-#: Stage and Prod share one bastion host and one account.
-_SHARED_BASTION = {
+#: The private-endpoint environments. Verified for prod; inferred for stage from
+#: its server names, and not yet confirmed by a connection — see below.
+_PVT_MAIN_DBNAME = "thinkrd365_pvt_main"
+_PVT_ORG_DBNAME = "thinkrd365_pvt_org"
+
+#: The production bastion. Verified working: it resolves
+#: `prod-…-pvt-main.postgres.database.azure.com` to 10.213.5.4 and forwards to it.
+_PROD_BASTION = {
     "ssh_host": "172.203.151.166",
     "ssh_port": 22,
     "ssh_user": "thinkrd_DevOps",
+}
+
+#: Stage's bastion, and the open question in this file.
+#:
+#: Stage cannot be reached through the production one. Each environment has its
+#: own private DNS zone, all four named `privatelink.postgres.database.azure.com`,
+#: and a virtual network can link to only one zone of a given name — so the
+#: production bastion resolves production's private endpoint and *nothing* for
+#: preprod, failing with "Name or service not known" from inside the tunnel.
+#:
+#: `Resource-Platform-Pre-Production-VM` (40.71.82.6) sits in
+#: `Platform_Pre_Production_Virtual_Network`, which *is* linked to preprod's zone,
+#: so it is almost certainly the right host. The credentials supplied for Stage
+#: are the production bastion's — they authenticate there and are refused here —
+#: so its own are still needed. Until then Stage stays unreachable and says so.
+_STAGE_BASTION = {
+    "ssh_host": "40.71.82.6",
+    "ssh_port": 22,
+    "ssh_user": PLACEHOLDER,
 }
 
 _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
@@ -228,18 +259,18 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
                 "preprod-thinkrd365-psqlserver-centralus-pvt-main.postgres.database.azure.com"
             ),
             "port": 5432,
-            "dbname": _MAIN_DBNAME,
+            "dbname": _PVT_MAIN_DBNAME,
             "user": "adminUser",
             "sslmode": "require",
-            "tunnel": _SHARED_BASTION,
+            "tunnel": _STAGE_BASTION,
         },
         "orgdb": {
             "host": "preprod-thinkrd365-psqlserver-centralus-pvt-org.postgres.database.azure.com",
             "port": 5432,
-            "dbname": _ORG_DBNAME,
+            "dbname": _PVT_ORG_DBNAME,
             "user": "adminUser",
             "sslmode": "require",
-            "tunnel": _SHARED_BASTION,
+            "tunnel": _STAGE_BASTION,
         },
         # Whether a trd365ai instance exists for this environment at all is an
         # open question (docs/HANDOFF.md open question 1). Left as placeholders,
@@ -258,18 +289,18 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
         "maindb": {
             "host": "prod-thinkrd365-psqlserver-centralus-pvt-main.postgres.database.azure.com",
             "port": 5432,
-            "dbname": _MAIN_DBNAME,
+            "dbname": _PVT_MAIN_DBNAME,
             "user": "adminUser",
             "sslmode": "require",
-            "tunnel": _SHARED_BASTION,
+            "tunnel": _PROD_BASTION,
         },
         "orgdb": {
             "host": "prod-thinkrd365-psqlserver-centralus-pvt-org.postgres.database.azure.com",
             "port": 5432,
-            "dbname": _ORG_DBNAME,
+            "dbname": _PVT_ORG_DBNAME,
             "user": "adminUser",
             "sslmode": "require",
-            "tunnel": _SHARED_BASTION,
+            "tunnel": _PROD_BASTION,
         },
         "trd365ai": {
             "host": "4.246.251.140",

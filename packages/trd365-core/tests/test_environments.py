@@ -68,7 +68,7 @@ class TestTheNonProdTopology:
     that exactly the right half is known.
     """
 
-    @pytest.mark.parametrize("env", [Environment.DEV, Environment.QA, Environment.STAGE])
+    @pytest.mark.parametrize("env", [Environment.DEV, Environment.QA])
     @pytest.mark.parametrize("db_key", ["maindb", "orgdb"])
     def test_the_server_is_known_and_only_the_password_is_not(self, env, db_key):
         settings = envs.describe(env, db_key, {})
@@ -83,13 +83,16 @@ class TestTheNonProdTopology:
 
     @pytest.mark.parametrize("env", list(Environment))
     @pytest.mark.parametrize("db_key", ["maindb", "orgdb"])
-    def test_every_environment_uses_the_same_two_database_names(self, env, db_key):
-        # Stated by the owner rather than derived: the names keep `pvt` even
-        # where the server is not a private endpoint, so nothing about the
-        # hostname implies them and a test is the only thing holding them
-        # together across four environments.
-        expected = "thinkrd365_pvt_main" if db_key == "maindb" else "thinkrd365_pvt_org"
-        assert envs.describe(env, db_key, {}).dbname == expected
+    def test_the_database_name_tracks_the_server_name(self, env, db_key):
+        # `-pvt-` in the server means `pvt` in the database. Read off Dev and QA
+        # directly (`SELECT datname FROM pg_database` returned `thinkrd365_main`,
+        # not `thinkrd365_pvt_main`) after a login that succeeded and a database
+        # that did not exist — Postgres authenticates before it resolves the
+        # database, so a wrong name here passes every credential check first.
+        settings = envs.describe(env, db_key, {})
+        private = "-pvt-" in settings.host
+        stem = "main" if db_key == "maindb" else "org"
+        assert settings.dbname == f"thinkrd365_{'pvt_' if private else ''}{stem}"
 
     @pytest.mark.parametrize("env", [Environment.DEV, Environment.QA])
     def test_dev_and_qa_are_reached_directly(self, env):
@@ -99,17 +102,39 @@ class TestTheNonProdTopology:
             assert "-pvt-" not in settings.host
 
     @pytest.mark.parametrize("env", [Environment.STAGE, Environment.PROD])
-    def test_stage_and_prod_go_through_the_shared_bastion(self, env):
+    def test_the_private_endpoint_environments_have_a_bastion(self, env):
         for db_key in ("maindb", "orgdb"):
             settings = envs.describe(env, db_key, {})
             assert settings.ssh_tunnel is not None
-            assert settings.ssh_tunnel.ssh_host == "172.203.151.166"
-            assert settings.ssh_tunnel.ssh_user == "thinkrd_DevOps"
-            # The private-endpoint servers are exactly the ones behind it. A
-            # tunnel where none is needed times out; a missing one fails to
+            # The private-endpoint servers are exactly the ones behind a bastion.
+            # A tunnel where none is needed times out; a missing one fails to
             # resolve. Neither message mentions bastions, so the pairing is
             # pinned here instead of being inferred at run time.
             assert "-pvt-" in settings.host
+
+    def test_stage_and_prod_do_not_share_a_bastion(self):
+        # They did in this file until Stage was actually tried. Every environment
+        # has its own private DNS zone, all four named
+        # `privatelink.postgres.database.azure.com`, and a virtual network links
+        # to only one zone of a given name — so the production bastion resolves
+        # production's private endpoint and nothing for preprod. Two hosts, not
+        # one, and the test says so because the comment alone did not stop it.
+        stage = envs.describe(Environment.STAGE, "maindb", {}).ssh_tunnel
+        prod = envs.describe(Environment.PROD, "maindb", {}).ssh_tunnel
+        assert stage.ssh_host != prod.ssh_host
+
+    def test_prod_uses_the_bastion_known_to_work(self):
+        tunnel = envs.describe(Environment.PROD, "maindb", {}).ssh_tunnel
+        assert tunnel.ssh_host == "172.203.151.166"
+        assert tunnel.ssh_user == "thinkrd_DevOps"
+
+    def test_stage_is_unreachable_until_its_bastion_account_is_supplied(self):
+        # Its host is known; the account is not, so Stage must refuse rather than
+        # try the production credentials against a host that rejects them.
+        settings = envs.describe(Environment.STAGE, "maindb", {})
+        assert settings.ssh_tunnel.ssh_host == "40.71.82.6"
+        assert settings.ssh_tunnel.ssh_user == envs.PLACEHOLDER
+        assert settings.is_placeholder
 
     @pytest.mark.parametrize("env", [Environment.DEV, Environment.QA, Environment.STAGE])
     def test_trd365ai_is_unknown_outside_prod(self, env):
