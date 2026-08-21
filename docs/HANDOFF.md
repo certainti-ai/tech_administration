@@ -552,25 +552,24 @@ host that can purge production databases — the list is in the next section, an
 switching to it later costs nothing — but Full unblocks the work now, and that
 was the owner's call to make.
 
-**A session captures its environment's configuration when the session is
-created, and reprovisioning its container does not re-read it.** Tested on
-2026-08-21 in this session, after the change, on a container that had just booted
-0 minutes earlier:
+**The policy is enforced live at the gateway, and takes effect without a new
+session.** This was measured twice, and the first reading was misleading:
 
-| Host | Result | Meaning |
-|---|---|---|
-| `example.com`, `wikipedia.org`, `icanhazip.com` | blocked | **not Full** — Full permits any domain |
-| `registry.npmjs.org`, `pypi.org`, `releases.hashicorp.com` | HTTP 200 | the Trusted allowlist, still in force |
+| When | `example.com` | ARM | Level in force |
+|---|---|---|---|
+| After the change, first check | blocked | 403 | Trusted |
+| After the change, second check — **same container** | reachable | **200, 51 resource groups** | **Full** |
 
-So a browser refresh does not pick it up, and neither does a fresh container. **A
-genuinely new session is required.**
+Nothing was restarted between those two readings. So the earlier conclusion —
+that a session captures its environment's configuration at creation and a new
+session is required — was **wrong**; the change simply had not propagated to the
+gateway yet when first tested. Give it a few minutes, then re-check. Do not start
+a new session on the strength of one failed reading.
 
-`tools/check_azure_reachability.sh` now reports which level is actually in force,
-using exactly that discriminator — because "I changed it to Full" and "this
-session is on Full" are different claims and only the second one matters. Run it
-first in any new session. If a new session still reports Trusted, the edit did not
-save, or it was made on the wrong environment (there are two, and their names are
-similar in the selector).
+`tools/check_azure_reachability.sh` reports which level is actually in force, by
+asking for a domain that only Full permits. Run it before concluding anything:
+"the dialog says Full" and "this session is on Full" are different claims, and
+only the second one matters.
 
 ### The narrower alternative, if you want it later
 
@@ -622,24 +621,48 @@ environments, under **Cloud environments** in
 
 ### Step 1 — apply the Terraform, once
 
-With **Full** network access (§10) a session can do this itself. Check first,
-because a session provisioned before the change still cannot:
+With **Full** network access (§10) a session can do this itself. Check first:
 
 ```bash
 bash tools/check_azure_reachability.sh
 ```
 
-Proceed only if it says *"This session CAN deploy"*. Then:
+Proceed only if it says *"This session CAN deploy"*.
+
+**State comes first.** `backend "azurerm" {}` is deliberately partial — this
+configuration generates the VM's SSH private key and writes it to Key Vault, so
+the state file is itself a secret (SECURITY.md), and local state in an ephemeral
+container is worse than inconvenient: when the container is reclaimed the VM still
+exists and nothing can manage or destroy it. That is how infrastructure gets
+orphaned and billed indefinitely.
+
+```bash
+bash infra/terraform/bootstrap-state.sh
+```
+
+It creates a resource group, a private storage account with blob versioning, and
+a container, talking to ARM directly with the service principal — something has
+to make the state store before Terraform can keep state there. Idempotent. It
+prints the `terraform init` line and the access key to export.
 
 ```bash
 cd infra/terraform
-terraform init
+export ARM_ACCESS_KEY='<from the bootstrap output>'
+terraform init \
+  -backend-config="resource_group_name=trd365-tfstate" \
+  -backend-config="storage_account_name=<from the bootstrap output>" \
+  -backend-config="container_name=tfstate" \
+  -backend-config="key=maintenance-vm.tfstate"
 terraform plan     # no variables are required
 ```
 
 **Read the plan before applying.** It is the last point at which nothing has been
 created, and it is the review a human should actually do — roughly 19 resources,
 all new, none touching anything that already exists.
+
+Note that `terraform apply` creates real, billed infrastructure, and a session
+running in auto mode may have that call refused by the harness. That is the guard
+working. Approve it deliberately rather than looking for a way around it.
 
 ```bash
 terraform apply
@@ -660,6 +683,13 @@ Two things to know before applying:
 - **`prevent_destroy` guards the vault and the resource group.** Deliberate: a
   resource-group destroy takes the vault's secrets with it. Removing the guard
   should be a conscious act.
+- **One step needs the Key Vault *data* plane.** `ssh.tf` writes the generated
+  private key to the vault, which talks to `<vault>.vault.azure.net`, not ARM.
+  Two things can make that specific resource fail on a first apply: the host not
+  being allowed by the network policy, and Azure's own RBAC propagation lag
+  between the role assignment and data-plane access. Both look the same. Re-run
+  `terraform apply` — everything else is already created and the run is
+  idempotent — and only investigate if it fails twice.
 
 ### Step 2 — the VM keeps itself current
 
