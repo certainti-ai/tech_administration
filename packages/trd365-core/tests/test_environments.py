@@ -70,17 +70,26 @@ class TestTheNonProdTopology:
 
     @pytest.mark.parametrize("env", [Environment.DEV, Environment.QA, Environment.STAGE])
     @pytest.mark.parametrize("db_key", ["maindb", "orgdb"])
-    def test_the_server_is_known_and_the_credentials_are_not(self, env, db_key):
+    def test_the_server_is_known_and_only_the_password_is_not(self, env, db_key):
         settings = envs.describe(env, db_key, {})
         assert envs.PLACEHOLDER not in settings.host
         assert settings.host.endswith(".postgres.database.azure.com")
         assert settings.user == "adminUser"
-        # dbname is the one non-secret left blank on purpose: a wrong database
-        # name on the right server is the only mistake here that would connect
-        # successfully and then operate on the wrong data.
-        assert settings.dbname == envs.PLACEHOLDER
+        assert envs.PLACEHOLDER not in settings.dbname
+        # Which leaves exactly one thing outstanding, and it is the one thing
+        # that must not be in a repository.
         assert settings.password == envs.PLACEHOLDER
         assert settings.is_placeholder
+
+    @pytest.mark.parametrize("env", list(Environment))
+    @pytest.mark.parametrize("db_key", ["maindb", "orgdb"])
+    def test_every_environment_uses_the_same_two_database_names(self, env, db_key):
+        # Stated by the owner rather than derived: the names keep `pvt` even
+        # where the server is not a private endpoint, so nothing about the
+        # hostname implies them and a test is the only thing holding them
+        # together across four environments.
+        expected = "thinkrd365_pvt_main" if db_key == "maindb" else "thinkrd365_pvt_org"
+        assert envs.describe(env, db_key, {}).dbname == expected
 
     @pytest.mark.parametrize("env", [Environment.DEV, Environment.QA])
     def test_dev_and_qa_are_reached_directly(self, env):

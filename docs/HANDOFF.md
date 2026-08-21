@@ -325,21 +325,24 @@ Ask these before building past them:
    `preprod-…-pvt-{main,org}` pair through the same bastion as prod
    (`172.203.151.166` as `thinkrd_DevOps`). All as `adminUser`.
 
-   Outstanding, and both deliberately not guessed:
+   The database names are the same in all four — `thinkrd365_pvt_main` and
+   `thinkrd365_pvt_org`, `pvt` included, even where the server is not a private
+   endpoint. Schemas likewise: `trd365` in the main database, one `trd365_00…`
+   per tenant in the org database, which is already what `DEFAULT_MAIN_SCHEMA`
+   and `TENANT_SCHEMA_LIKE` say, so tenant schemas are discovered rather than
+   listed.
 
-   * **`dbname` per environment.** Prod is `thinkrd365_pvt_main` /
-     `thinkrd365_pvt_org`; the others were not given. Asked for through the vault
-     rather than inferred, because a wrong database name on the right server is
-     the one mistake here that connects successfully and then operates on the
-     wrong data.
-   * **Whether `trd365ai` exists outside prod.** Prod's is a direct connection to
-     `4.246.251.140` as `aiadmin`; nothing has named an equivalent for the other
-     three, so their entries stay placeholders and the loader does not ask for
-     them. Any utility touching `trd365ai` refuses to run there and says why.
+   Still outstanding: **whether `trd365ai` exists outside prod.** Prod's is a
+   direct connection to `4.246.251.140` as `aiadmin`; nothing has named an
+   equivalent for the other three, so their entries stay placeholders and the
+   loader does not ask for them. Any utility touching `trd365ai` refuses to run
+   there and says why — the right failure, but it does keep those cards short of
+   "Connected".
 
-   Supplying the rest is `scripts/secrets/set-environment.sh <env> <file>` — four
-   values for Dev and QA, six for Stage. `trd365_core.configuration_status()`
-   reports which are ready, per database.
+   So the whole remaining ask is passwords: two for Dev, two for QA, four for
+   Stage (its two databases plus the bastion). Supply them with
+   `scripts/secrets/set-environment.sh <env> <file>`;
+   `trd365_core.configuration_status()` reports what is ready, per database.
 2. ~~**`account_deletion/` vs `data_purge/account/`.**~~ **Decided:** keep both
    for now, decision deferred. Record the relationship with
    `Utility.supersedes` rather than deleting either.

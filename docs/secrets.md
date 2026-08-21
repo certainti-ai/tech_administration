@@ -41,9 +41,9 @@ environment goes through a bastion — and the vault holds the rest:
 
 | Environment | Reached | Needs |
 |---|---|---|
-| Dev | directly | `maindb` and `orgdb` dbname + password — **4 values** |
-| QA | directly | the same — **4 values** |
-| Stage | through the bastion | the same, plus the bastion password — **6 values** |
+| Dev | directly | the `maindb` and `orgdb` passwords — **2 values** |
+| QA | directly | the same — **2 values** |
+| Stage | through the bastion | the same, plus the bastion password — **4 values** |
 | Prod | through the bastion | already configured |
 
 Dev and QA connect straight to their servers; Stage and Prod sit behind the same
@@ -52,10 +52,19 @@ in the hostname. That pairing is asserted by a test rather than left as a commen
 because a tunnel where none is needed fails with a timeout and a missing one
 fails to resolve, and neither message mentions bastions.
 
-`dbname` is the one non-secret still asked for. It is not sensitive, it is simply
-not recorded here yet — and a wrong database name on the right server is the only
-mistake in this area that connects successfully and then operates on the wrong
-data, so it is not being guessed.
+All four use the same two database names, `thinkrd365_pvt_main` and
+`thinkrd365_pvt_org` — including Dev and QA, whose servers are not private
+endpoints despite the `pvt` in the name. That is not derivable from the hostname,
+so it is recorded as a constant and pinned by a test rather than inferred: a wrong
+database name on the right server is the one mistake in this area that connects
+successfully and then operates on the wrong data.
+
+Within those databases: the main database holds one schema, `trd365`; the org
+database holds one schema per tenant, `trd365_00…`. Both are already what
+`DEFAULT_MAIN_SCHEMA` and `TENANT_SCHEMA_LIKE` say in
+`trd365_core.datamodel`, so tenant schemas are discovered rather than listed.
+
+So the only thing left for any environment is a password.
 
 ```bash
 cd scripts/secrets
@@ -79,7 +88,8 @@ refuses to run, reporting a credential you are certain you supplied. The script
 derives both the names *and* which fields each environment needs from that
 module, so neither can be typed wrong; a test runs the script and compares its
 output against the same list computed independently, so "derives from" is checked
-rather than asserted.
+rather than asserted. It is also why the ask shrank from 26 values per
+environment to two: everything else is either known or discovered.
 
 Values reach `az` through a mode-0600 file rather than an argument, because
 arguments are readable in `/proc` by anyone on the machine, and the file is parsed

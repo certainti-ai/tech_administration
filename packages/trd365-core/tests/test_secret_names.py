@@ -42,13 +42,10 @@ pytestmark = pytest.mark.skipif(
 #: not matter — only which names come back — but they must be non-empty, because
 #: an empty value is exactly how the script is told a field was not supplied.
 FILLED = {
-    "MAINDB_DBNAME": "main_db",
     "MAINDB_PASSWORD": "main-pw",
-    "ORGDB_DBNAME": "org_db",
     "ORGDB_PASSWORD": "org-pw",
     "MAINDB_SSH_PASSWORD": "ssh-pw",
     "ORGDB_SSH_PASSWORD": "ssh-pw",
-    "TRD365AI_DBNAME": "ai_db",
     "TRD365AI_PASSWORD": "ai-pw",
 }
 
@@ -122,7 +119,7 @@ class TestTheScriptAndTheResolverAgree:
 class TestTheGuards:
     def test_a_missing_required_value_stops_the_run(self, tmp_path):
         filled = tmp_path / "qa.env"
-        filled.write_text("MAINDB_DBNAME=main_db\nMAINDB_PASSWORD=pw\n")  # orgdb absent
+        filled.write_text("MAINDB_PASSWORD=pw\n")  # orgdb absent
         result = subprocess.run(
             ["bash", str(LOADER), "qa", str(filled)],
             capture_output=True,
@@ -154,15 +151,7 @@ class TestTheGuards:
         password = "p$$w'rd with space`echo x`"
         filled = tmp_path / "qa.env"
         filled.write_text(
-            "\n".join(
-                [
-                    "MAINDB_DBNAME=main_db",
-                    f"MAINDB_PASSWORD={password}",
-                    "ORGDB_DBNAME=org_db",
-                    "ORGDB_PASSWORD=org-pw",
-                ]
-            )
-            + "\n"
+            "\n".join([f"MAINDB_PASSWORD={password}", "ORGDB_PASSWORD=org-pw"]) + "\n"
         )
         result = subprocess.run(
             ["bash", str(LOADER), "qa", str(filled)],
@@ -179,9 +168,7 @@ class TestTheGuards:
 
     def test_no_value_is_ever_printed(self, tmp_path):
         filled = tmp_path / "qa.env"
-        filled.write_text(
-            "MAINDB_DBNAME=main_db\nMAINDB_PASSWORD=hunter2\nORGDB_DBNAME=o\nORGDB_PASSWORD=swordfish\n"
-        )
+        filled.write_text("MAINDB_PASSWORD=hunter2\nORGDB_PASSWORD=swordfish\n")
         result = subprocess.run(
             ["bash", str(LOADER), "qa", str(filled)],
             capture_output=True,

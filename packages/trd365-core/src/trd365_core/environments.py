@@ -138,11 +138,19 @@ class ConnectionSettings:
 # connection timeout, and one that is missing fails with a DNS error, and neither
 # message says "this environment has a bastion and you did not use it".
 #
-# **`dbname` is a placeholder everywhere but prod.** It is not a secret, it is
-# simply not known here yet, so it has to come from the vault. A wrong database
-# name on the same server is the one mistake in this file that would connect
-# successfully and operate on the wrong data.
+# **The database names are the same in all four.** So the only thing any
+# environment still needs from the vault is a password. A wrong database name on
+# the right server is the one mistake in this file that would connect
+# successfully and then operate on the wrong data, so it is written once as a
+# constant rather than four times as a literal.
 # --------------------------------------------------------------------------
+
+#: Every environment uses the same two database names. Stated by the owner
+#: 2026-08-21: "dbnames for main and org are same as production". They keep the
+#: `pvt` in the name even where the server itself is not a private endpoint, so
+#: this is not derivable from the hostname and is recorded rather than inferred.
+_MAIN_DBNAME = "thinkrd365_pvt_main"
+_ORG_DBNAME = "thinkrd365_pvt_org"
 
 #: Stage and Prod share one bastion host and one account.
 _SHARED_BASTION = {
@@ -158,7 +166,7 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
                 "development-thinkrd365-psqlserver-centralus-main.postgres.database.azure.com"
             ),
             "port": 5432,
-            "dbname": PLACEHOLDER,
+            "dbname": _MAIN_DBNAME,
             "user": "adminUser",
             "sslmode": "require",
             "tunnel": None,
@@ -166,7 +174,7 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
         "orgdb": {
             "host": "development-thinkrd365-psqlserver-centralus-org.postgres.database.azure.com",
             "port": 5432,
-            "dbname": PLACEHOLDER,
+            "dbname": _ORG_DBNAME,
             "user": "adminUser",
             "sslmode": "require",
             "tunnel": None,
@@ -188,7 +196,7 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
         "maindb": {
             "host": "qa-thinkrd365-psqlserver-centralus-main.postgres.database.azure.com",
             "port": 5432,
-            "dbname": PLACEHOLDER,
+            "dbname": _MAIN_DBNAME,
             "user": "adminUser",
             "sslmode": "require",
             "tunnel": None,
@@ -196,7 +204,7 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
         "orgdb": {
             "host": "qa-thinkrd365-psqlserver-centralus-org.postgres.database.azure.com",
             "port": 5432,
-            "dbname": PLACEHOLDER,
+            "dbname": _ORG_DBNAME,
             "user": "adminUser",
             "sslmode": "require",
             "tunnel": None,
@@ -220,7 +228,7 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
                 "preprod-thinkrd365-psqlserver-centralus-pvt-main.postgres.database.azure.com"
             ),
             "port": 5432,
-            "dbname": PLACEHOLDER,
+            "dbname": _MAIN_DBNAME,
             "user": "adminUser",
             "sslmode": "require",
             "tunnel": _SHARED_BASTION,
@@ -228,7 +236,7 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
         "orgdb": {
             "host": "preprod-thinkrd365-psqlserver-centralus-pvt-org.postgres.database.azure.com",
             "port": 5432,
-            "dbname": PLACEHOLDER,
+            "dbname": _ORG_DBNAME,
             "user": "adminUser",
             "sslmode": "require",
             "tunnel": _SHARED_BASTION,
@@ -250,7 +258,7 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
         "maindb": {
             "host": "prod-thinkrd365-psqlserver-centralus-pvt-main.postgres.database.azure.com",
             "port": 5432,
-            "dbname": "thinkrd365_pvt_main",
+            "dbname": _MAIN_DBNAME,
             "user": "adminUser",
             "sslmode": "require",
             "tunnel": _SHARED_BASTION,
@@ -258,7 +266,7 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
         "orgdb": {
             "host": "prod-thinkrd365-psqlserver-centralus-pvt-org.postgres.database.azure.com",
             "port": 5432,
-            "dbname": "thinkrd365_pvt_org",
+            "dbname": _ORG_DBNAME,
             "user": "adminUser",
             "sslmode": "require",
             "tunnel": _SHARED_BASTION,
