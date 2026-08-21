@@ -63,6 +63,17 @@ resource "azurerm_linux_virtual_machine" "maintenance" {
   lifecycle {
     # Rebuilding the host on an image refresh would discard local model
     # snapshots and audit logs. Replace deliberately, having moved those first.
-    ignore_changes = [source_image_reference]
+    #
+    # `custom_data` for a stronger reason. cloud-init's write_files runs once, at
+    # first boot, so changing a variable that feeds it changes nothing on a
+    # running host — but Azure treats custom_data as replace-only, so Terraform
+    # would offer to destroy and recreate the VM to deliver a file the new VM
+    # would then have. Trading the audit trail and the snapshots for a Caddyfile
+    # edit is not a trade anybody would choose if the plan said it that plainly.
+    #
+    # The live equivalents are deliberate and scripted:
+    # infra/deploy/set-hostname.sh and infra/deploy/set-entra.sh. A rebuild
+    # renders custom_data from the current variables, so the two converge.
+    ignore_changes = [source_image_reference, custom_data]
   }
 }

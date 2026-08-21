@@ -244,14 +244,41 @@ or a process listing.
 
 ### Then, either way — turn it on
 
+Two steps, and the order does not matter, but **both are needed**: one for the
+host that is running now, one for the host that gets rebuilt later.
+
+**The running host.** `/etc/trd365/environment` and the Caddyfile are written by
+cloud-init, which runs once at first boot, so a `terraform apply` changes neither
+on a live VM:
+
+```bash
+az vm run-command invoke -g trd365-maintenance -n trd365-maint-vm \
+  --command-id RunShellScript \
+  --scripts "/opt/trd365/app/infra/deploy/set-entra.sh <tenant-id> <client-id>"
+```
+
+That script moves the three things that have to move together — the service
+learns the tenant and client, `TRD365_DEV_AUTH` goes off, and Caddy stops asking
+for the shared password and stops injecting a role. It takes the redirect URI
+from the hostname Caddy is actually serving, so the two cannot disagree. Then it
+checks that the service reports `entra id` and **puts everything back if it does
+not** — the likeliest cause being a vault missing one of the two secrets. Undo
+with `set-entra.sh --off`.
+
+**The next rebuild.** Record it in `infra/terraform/deployment.auto.tfvars`, which
+is committed and auto-loaded and holds no secrets:
+
 ```hcl
 entra_tenant_id = "b6734060-665c-4b7b-94e2-716458c1d933"
 entra_client_id = "<the client id>"
 public_hostname = "tech-controlcentre.certainti.ai"
 ```
 
-`terraform apply`. Caddy's password prompt disappears and the console offers
-"Sign in with Microsoft".
+`terraform apply` — which will report **no changes**, and that is correct.
+`custom_data` is in the VM's `ignore_changes` because Azure treats it as
+replace-only: without that, Terraform would offer to destroy and recreate the VM
+to deliver a file, taking the audit trail and the model snapshots with it. The
+tfvars entry is what makes a future rebuild come up already configured.
 
 **Last, take away the shared password.** Set `demo_password = null` and
 `demo_roles = "viewer"`, or turn `expose_publicly` off entirely if the host should

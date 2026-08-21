@@ -18,7 +18,7 @@ output "redirect_uri" {
     what the browser arrives at, sign-in fails with AADSTS50011 and no
     server-side trace.
   EOT
-  value       = one(azuread_application.console.web[*].redirect_uris[0])
+  value       = one(tolist(one(azuread_application.console.web).redirect_uris))
 }
 
 output "service_principal_object_id" {

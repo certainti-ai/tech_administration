@@ -1065,10 +1065,16 @@ where cloud-init had cloned the same commit.
 
 ## 13. The live site
 
-**https://52-173-109-182.nip.io/** — `demo` / `admin`.
+**https://tech-controlcentre.certainti.ai/** — `demo` / `admin`.
 
-Real Let's Encrypt certificate (`CN=52-173-109-182.nip.io`, expires 2026-11-19),
-no browser warning.
+Real Let's Encrypt certificate (`CN=tech-controlcentre.certainti.ai`, expires
+2026-11-19), no browser warning. The A record is in GoDaddy and points at the
+VM's static public IP, `52.173.109.182`; the old `52-173-109-182.nip.io` name
+still resolves to the same host but Caddy no longer serves a certificate for it.
+
+Within a minute of the name going live, internet scanners were probing `/.env`,
+`/api/graphql` and friends — all 401 at Caddy. Nothing new, and nothing that gets
+anywhere, but it is the concrete argument for §"turn the shared password off".
 
 `/` is the operator console. It was the service description as JSON for a while,
 which meant anyone who signed in saw a JSON object and reasonably concluded there
@@ -1120,11 +1126,35 @@ Two steps, in this order, and the first is not ours to do.
    `az vm run-command`. It exists because cloud-init's `write_files` runs once, at
    first boot: `terraform apply` with a new `public_hostname` changes the plan and
    nothing on a running VM. The script rewrites the site address in the staged and
-   live Caddyfiles, validates before reloading, and refuses outright until the
-   name resolves to this host — a reload with a name that does not is a failed
-   ACME challenge, and Let's Encrypt rate-limits those. Follow it with
-   `terraform apply -var public_hostname=…` so a rebuild comes up with the same
-   name.
+   live Caddyfiles, validates before restarting, and refuses outright until the
+   name resolves to this host — a restart with a name that does not is a failed
+   ACME challenge, and Let's Encrypt rate-limits those.
+
+**Both done, 2026-08-21.** The certificate was issued in under a minute.
+
+Three things this turned up, all now fixed in place:
+
+* **`terraform apply` would have destroyed the VM.** `public_hostname` feeds
+  cloud-init, Azure treats `custom_data` as replace-only, and the plan said
+  "1 to add, 1 to destroy" — to deliver a file to a machine that would then have
+  it, at the cost of `/var/lib/trd365`. `custom_data` is now in the VM's
+  `ignore_changes`, with the reasoning next to it; verified by removing it again
+  and re-planning, which does propose the replacement.
+* **`systemctl reload caddy` cannot work here.** The Caddyfile sets `admin off`,
+  and the packaged unit's `ExecReload` is `caddy reload`, which talks to the
+  admin API. Reload fails every time; restart is the only thing that applies a
+  config. Both scripts now restart, rather than relying on a fallback that looks
+  redundant and is not.
+* **The flags nobody would remember.** `expose_publicly`, `public_hostname` and
+  the Entra ids now live in `infra/terraform/deployment.auto.tfvars` — committed,
+  auto-loaded, no secrets, and the file says so. `demo_password` stays on the
+  command line.
+* **A plan file was tracked in git.** `infra/terraform/tfplan` had been committed
+  back in `97b514b`, when the deployment had no resources — that copy holds no
+  key material, checked by unzipping it. But a plan is a zip of the state it was
+  planned against, so the copy this session generated contained the VM's SSH
+  private key fifteen times over, staged and one `git commit` from being pushed.
+  Untracked, deleted, and `*.tfplan` is now ignored.
 
 ### Why exposing this host is defensible
 

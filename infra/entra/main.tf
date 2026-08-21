@@ -14,6 +14,18 @@ terraform {
       version = "~> 3.6"
     }
   }
+
+  # Same storage account as the maintenance deployment, a different key. The
+  # state holds the client secret, so it belongs somewhere with the same
+  # protection as the state that already holds the SSH private key — not on
+  # whichever laptop happened to run the apply.
+  #
+  #   terraform init \
+  #     -backend-config="resource_group_name=trd365-tfstate" \
+  #     -backend-config="storage_account_name=trd365tfstated82a2003" \
+  #     -backend-config="container_name=tfstate" \
+  #     -backend-config="key=entra-app.tfstate"
+  backend "azurerm" {}
 }
 
 provider "azuread" {

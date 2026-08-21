@@ -56,4 +56,10 @@ venv/
 *.tfstate.*
 *.tfvars
 !*.tfvars.example
+# The exception to "tfvars hold secrets": this one holds the live deployment's
+# non-secret settings so a rebuild comes up as itself. Its own header says what
+# may not go in it.
+!infra/terraform/deployment.auto.tfvars
 crash.log
+*.tfplan
+tfplan

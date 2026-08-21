@@ -90,8 +90,12 @@ log "validating"
 env "${ENV_ARGS[@]}" caddy validate --config "$CADDYFILE" >/dev/null 2>&1 \
   || fail "$CADDYFILE is not valid after the rewrite; the previous config is at $CADDYFILE.before-$HOSTNAME_NEW and is still what is running"
 
-log "reloading"
-systemctl reload caddy || systemctl restart caddy
+# Restart rather than reload. The Caddyfile sets `admin off`, so `caddy reload`
+# has no admin endpoint to talk to and systemd's ExecReload fails every time —
+# which looks alarming in the output and, worse, would leave the old config
+# serving if the restart fallback were ever dropped as redundant.
+log "restarting"
+systemctl restart caddy
 sleep 3
 systemctl is-active --quiet caddy || fail "caddy is not running; journalctl -u caddy -n 50"
 
