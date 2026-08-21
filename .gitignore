@@ -28,7 +28,6 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files — anything fetched from Key Vault lands in one of these
-.env
 .env*.local
 *.secrets.env
 secrets.env
@@ -70,3 +69,4 @@ venv/
 crash.log
 *.tfplan
 tfplan
+config.bat

@@ -354,11 +354,16 @@ class TestConsole:
         # Checked for both tables, since the same mistake is available in each.
         import re
 
-        from trd365_core.audit import RunRecord
+        from trd365_core.audit import JsonlAuditSink, RunRecord, default_audit_path
 
         from trd365_orchestrator.app import CONSOLE
 
-        client.audit.write(
+        # Written to the file the endpoint actually reads, not to the in-memory
+        # sink. /api/audit resolves `default_audit_path()` — so with the sink, this
+        # test passed only because the *host* had an audit trail: this container's
+        # ~/.trd365, and on the VM the live one. It was reading real records to
+        # prove a point about field names.
+        JsonlAuditSink(default_audit_path()).write(
             RunRecord(
                 run_id="r1",
                 utility="data-model-analysis",

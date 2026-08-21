@@ -1,4 +1,25 @@
-"""Fixtures. Shared doubles live in helpers.py."""
+"""
+Fixtures, and the guard this package was missing.
+
+Most tests here drive an in-memory audit sink, which is why the omission went
+unnoticed: the fixtures look isolated. But some exercise the real
+:class:`AuditedRun`, and with no sink that writes to ``$TRD365_AUDIT_DIR`` — a
+real directory on the maintenance VM, where this suite runs as the deploy's test
+gate.
+
+The result was eight fabricated records in the live audit trail, one per deploy:
+``purge-account`` against ``dev``, ``applied: true``, actor ``ops@certainti.ai``,
+account ``r-1``. All failed and none touched a database, so no data was at risk —
+but an audit trail is worth exactly what its worst entry is worth, and "applied"
+runs that never happened is a bad worst entry.
+
+The same guard exists in the other three packages, added when the purge package
+did this first. It was not copied here because these tests looked like they did
+not need it. ``test_state_isolation.py`` now asserts every package has it, rather
+than relying on the next person noticing.
+"""
+
+from __future__ import annotations
 
 import sys
 from pathlib import Path
@@ -15,6 +36,19 @@ from trd365_orchestrator.jobs import JobStore  # noqa: E402
 from trd365_orchestrator.scheduler import Scheduler  # noqa: E402
 from trd365_orchestrator.security import Role  # noqa: E402
 from trd365_orchestrator.service import Orchestrator, OrchestratorConfig  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def isolated_state(tmp_path, monkeypatch):
+    """Point every default write path inside this test's tmp_path."""
+    for variable, name in (
+        ("TRD365_AUDIT_DIR", "audit"),
+        ("TRD365_STATE_DIR", "state"),
+        ("TRD365_MODEL_DIR", "model"),
+    ):
+        monkeypatch.setenv(variable, str(tmp_path / name))
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    yield tmp_path
 
 
 @pytest.fixture
