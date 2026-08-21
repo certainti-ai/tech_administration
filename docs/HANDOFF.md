@@ -993,9 +993,42 @@ where cloud-init had cloned the same commit.
 **https://52-173-109-182.nip.io/** — `demo` / `admin`.
 
 Real Let's Encrypt certificate (`CN=52-173-109-182.nip.io`, expires 2026-11-19),
-no browser warning. `/docs` is FastAPI's interactive Swagger UI against the live
-service, which is the closest thing to a user interface that exists — **the
-React operator console is Phase 3 and has not been started.**
+no browser warning.
+
+`/` is the operator console. It was the service description as JSON for a while,
+which meant anyone who signed in saw a JSON object and reasonably concluded there
+was no application; the description now lives at `/api`, where a machine-readable
+root belongs. `/docs` is still FastAPI's interactive Swagger UI against the live
+service.
+
+The console is one dependency-free HTML file served from the package
+(`trd365_orchestrator/web/index.html`). There is no Node on the VM and no build
+step in the deploy, so a bundler would mean either committing build output or
+installing a toolchain on a host that holds production credentials. **The React
+SPA of Phase 3 replaces this** — until then this is the whole client, and it is a
+read-only view: environments and their per-database reachability, the utility
+catalogue with impact and approval rules, the data-model snapshot summary, jobs,
+and the audit trail.
+
+Two details worth keeping if it is rewritten. The environment pill follows
+`status` off the health payload rather than recomputing it in the browser, which
+is how a dashboard ends up disagreeing with the API it reads — a test derives
+that vocabulary from `EnvironmentHealth` so adding a status fails the suite
+instead of shipping an unlabelled pill. And status is never colour alone: every
+pill carries a glyph and a word, and a failing database is named in the card
+text, not just tinted red.
+
+`/api/me` exists for the console's benefit: it reports what the current sign-in
+may do, so the page can say "read-only access" instead of offering controls that
+would 403.
+
+**What the console shows as empty, and why.** The data-model panel says no
+snapshot has been captured. That is accurate — the production snapshot
+(`0c0f5d1129eab815`: 26 schemas, 2,791 tables, 8,518 references, 878 deviations)
+was produced in a working session and lives there, not in `/var/lib/trd365/model`
+on the VM. Running `python -m trd365_analysis --env prod --apply` on the host
+would fill the panel, the audit trail and the jobs list with real figures in one
+pass. It is read-only against the databases; it is the snapshot it writes.
 
 Provisioned by `terraform apply -var expose_publicly=true -var demo_password=…`.
 
