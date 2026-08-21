@@ -54,6 +54,59 @@ write_files:
       TRD365_APP_PORT=${app_port}
       TRD365_REPO_URL=${repository_url}
       TRD365_BRANCH=${branch}
+      # Turns on the header authenticator the service ships for development.
+      # Only ever set when Caddy is in front: Caddy does the authenticating and
+      # then injects the identity, and 8080 is never opened to the network.
+      TRD365_DEV_AUTH=${expose_publicly ? "1" : "0"}
+
+  # Caddy: TLS, a login, and a deliberately powerless identity upstream.
+  #
+  # The injected role is `viewer` and nothing else. Every registered utility
+  # writes, and the service requires operator or admin to start anything that
+  # writes, so a caller arriving through this login reads the catalogue, health,
+  # the audit trail and the data model, and cannot run a single utility. That is
+  # the property that makes exposing this host tolerable: it holds credentials
+  # that can delete production data, and no login page is strong enough to be
+  # the only thing standing in the way.
+  - path: /etc/caddy/Caddyfile
+    permissions: "0644"
+    content: |
+      {
+        admin off
+      }
+
+      ${caddy_site} {
+        encode zstd gzip
+
+        basic_auth {
+          {$TRD365_DEMO_USER} {$TRD365_DEMO_HASH}
+        }
+
+        reverse_proxy 127.0.0.1:${app_port} {
+          header_up X-Dev-User {http.auth.user.id}
+          header_up X-Dev-Roles viewer
+        }
+
+        header {
+          Strict-Transport-Security "max-age=31536000"
+          X-Content-Type-Options nosniff
+          X-Frame-Options DENY
+          Referrer-Policy no-referrer
+          -Server
+        }
+
+        log {
+          output file /var/log/caddy/access.log
+        }
+      }
+
+  # Read by the Caddy unit. Holds a bcrypt hash, never the password itself, and
+  # is generated on the host rather than committed anywhere.
+  - path: /etc/systemd/system/caddy.service.d/override.conf
+    permissions: "0644"
+    content: |
+      [Service]
+      EnvironmentFile=/etc/caddy/demo.env
 
   # The service account is unprivileged, but the deploy has to restart the
   # application unit. Exactly those two verbs on exactly that unit — not
@@ -168,6 +221,11 @@ runcmd:
   - systemctl enable trd365-admin.service
   # Enabled only when a schedule was configured; deploy.sh still runs by hand.
   - test -z "${auto_deploy_schedule}" || systemctl enable --now trd365-deploy.timer
+  # Caddy, only when this deployment is meant to be reachable. The script is
+  # versioned in the repository — hence after the clone — so it is reviewable and
+  # shellcheck runs over it in CI, rather than being a blob inside this YAML.
+  - test "${expose_publicly}" != "true" || /opt/trd365/app/infra/deploy/setup-caddy.sh '${demo_username}' '${demo_password}'
+
   # Deploy now rather than at the next slot. Without this a VM built at 06:05
   # sits with no application until 09:00, and the operator has no way to tell
   # a slow bootstrap from a broken one. --no-block so cloud-init finishes while

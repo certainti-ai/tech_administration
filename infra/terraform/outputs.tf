@@ -116,3 +116,13 @@ output "pending_role_assignments" {
     "    --scope ${local.key_vault_id}",
   ])
 }
+
+output "public_url" {
+  description = "Where the application is reachable, when expose_publicly is set."
+  value       = var.expose_publicly ? "https://${local.caddy_site}/" : null
+}
+
+output "public_ip_note" {
+  description = "The address the site name resolves to, for a DNS record."
+  value       = local.public_ip ? local.allocated_ip : null
+}

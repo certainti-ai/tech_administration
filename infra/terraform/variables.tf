@@ -95,6 +95,68 @@ variable "subnet_address_prefix" {
   default     = "10.80.1.0/24"
 }
 
+# ------------------------------------------------------------- public access
+
+variable "expose_publicly" {
+  description = <<-EOT
+    Put the application on the public internet behind a Caddy login.
+
+    Off by default, and the default is the right posture: this host holds
+    credentials that can delete production data. Turning it on creates a public
+    IP, opens 80 and 443 to the world, and installs Caddy in front of the
+    service with HTTP basic authentication.
+
+    What makes that defensible is the identity Caddy hands upstream. It injects
+    the **viewer** role and nothing else, and the service refuses to start any
+    utility that writes without operator or admin (`can_run` in
+    `trd365_orchestrator.security`). Every registered utility writes. So the
+    exposed surface can read health, the utility catalogue, the audit trail and
+    the data model, and cannot run anything at all — by construction, not by
+    trusting whoever gets through the login.
+
+    It remains a demonstration posture. Basic auth is one shared secret with no
+    audit of who used it, and the header authenticator it feeds exists for
+    development. For real use, wire Entra ID SSO (PRD FR-3.x) and turn this off.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "demo_username" {
+  description = "Username for the Caddy login. Only used when expose_publicly is set."
+  type        = string
+  default     = "demo"
+}
+
+variable "demo_password" {
+  description = <<-EOT
+    Password for the Caddy login. Only used when expose_publicly is set.
+
+    Stored as a bcrypt hash on the VM, never in plain text, and never written to
+    the repository. It is still one shared secret on a publicly reachable host,
+    so treat it as a demo credential with a short life.
+  EOT
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "public_hostname" {
+  description = <<-EOT
+    DNS name to serve on, for a real TLS certificate.
+
+    Leave empty and the deployment uses `<dashed-ip>.nip.io`, which resolves to
+    the public IP without any DNS work and lets Caddy obtain a genuine
+    Let's Encrypt certificate — so the login page is not behind a browser
+    warning, which matters when the thing being typed into it is a password.
+
+    Set it to a name you control (`techadmin.certainti.ai`) once its A record
+    points at the public IP.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "assign_public_ip" {
   description = <<-EOT
     Whether to attach a public IP. Defaults to false.
