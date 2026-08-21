@@ -260,3 +260,60 @@ class TestReadingFromTheEnvironment:
         )
         assert result.returncode != 0
         assert "ORGDB_SSH_PASSWORD" in result.stdout
+
+
+class TestTopologyStaysInCode:
+    """
+    Supplying a host does not put a host in the vault unless asked.
+
+    The resolver checks the vault *before* falling back to the code's topology,
+    so a copy of a hostname in the vault silently wins. Two sources of truth
+    where the quieter one wins is how a corrected hostname goes unnoticed for a
+    week — so the default writes passwords only, and overriding is a flag you
+    have to type.
+    """
+
+    FULL = {
+        "MAINDB_HOST": "main.example.internal",
+        "MAINDB_PORT": "5432",
+        "MAINDB_DBNAME": "somewhere_else",
+        "MAINDB_USER": "someone",
+        "MAINDB_PASSWORD": "main-pw",
+        "MAINDB_SSLMODE": "require",
+        "ORGDB_HOST": "org.example.internal",
+        "ORGDB_PORT": "5432",
+        "ORGDB_DBNAME": "somewhere_else",
+        "ORGDB_USER": "someone",
+        "ORGDB_PASSWORD": "org-pw",
+        "ORGDB_SSLMODE": "require",
+    }
+
+    def _run(self, env_value, extra_args=()):
+        scoped = {f"TRD365_{env_value.upper()}_{key}": value for key, value in self.FULL.items()}
+        result = subprocess.run(
+            ["bash", str(LOADER), env_value, "--from-env", *extra_args],
+            capture_output=True,
+            text=True,
+            check=False,
+            env={"PATH": os.environ["PATH"], "HOME": os.environ.get("HOME", "/tmp"), **scoped},
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        return set(re.findall(r"^  (trd365-[a-z0-9-]+)\s", result.stdout, re.MULTILINE)), result
+
+    def test_a_supplied_host_is_not_written_by_default(self):
+        names, result = self._run("qa")
+        assert names == {"trd365-qa-maindb-password", "trd365-qa-orgdb-password"}
+        # And it says so, rather than dropping them silently.
+        assert "in code" in result.stdout
+
+    def test_with_overrides_writes_them(self):
+        names, _ = self._run("qa", ["--with-overrides"])
+        assert "trd365-qa-maindb-host" in names
+        assert "trd365-qa-maindb-dbname" in names
+        assert "trd365-qa-maindb-sslmode" in names
+        # Still includes the passwords; the flag adds, it does not replace.
+        assert "trd365-qa-maindb-password" in names
+
+    def test_the_flag_does_not_conjure_a_tunnel_where_there_is_none(self):
+        names, _ = self._run("qa", ["--with-overrides"])
+        assert not any("ssh" in name for name in names)

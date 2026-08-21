@@ -86,7 +86,16 @@ That reads **only** the fully scoped names (`TRD365_QA_MAINDB_PASSWORD`). A bare
 `MAINDB_PASSWORD` in a shell does not say which environment it belongs to, and
 storing it under a scoped vault name would attribute one environment's password to
 another with nothing to show it had happened — so it is ignored and reported
-missing, and there is a test for exactly that.
+missing, and there is a test for exactly that. On this host the unscoped names
+hold **production**, which is precisely why.
+
+Either way, only the passwords are written. If the environment or the file also
+carries a host, port, dbname, user or sslmode, the loader reports it as `in code`
+and leaves it there. That is not tidiness: the resolver checks the vault *before*
+falling back to the topology, so a copy of a hostname in the vault silently wins
+over the version in the repository, and a corrected host would then go unnoticed.
+`--with-overrides` writes them anyway when something genuinely needs changing
+without a release.
 
 The plain names in the file (`MAINDB_PASSWORD`) become environment-scoped secrets
 (`trd365-qa-maindb-password`). That prefix is the point: it is what stops a QA

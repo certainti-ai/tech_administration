@@ -5,6 +5,14 @@
 #   ./set-environment.sh <dev|qa|stage|prod> <file> --apply
 #   ./set-environment.sh <dev|qa|stage|prod> --from-env [--apply]
 #
+# Only the values that must not be in a repository are written: the passwords.
+# Hosts, ports, users, sslmode and the bastion address are in
+# `trd365_core.environments`, and the resolver checks the vault *before* falling
+# back to that, so a copy in the vault silently wins over the code. Two sources
+# of truth where the quieter one wins is how a corrected hostname gets ignored
+# for a week. Pass `--with-overrides` to write them anyway, deliberately, when
+# something needs changing without a release.
+#
 # `--from-env` reads the values from this process's environment instead of a
 # file, for a context that already has them — a session whose environment
 # carries them, or CI. It reads **only** the fully scoped names
@@ -47,6 +55,13 @@ if [[ "$SOURCE" == "--from-env" ]]; then
   SOURCE="the environment"
 fi
 
+# --with-overrides may appear in either trailing position.
+WITH_OVERRIDES=false
+for argument in "${@:3}"; do
+  [[ "$argument" == "--with-overrides" ]] && WITH_OVERRIDES=true
+done
+[[ "$APPLY" == "--with-overrides" ]] && APPLY=${4:-}
+
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 CORE_SRC="$HERE/../../packages/trd365-core/src"
 VAULT=${AZURE_KEY_VAULT_NAME:-trd365-maint-kv-9qgdg5}
@@ -69,17 +84,18 @@ trap 'rm -rf "$WORK"' EXIT INT TERM
 # ---------------------------------------------------------------- what to ask
 
 # One line per field: "<db_key>\t<FIELD>\trequired|optional".
-PYTHONPATH="$CORE_SRC" python3 - "$ENVIRONMENT" > "$WORK/wanted" <<'PY' || fail "could not read the topology from trd365_core"
+PYTHONPATH="$CORE_SRC" python3 - "$ENVIRONMENT" "$WITH_OVERRIDES" > "$WORK/wanted" <<'PY' || fail "could not read the topology from trd365_core"
 import sys
 
 from trd365_core.environments import DB_KEYS, PLACEHOLDER, Environment, describe
 
 env = Environment(sys.argv[1])
+with_overrides = sys.argv[2] == "true"
 
-# Fields the resolver reads that this script will write if they are supplied,
-# even when the code already has a value. Overriding a host or a user without a
-# release is occasionally the difference between a diagnosis and a guess.
-OPTIONAL = ("HOST", "PORT", "USER", "SSLMODE")
+# Fields the code already knows. Written only when asked for: overriding a host
+# or a user without a release is occasionally the difference between a diagnosis
+# and a guess, but doing it by accident buries the real value.
+OPTIONAL = ("HOST", "PORT", "DBNAME", "USER", "SSLMODE")
 OPTIONAL_TUNNEL = ("SSH_HOST", "SSH_PORT", "SSH_USER")
 
 for db_key in DB_KEYS:
@@ -96,8 +112,8 @@ for db_key in DB_KEYS:
     if settings.ssh_tunnel is not None:
         required.append("SSH_PASSWORD")
 
-    optional = list(OPTIONAL)
-    if settings.ssh_tunnel is not None:
+    optional = list(OPTIONAL) if with_overrides else []
+    if with_overrides and settings.ssh_tunnel is not None:
         optional += list(OPTIONAL_TUNNEL)
 
     for field in required:
@@ -182,12 +198,21 @@ fi
 # one file per environment from the same template is a reasonable way to work —
 # but worth saying, because a password typed into a field nothing reads is a
 # password somebody believes is in place.
+if [[ "$FROM_ENV" == true && "$WITH_OVERRIDES" == false ]]; then
+  log "  in code   host, port, dbname, user, sslmode and the bastion address"
+  log "            (pass --with-overrides to store them in the vault as well)"
+fi
+
 while IFS=$'\t' read -r key _; do
   [[ "$FROM_ENV" == true ]] && break
   if ! awk -F'\t' -v k="$key" '
       { want = toupper($1 "_" $2); if (want == k) found = 1 }
       END { exit !found }' "$WORK/wanted"; then
-    printf '  ignored  %s (not used by %s)\n' "$key" "$ENVIRONMENT"
+    if [[ "$WITH_OVERRIDES" == false ]] && printf '%s' "$key" | grep -qE '_(HOST|PORT|DBNAME|USER|SSLMODE)$'; then
+      printf '  in code   %s (pass --with-overrides to store it anyway)\n' "$key"
+    else
+      printf '  ignored   %s (not used by %s)\n' "$key" "$ENVIRONMENT"
+    fi
   fi
 done < "$WORK/parsed"
 
