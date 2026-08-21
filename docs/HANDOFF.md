@@ -319,10 +319,27 @@ error that explains the change. Announce this to operators before it ships.
 
 Ask these before building past them:
 
-1. **Dev/QA/Stage database connections.** *Owner will supply later.* Until then
-   they resolve to placeholders that refuse to connect. Nothing is blocked —
-   supply `TRD365_DEV_MAINDB_HOST` and friends and they light up with no code
-   change. `trd365_core.configuration_status()` reports which are ready.
+1. **Dev/QA/Stage database connections.** **Mostly answered 2026-08-21.** The
+   servers are now in `_KNOWN_TOPOLOGY`: Dev and QA connect directly to
+   `development-`/`qa-thinkrd365-psqlserver-centralus-{main,org}`, Stage to the
+   `preprod-…-pvt-{main,org}` pair through the same bastion as prod
+   (`172.203.151.166` as `thinkrd_DevOps`). All as `adminUser`.
+
+   Outstanding, and both deliberately not guessed:
+
+   * **`dbname` per environment.** Prod is `thinkrd365_pvt_main` /
+     `thinkrd365_pvt_org`; the others were not given. Asked for through the vault
+     rather than inferred, because a wrong database name on the right server is
+     the one mistake here that connects successfully and then operates on the
+     wrong data.
+   * **Whether `trd365ai` exists outside prod.** Prod's is a direct connection to
+     `4.246.251.140` as `aiadmin`; nothing has named an equivalent for the other
+     three, so their entries stay placeholders and the loader does not ask for
+     them. Any utility touching `trd365ai` refuses to run there and says why.
+
+   Supplying the rest is `scripts/secrets/set-environment.sh <env> <file>` — four
+   values for Dev and QA, six for Stage. `trd365_core.configuration_status()`
+   reports which are ready, per database.
 2. ~~**`account_deletion/` vs `data_purge/account/`.**~~ **Decided:** keep both
    for now, decision deferred. Record the relationship with
    `Utility.supersedes` rather than deleting either.

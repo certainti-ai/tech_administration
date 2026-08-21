@@ -8,13 +8,18 @@
 # digest of each value — enough to confirm a value is the one you meant without
 # it appearing on screen, in a shell history, or in a CI log.
 #
-# Why a script rather than 26 `az keyvault secret set` commands: the name is the
-# contract. `trd365_core.environments` looks for
-# `TRD365_<ENV>_<DBKEY>_<FIELD>`, lowercased with underscores turned into
-# hyphens, and a name that is close but wrong does not error — the field falls
-# back to a placeholder, and the utility refuses to run with a message about a
-# credential you are certain you supplied. Deriving the names here means they
-# cannot be typed wrong.
+# **It asks the code what it needs.** Servers, ports, users and bastions live in
+# `trd365_core.environments`, where they are reviewable and version-controlled;
+# only the things that must not be in git are asked for here. So the required
+# list is derived from that module rather than restated: Dev and QA want four
+# values, Stage wants six because it goes through a bastion, and a database whose
+# server this repo does not know is skipped rather than half-configured.
+#
+# The names are derived too, for the same reason. `trd365_core` looks up
+# `TRD365_<ENV>_<DBKEY>_<FIELD>`, lowercased with underscores turned to hyphens,
+# and a name that is close but wrong does not error — the field falls back to a
+# placeholder, the utility then refuses to run, and the message names a
+# credential you are certain you supplied.
 #
 # Values are passed to `az` through a mode-0600 file, never as an argument:
 # arguments are visible in /proc to anybody on the machine.
@@ -25,8 +30,9 @@ ENVIRONMENT=${1:?usage: set-environment.sh <dev|qa|stage|prod> <file> [--apply]}
 SOURCE=${2:?usage: set-environment.sh <dev|qa|stage|prod> <file> [--apply]}
 APPLY=${3:-}
 
+HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+CORE_SRC="$HERE/../../packages/trd365-core/src"
 VAULT=${AZURE_KEY_VAULT_NAME:-trd365-maint-kv-9qgdg5}
-PLACEHOLDER=PLACEHOLDER_NOT_CONFIGURED
 
 log() { printf '%s\n' "$*"; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
@@ -37,18 +43,55 @@ case "$ENVIRONMENT" in
 esac
 [[ -r "$SOURCE" ]] || fail "cannot read $SOURCE"
 [[ -z "$APPLY" || "$APPLY" == "--apply" ]] || fail "unexpected argument '$APPLY'"
-
-# The fields each database needs, and the order they are shown in. Kept in step
-# with DB_KEYS and the ConnectionSettings dataclass in trd365_core.environments:
-# a field here that the resolver does not read is dead weight, and one it reads
-# that is missing here is a placeholder at run time.
-MAINDB_FIELDS="HOST PORT DBNAME USER PASSWORD SSLMODE SSH_HOST SSH_PORT SSH_USER SSH_PASSWORD"
-ORGDB_FIELDS="$MAINDB_FIELDS"
-TRD365AI_FIELDS="HOST PORT DBNAME USER PASSWORD SSLMODE"
+[[ -d "$CORE_SRC" ]] || fail "cannot find trd365-core at $CORE_SRC; run this from a checkout"
 
 WORK=$(mktemp -d)
 chmod 700 "$WORK"
 trap 'rm -rf "$WORK"' EXIT INT TERM
+
+# ---------------------------------------------------------------- what to ask
+
+# One line per field: "<db_key>\t<FIELD>\trequired|optional".
+PYTHONPATH="$CORE_SRC" python3 - "$ENVIRONMENT" > "$WORK/wanted" <<'PY' || fail "could not read the topology from trd365_core"
+import sys
+
+from trd365_core.environments import DB_KEYS, PLACEHOLDER, Environment, describe
+
+env = Environment(sys.argv[1])
+
+# Fields the resolver reads that this script will write if they are supplied,
+# even when the code already has a value. Overriding a host or a user without a
+# release is occasionally the difference between a diagnosis and a guess.
+OPTIONAL = ("HOST", "PORT", "USER", "SSLMODE")
+OPTIONAL_TUNNEL = ("SSH_HOST", "SSH_PORT", "SSH_USER")
+
+for db_key in DB_KEYS:
+    settings = describe(env, db_key, {})
+
+    # No known server means no amount of secrets makes this database usable, and
+    # asking for a password for a host nobody has named invites inventing one.
+    if PLACEHOLDER in settings.host:
+        continue
+
+    required = ["PASSWORD"]
+    if settings.dbname == PLACEHOLDER:
+        required.insert(0, "DBNAME")
+    if settings.ssh_tunnel is not None:
+        required.append("SSH_PASSWORD")
+
+    optional = list(OPTIONAL)
+    if settings.ssh_tunnel is not None:
+        optional += list(OPTIONAL_TUNNEL)
+
+    for field in required:
+        print(f"{db_key}\t{field}\trequired")
+    for field in optional:
+        print(f"{db_key}\t{field}\toptional")
+PY
+
+[[ -s "$WORK/wanted" ]] || fail "$ENVIRONMENT has no databases this repo knows a server for"
+
+# --------------------------------------------------------------- what we have
 
 # Read the file without sourcing it. A password containing `$`, backticks or a
 # space would otherwise be expanded, mangled, or executed.
@@ -68,42 +111,46 @@ lookup() {
     "$WORK/parsed"
 }
 
-secret_name() {
-  # TRD365_QA_MAINDB_SSH_PASSWORD -> trd365-qa-maindb-ssh-password
-  printf 'trd365-%s-%s-%s\n' "$ENVIRONMENT" "$1" "$2" | tr '[:upper:]_' '[:lower:]-'
-}
-
 digest() { printf '%s' "$1" | sha256sum | cut -c1-12; }
 
 missing=0
 declare -a NAMES=() KEYS=()
 
-for db in maindb orgdb trd365ai; do
-  case "$db" in
-    maindb)   fields=$MAINDB_FIELDS ;;
-    orgdb)    fields=$ORGDB_FIELDS ;;
-    trd365ai) fields=$TRD365AI_FIELDS ;;
-    *)        fail "unreachable" ;;
-  esac
+log ""
 
-  for field in $fields; do
-    key="$(printf '%s_%s' "$db" "$field" | tr '[:lower:]' '[:upper:]')"
-    value=$(lookup "$key" || true)
-    if [[ -z "$value" || "$value" == "$PLACEHOLDER" ]]; then
+while IFS=$'\t' read -r db_key field requirement; do
+  key="$(printf '%s_%s' "$db_key" "$field" | tr '[:lower:]' '[:upper:]')"
+  value=$(lookup "$key" || true)
+
+  if [[ -z "$value" ]]; then
+    if [[ "$requirement" == "required" ]]; then
       printf '  MISSING  %s\n' "$key"
       missing=$((missing + 1))
-      continue
     fi
-    NAMES+=("$(secret_name "$db" "$field")")
-    KEYS+=("$key")
-    printf '%s' "$value" > "$WORK/value.$key"
-    chmod 600 "$WORK/value.$key"
-  done
-done
+    continue
+  fi
+
+  NAMES+=("$(printf 'trd365-%s-%s-%s' "$ENVIRONMENT" "$db_key" "$field" | tr '[:upper:]_' '[:lower:]-')")
+  KEYS+=("$key")
+  printf '%s' "$value" > "$WORK/value.$key"
+  chmod 600 "$WORK/value.$key"
+done < "$WORK/wanted"
 
 if [[ $missing -gt 0 ]]; then
-  fail "$missing field(s) are empty. Every field is required — see environment.env.example."
+  fail "$missing required field(s) are empty. See environment.env.example."
 fi
+
+# Anything in the file this environment has no use for. Not an error — filling in
+# one file per environment from the same template is a reasonable way to work —
+# but worth saying, because a password typed into a field nothing reads is a
+# password somebody believes is in place.
+while IFS=$'\t' read -r key _; do
+  if ! awk -F'\t' -v k="$key" '
+      { want = toupper($1 "_" $2); if (want == k) found = 1 }
+      END { exit !found }' "$WORK/wanted"; then
+    printf '  ignored  %s (not used by %s)\n' "$key" "$ENVIRONMENT"
+  fi
+done < "$WORK/parsed"
 
 log ""
 log "vault:       $VAULT"
@@ -115,14 +162,6 @@ for i in "${!NAMES[@]}"; do
     "$(digest "$(cat "$WORK/value.${KEYS[$i]}")")"
 done
 log ""
-
-if [[ "$ENVIRONMENT" == "prod" ]]; then
-  log "NOTE: prod is already in the vault under unscoped names (maindb-host and"
-  log "      friends), which the resolver still accepts for prod only. Writing the"
-  log "      scoped copies here is safe and makes prod look like the others, but"
-  log "      it is not required for anything to work."
-  log ""
-fi
 
 if [[ "$APPLY" != "--apply" ]]; then
   log "Dry run. Nothing was written. Re-run with --apply."
@@ -152,6 +191,3 @@ log ""
 log "  az vm run-command invoke -g trd365-maintenance -n trd365-maint-vm \\"
 log "    --command-id RunShellScript --scripts \\"
 log "    \"/opt/trd365/app/infra/deploy/verify.sh $ENVIRONMENT\""
-log ""
-log "Or open the console: the $ENVIRONMENT card moves from \"Credentials pending\""
-log "to \"Connected\", naming any database that is still unreachable."

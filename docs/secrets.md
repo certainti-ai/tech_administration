@@ -31,44 +31,64 @@ long-lived secret at all.
 
 ## Adding a deployment environment's databases
 
-Prod is in the vault. Dev, QA and Stage are not — they resolve to placeholders,
-and `connection_settings()` raises rather than returning one, so a
-half-configured environment fails loudly instead of connecting somewhere
-unintended.
+Prod is configured. Dev, QA and Stage know their servers and not their
+credentials, which is the split worth keeping: a hostname in
+`trd365_core.environments` is reviewable and moves through review when it
+changes, while a password in code is a password in git.
 
-Each environment needs 26 values: ten for `maindb`, ten for `orgdb` (both
-through an SSH bastion) and six for `trd365ai` (direct). Twenty-one of those are
-topology — hosts, ports, database names, users, `sslmode` — and five are
-passwords. All 26 go in the vault together, because a name the resolver looks
-for and does not find falls back to a placeholder; there is no partial state.
+So the code holds the topology — server, port, user, `sslmode`, and whether the
+environment goes through a bastion — and the vault holds the rest:
+
+| Environment | Reached | Needs |
+|---|---|---|
+| Dev | directly | `maindb` and `orgdb` dbname + password — **4 values** |
+| QA | directly | the same — **4 values** |
+| Stage | through the bastion | the same, plus the bastion password — **6 values** |
+| Prod | through the bastion | already configured |
+
+Dev and QA connect straight to their servers; Stage and Prod sit behind the same
+bastion (`172.203.151.166` as `thinkrd_DevOps`) and their servers carry `-pvt-`
+in the hostname. That pairing is asserted by a test rather than left as a comment,
+because a tunnel where none is needed fails with a timeout and a missing one
+fails to resolve, and neither message mentions bastions.
+
+`dbname` is the one non-secret still asked for. It is not sensitive, it is simply
+not recorded here yet — and a wrong database name on the right server is the only
+mistake in this area that connects successfully and then operates on the wrong
+data, so it is not being guessed.
 
 ```bash
 cd scripts/secrets
-cp environment.env.example qa.env     # fill it in
+cp environment.env.example qa.env     # fill in the blanks
 ./set-environment.sh qa qa.env        # dry run: names and digests, no values
 ./set-environment.sh qa qa.env --apply
 rm qa.env
 ```
 
 The plain names in the file (`MAINDB_PASSWORD`) become environment-scoped secrets
-(`trd365-qa-maindb-password`). That prefix is the whole point: it is what stops a
-QA credential from ever being served to a utility running against prod. Prod is
-the one exception — it also answers to the unscoped names already in the vault,
-because those are what the original scripts used and renaming them would have
-been churn for no gain.
+(`trd365-qa-maindb-password`). That prefix is the point: it is what stops a QA
+credential from ever being served to a utility running against prod. Prod also
+answers to the unscoped names already in the vault, because those are what the
+original scripts used and renaming them would have been churn for no gain.
 
-**Why a script and not 26 `az keyvault secret set` commands.** The name is the
-contract. `trd365_core.environments` looks for
-`TRD365_<ENV>_<DBKEY>_<FIELD>`, lowercased with underscores turned to hyphens,
-and a name that is close but wrong does not error — the field silently falls back
-to a placeholder and the utility refuses to run, reporting a credential you are
-certain you supplied. Deriving the names from one list means they cannot be typed
-wrong, and a test asserts that list matches what the resolver reads.
+**Why a script rather than `az keyvault secret set` by hand.** The name is the
+contract. `trd365_core.environments` looks for `TRD365_<ENV>_<DBKEY>_<FIELD>`,
+lowercased with underscores turned to hyphens, and a name that is close but wrong
+does not error — the field silently falls back to a placeholder and the utility
+refuses to run, reporting a credential you are certain you supplied. The script
+derives both the names *and* which fields each environment needs from that
+module, so neither can be typed wrong; a test runs the script and compares its
+output against the same list computed independently, so "derives from" is checked
+rather than asserted.
 
 Values reach `az` through a mode-0600 file rather than an argument, because
-arguments are readable in `/proc` by anyone on the machine. The dry run prints a
-12-character digest per value — enough to confirm a value is the one you meant
-without it appearing on screen or in a shell history.
+arguments are readable in `/proc` by anyone on the machine, and the file is parsed
+rather than sourced so a password containing `$`, a quote or a space survives
+byte-for-byte. The dry run prints a 12-character digest per value — enough to
+confirm a value is the one you meant without it appearing on screen or in a shell
+history. A field the environment has no use for is reported as ignored, never
+quietly stored: a password sitting under a name nothing reads is a password
+somebody believes is in place.
 
 ### Checking it worked
 
@@ -85,6 +105,15 @@ That opens each connection through the VM's managed identity and reports the
 database and user it reached. The console shows the same thing: the environment's
 card moves from "Credentials pending" to "Connected", and names any database
 still unreachable rather than just tinting the card.
+
+### Still open
+
+Whether Dev, QA and Stage have their own `trd365ai` instance. Prod's is a direct
+connection to `4.246.251.140` as `aiadmin`; nothing has said what the others use,
+so their entries stay placeholders and the loader does not ask for them. A utility
+that touches `trd365ai` therefore refuses to run in those environments and says
+why — which is the right failure, but it does mean their cards stay short of
+"Connected" until this is answered.
 
 ## One-time setup
 

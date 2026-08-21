@@ -59,12 +59,60 @@ class TestProdResolution:
         assert settings.password == "prod-main-pw"
 
 
-class TestPlaceholderEnvironments:
+class TestTheNonProdTopology:
+    """
+    Dev, QA and Stage have known servers and unknown credentials.
+
+    The split matters: a host in code is reviewable and moves through review when
+    it changes, while a password in code is a password in git. So these assert
+    that exactly the right half is known.
+    """
+
     @pytest.mark.parametrize("env", [Environment.DEV, Environment.QA, Environment.STAGE])
-    def test_unconfigured_environments_describe_as_placeholders(self, env):
-        settings = envs.describe(env, "maindb", {})
+    @pytest.mark.parametrize("db_key", ["maindb", "orgdb"])
+    def test_the_server_is_known_and_the_credentials_are_not(self, env, db_key):
+        settings = envs.describe(env, db_key, {})
+        assert envs.PLACEHOLDER not in settings.host
+        assert settings.host.endswith(".postgres.database.azure.com")
+        assert settings.user == "adminUser"
+        # dbname is the one non-secret left blank on purpose: a wrong database
+        # name on the right server is the only mistake here that would connect
+        # successfully and then operate on the wrong data.
+        assert settings.dbname == envs.PLACEHOLDER
+        assert settings.password == envs.PLACEHOLDER
         assert settings.is_placeholder
-        assert envs.PLACEHOLDER in settings.host
+
+    @pytest.mark.parametrize("env", [Environment.DEV, Environment.QA])
+    def test_dev_and_qa_are_reached_directly(self, env):
+        for db_key in ("maindb", "orgdb"):
+            settings = envs.describe(env, db_key, {})
+            assert settings.ssh_tunnel is None
+            assert "-pvt-" not in settings.host
+
+    @pytest.mark.parametrize("env", [Environment.STAGE, Environment.PROD])
+    def test_stage_and_prod_go_through_the_shared_bastion(self, env):
+        for db_key in ("maindb", "orgdb"):
+            settings = envs.describe(env, db_key, {})
+            assert settings.ssh_tunnel is not None
+            assert settings.ssh_tunnel.ssh_host == "172.203.151.166"
+            assert settings.ssh_tunnel.ssh_user == "thinkrd_DevOps"
+            # The private-endpoint servers are exactly the ones behind it. A
+            # tunnel where none is needed times out; a missing one fails to
+            # resolve. Neither message mentions bastions, so the pairing is
+            # pinned here instead of being inferred at run time.
+            assert "-pvt-" in settings.host
+
+    @pytest.mark.parametrize("env", [Environment.DEV, Environment.QA, Environment.STAGE])
+    def test_trd365ai_is_unknown_outside_prod(self, env):
+        # Whether one exists per environment is HANDOFF open question 1. Until
+        # it is answered, placeholders mean a utility that touches it refuses to
+        # run and says why.
+        settings = envs.describe(env, "trd365ai", {})
+        assert settings.host == envs.PLACEHOLDER
+        assert settings.is_placeholder
+
+
+class TestPlaceholderEnvironments:
 
     @pytest.mark.parametrize("env", [Environment.DEV, Environment.QA, Environment.STAGE])
     def test_connecting_to_an_unconfigured_environment_is_refused(self, env):
@@ -88,14 +136,16 @@ class TestPlaceholderEnvironments:
             envs.connection_settings(Environment.DEV, "maindb", environ)
 
     def test_a_placeholder_tunnel_makes_the_whole_setting_placeholder(self):
+        # Stage, because it is the non-prod environment that has a bastion. The
+        # database credentials are complete here and the connection is still
+        # refused, which is the point: everything needed to reach the server has
+        # to be present, not just everything needed to log in to it.
         environ = {
-            "TRD365_QA_MAINDB_HOST": "qa.example.internal",
-            "TRD365_QA_MAINDB_DBNAME": "qa_main",
-            "TRD365_QA_MAINDB_USER": "qa",
-            "TRD365_QA_MAINDB_PASSWORD": "pw",
-            # tunnel host/user/password left unset
+            "TRD365_STAGE_MAINDB_DBNAME": "stage_main",
+            "TRD365_STAGE_MAINDB_PASSWORD": "pw",
+            # ssh_password left unset
         }
-        assert envs.describe(Environment.QA, "maindb", environ).is_placeholder
+        assert envs.describe(Environment.STAGE, "maindb", environ).is_placeholder
 
     def test_fully_supplying_dev_makes_it_connectable(self):
         environ = {

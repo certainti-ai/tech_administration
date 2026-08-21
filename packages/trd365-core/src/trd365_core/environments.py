@@ -52,9 +52,7 @@ class Environment(StrEnum):
             return cls(value.strip().lower())
         except ValueError:
             valid = ", ".join(e.value for e in cls)
-            raise ConfigError(
-                f'Unknown environment "{value}". Expected one of: {valid}.'
-            ) from None
+            raise ConfigError(f'Unknown environment "{value}". Expected one of: {valid}.') from None
 
     @property
     def platform_workspace(self) -> str:
@@ -118,9 +116,7 @@ class ConnectionSettings:
     def redacted(self) -> ConnectionSettings:
         """A copy safe to log or serialise — secrets replaced, shape preserved."""
         tunnel = (
-            replace(self.ssh_tunnel, ssh_password="***")
-            if self.ssh_tunnel is not None
-            else None
+            replace(self.ssh_tunnel, ssh_password="***") if self.ssh_tunnel is not None else None
         )
         return replace(self, password="***", ssh_tunnel=tunnel)
 
@@ -128,18 +124,128 @@ class ConnectionSettings:
 # --------------------------------------------------------------------------
 # Known non-secret topology.
 #
-# Only prod is known today. Host/dbname/user are not secrets (see
-# SANITIZATION_NOTE.md in the legacy tree) and live here so the shape of each
-# environment is reviewable in code. Passwords never appear here.
+# Host/dbname/user are not secrets (see SANITIZATION_NOTE.md in the legacy tree)
+# and live here so the shape of each environment is reviewable in code and moves
+# through review when it changes. Passwords never appear here — they come from
+# the Key Vault, and a topology entry can be overridden from there too if one of
+# these values turns out to be wrong.
+#
+# Two things are deliberately visible in the shapes below.
+#
+# **Dev and QA are reachable directly; Stage and Prod are not.** Their servers
+# carry `-pvt-` in the hostname and sit behind the same bastion. That is not a
+# detail to infer at run time: a tunnel that should not be there fails with a
+# connection timeout, and one that is missing fails with a DNS error, and neither
+# message says "this environment has a bastion and you did not use it".
+#
+# **`dbname` is a placeholder everywhere but prod.** It is not a secret, it is
+# simply not known here yet, so it has to come from the vault. A wrong database
+# name on the same server is the one mistake in this file that would connect
+# successfully and operate on the wrong data.
 # --------------------------------------------------------------------------
 
-_PROD_BASTION = {
+#: Stage and Prod share one bastion host and one account.
+_SHARED_BASTION = {
     "ssh_host": "172.203.151.166",
     "ssh_port": 22,
     "ssh_user": "thinkrd_DevOps",
 }
 
 _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
+    Environment.DEV: {
+        "maindb": {
+            "host": (
+                "development-thinkrd365-psqlserver-centralus-main.postgres.database.azure.com"
+            ),
+            "port": 5432,
+            "dbname": PLACEHOLDER,
+            "user": "adminUser",
+            "sslmode": "require",
+            "tunnel": None,
+        },
+        "orgdb": {
+            "host": "development-thinkrd365-psqlserver-centralus-org.postgres.database.azure.com",
+            "port": 5432,
+            "dbname": PLACEHOLDER,
+            "user": "adminUser",
+            "sslmode": "require",
+            "tunnel": None,
+        },
+        # Whether a trd365ai instance exists for this environment at all is an
+        # open question (docs/HANDOFF.md open question 1). Left as placeholders,
+        # so utilities that touch it refuse to run here and say why, rather than
+        # this environment quietly looking complete without it.
+        "trd365ai": {
+            "host": PLACEHOLDER,
+            "port": 5432,
+            "dbname": PLACEHOLDER,
+            "user": PLACEHOLDER,
+            "sslmode": "prefer",
+            "tunnel": None,
+        },
+    },
+    Environment.QA: {
+        "maindb": {
+            "host": "qa-thinkrd365-psqlserver-centralus-main.postgres.database.azure.com",
+            "port": 5432,
+            "dbname": PLACEHOLDER,
+            "user": "adminUser",
+            "sslmode": "require",
+            "tunnel": None,
+        },
+        "orgdb": {
+            "host": "qa-thinkrd365-psqlserver-centralus-org.postgres.database.azure.com",
+            "port": 5432,
+            "dbname": PLACEHOLDER,
+            "user": "adminUser",
+            "sslmode": "require",
+            "tunnel": None,
+        },
+        # Whether a trd365ai instance exists for this environment at all is an
+        # open question (docs/HANDOFF.md open question 1). Left as placeholders,
+        # so utilities that touch it refuse to run here and say why, rather than
+        # this environment quietly looking complete without it.
+        "trd365ai": {
+            "host": PLACEHOLDER,
+            "port": 5432,
+            "dbname": PLACEHOLDER,
+            "user": PLACEHOLDER,
+            "sslmode": "prefer",
+            "tunnel": None,
+        },
+    },
+    Environment.STAGE: {
+        "maindb": {
+            "host": (
+                "preprod-thinkrd365-psqlserver-centralus-pvt-main.postgres.database.azure.com"
+            ),
+            "port": 5432,
+            "dbname": PLACEHOLDER,
+            "user": "adminUser",
+            "sslmode": "require",
+            "tunnel": _SHARED_BASTION,
+        },
+        "orgdb": {
+            "host": "preprod-thinkrd365-psqlserver-centralus-pvt-org.postgres.database.azure.com",
+            "port": 5432,
+            "dbname": PLACEHOLDER,
+            "user": "adminUser",
+            "sslmode": "require",
+            "tunnel": _SHARED_BASTION,
+        },
+        # Whether a trd365ai instance exists for this environment at all is an
+        # open question (docs/HANDOFF.md open question 1). Left as placeholders,
+        # so utilities that touch it refuse to run here and say why, rather than
+        # this environment quietly looking complete without it.
+        "trd365ai": {
+            "host": PLACEHOLDER,
+            "port": 5432,
+            "dbname": PLACEHOLDER,
+            "user": PLACEHOLDER,
+            "sslmode": "prefer",
+            "tunnel": None,
+        },
+    },
     Environment.PROD: {
         "maindb": {
             "host": "prod-thinkrd365-psqlserver-centralus-pvt-main.postgres.database.azure.com",
@@ -147,7 +253,7 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
             "dbname": "thinkrd365_pvt_main",
             "user": "adminUser",
             "sslmode": "require",
-            "tunnel": _PROD_BASTION,
+            "tunnel": _SHARED_BASTION,
         },
         "orgdb": {
             "host": "prod-thinkrd365-psqlserver-centralus-pvt-org.postgres.database.azure.com",
@@ -155,7 +261,7 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
             "dbname": "thinkrd365_pvt_org",
             "user": "adminUser",
             "sslmode": "require",
-            "tunnel": _PROD_BASTION,
+            "tunnel": _SHARED_BASTION,
         },
         "trd365ai": {
             "host": "4.246.251.140",
@@ -168,9 +274,10 @@ _KNOWN_TOPOLOGY: dict[Environment, dict[str, dict[str, object]]] = {
     },
 }
 
-#: Dev/QA/Stage are unknown. Each gets the prod *shape* with placeholder values,
-#: so tooling, the registry and the UI can enumerate them before real
-#: credentials arrive. See docs/HANDOFF.md open question 1.
+#: The fallback for a database in an environment this file says nothing about.
+#: Every environment is now described above, so this is reached only if one is
+#: added to :class:`Environment` without a topology entry — in which case
+#: placeholders are the right answer, since the alternative is inventing a host.
 _PLACEHOLDER_TOPOLOGY: dict[str, dict[str, object]] = {
     "maindb": {
         "host": PLACEHOLDER,
@@ -351,8 +458,6 @@ def configuration_status(
     if secrets is None:
         secrets = default_secret_source(os.environ if environ is None else environ)
     return {
-        env: {
-            key: not describe(env, key, environ, secrets).is_placeholder for key in DB_KEYS
-        }
+        env: {key: not describe(env, key, environ, secrets).is_placeholder for key in DB_KEYS}
         for env in Environment
     }

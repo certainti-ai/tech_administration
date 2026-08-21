@@ -1,116 +1,193 @@
 """
 That the loader script writes the names the resolver reads.
 
-``scripts/secrets/set-environment.sh`` derives 26 Key Vault secret names per
-environment; :mod:`trd365_core.environments` looks a subset of those names up.
-The two agreeing is not decorative. A name that is close but wrong does not
-error anywhere: :func:`describe` falls back to the placeholder for that field,
-:func:`connection_settings` then refuses to connect, and the message names a
-credential whoever ran the script is certain they supplied. That is a bad hour.
+``scripts/secrets/set-environment.sh`` derives its list of Key Vault secret
+names from :mod:`trd365_core.environments`, so in principle they cannot
+disagree. In practice "derives from" is a shell script calling a Python snippet
+and reformatting the answer, and every step of that is somewhere a name can
+acquire an underscore it should not have.
 
-So the field lists are compared directly, in both directions:
+The consequence of a mismatch is specific and nasty: a name that is close but
+wrong does not error anywhere. :func:`describe` falls back to the placeholder for
+that field, :func:`connection_settings` then refuses to connect, and the message
+names a credential whoever ran the script is certain they supplied.
 
-* a field the script writes and the resolver never reads is a secret sitting in
-  a vault for no reason;
-* a field the resolver reads and the script does not write is an environment
-  that looks configured and is not.
-
-The resolver's side is read out of its own source rather than restated here,
-because a list restated in a test is a list that agrees with the test and not
-with the code.
+So the script is actually run, in dry-run mode, against a filled-in copy of its
+own template, and the names it reports are compared with a set computed here
+straight from :func:`describe`. Two independent routes to the same answer, rather
+than a restatement of one of them.
 """
 
 from __future__ import annotations
 
-import inspect
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
 
-from trd365_core import environments
-from trd365_core.environments import DB_KEYS, Environment
-from trd365_core.vault import to_secret_name
+from trd365_core.environments import DB_KEYS, PLACEHOLDER, Environment, describe
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 LOADER = REPO_ROOT / "scripts" / "secrets" / "set-environment.sh"
 TEMPLATE = REPO_ROOT / "scripts" / "secrets" / "environment.env.example"
 
-# The tunnel fields are only read for databases that have one, so they are
-# tracked separately rather than as part of one flat set.
-_TUNNEL_FIELDS = frozenset({"ssh_host", "ssh_port", "ssh_user", "ssh_password"})
+pytestmark = pytest.mark.skipif(
+    not LOADER.exists() or shutil.which("bash") is None,
+    reason="needs the repo checkout and bash",
+)
+
+#: Every field the template offers, filled with something recognisable. Values do
+#: not matter — only which names come back — but they must be non-empty, because
+#: an empty value is exactly how the script is told a field was not supplied.
+FILLED = {
+    "MAINDB_DBNAME": "main_db",
+    "MAINDB_PASSWORD": "main-pw",
+    "ORGDB_DBNAME": "org_db",
+    "ORGDB_PASSWORD": "org-pw",
+    "MAINDB_SSH_PASSWORD": "ssh-pw",
+    "ORGDB_SSH_PASSWORD": "ssh-pw",
+    "TRD365AI_DBNAME": "ai_db",
+    "TRD365AI_PASSWORD": "ai-pw",
+}
 
 
-def fields_the_resolver_reads() -> set[str]:
-    """Every field name passed to the local ``field()`` helper in ``describe``."""
-    source = inspect.getsource(environments.describe)
-    found = set(re.findall(r'\bfield\(\s*"([a-z_]+)"', source))
-    assert found, "no field() calls found — has describe() been rewritten?"
-    return found
+def names_the_resolver_would_need(env: Environment) -> set[str]:
+    """
+    The secrets that must exist for ``env`` to be usable, named as the vault
+    names them.
 
-
-def fields_the_loader_writes() -> dict[str, list[str]]:
-    """The per-database field lists declared in the shell script."""
-    text = LOADER.read_text()
-    out: dict[str, list[str]] = {}
+    Computed from the code's own topology: a database whose server is unknown
+    cannot be configured from a vault at all, a known ``dbname`` needs no secret,
+    and a tunnel adds exactly one password.
+    """
+    wanted: set[str] = set()
     for db_key in DB_KEYS:
-        variable = f"{db_key.upper()}_FIELDS"
-        match = re.search(rf'^{variable}="([^"]*)"', text, re.MULTILINE)
-        assert match, f"{variable} is not declared in {LOADER.name}"
-        value = match.group(1)
-        if value.startswith("$"):  # e.g. ORGDB_FIELDS="$MAINDB_FIELDS"
-            value = out["maindb"]
-            out[db_key] = list(value)
+        settings = describe(env, db_key, {})
+        if PLACEHOLDER in settings.host:
             continue
-        out[db_key] = value.lower().split()
-    return out
+        fields = ["password"]
+        if settings.dbname == PLACEHOLDER:
+            fields.append("dbname")
+        if settings.ssh_tunnel is not None:
+            fields.append("ssh-password")
+        wanted |= {f"trd365-{env.value}-{db_key}-{field}" for field in fields}
+    return wanted
 
 
-class TestTheTwoListsAgree:
-    def test_every_field_the_resolver_reads_is_written_for_some_database(self):
-        written = set().union(*fields_the_loader_writes().values())
-        assert fields_the_resolver_reads() <= written
+def run_loader(env: Environment, tmp_path: Path) -> set[str]:
+    """Run the script in dry-run mode and return the names it would write."""
+    filled = tmp_path / f"{env.value}.env"
+    lines = [
+        f"{key}={FILLED[key]}"
+        for line in TEMPLATE.read_text().splitlines()
+        if (key := line.split("=", 1)[0].strip()) in FILLED
+    ]
+    assert len(lines) == len(FILLED), "the template no longer offers every field FILLED covers"
+    filled.write_text("\n".join(lines) + "\n")
 
-    def test_the_loader_writes_nothing_the_resolver_ignores(self):
-        written = set().union(*fields_the_loader_writes().values())
-        assert written <= fields_the_resolver_reads()
-
-    def test_only_the_bastion_databases_get_tunnel_fields(self):
-        written = fields_the_loader_writes()
-        # trd365ai is a direct connection. Writing ssh_* for it would be
-        # harmless and misleading — the resolver builds no tunnel for it, so the
-        # values would sit unread and look like configuration.
-        assert not _TUNNEL_FIELDS & set(written["trd365ai"])
-        for db_key in ("maindb", "orgdb"):
-            assert set(written[db_key]) >= _TUNNEL_FIELDS
+    result = subprocess.run(
+        ["bash", str(LOADER), env.value, str(filled)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "Dry run" in result.stdout, "the script must not write without --apply"
+    return set(re.findall(r"^  (trd365-[a-z0-9-]+)\s", result.stdout, re.MULTILINE))
 
 
-class TestTheNamesThemselves:
-    @pytest.mark.parametrize("env", [e for e in Environment if not e.is_production])
-    def test_the_scoped_name_is_what_the_resolver_would_ask_for(self, env):
-        # Reproduces the script's transform (lowercase, underscores to hyphens)
-        # through the function the resolver itself uses, for every field of
-        # every database, so a divergence in either fails here rather than in a
-        # vault nobody is looking at.
-        written = fields_the_loader_writes()
-        for db_key in DB_KEYS:
-            for field in written[db_key]:
-                variable = f"TRD365_{env.value.upper()}_{db_key.upper()}_{field.upper()}"
-                expected = f"trd365-{env.value}-{db_key}-{field.replace('_', '-')}"
-                assert to_secret_name(variable) == expected
+class TestTheScriptAndTheResolverAgree:
+    @pytest.mark.parametrize("env", list(Environment))
+    def test_the_names_written_are_exactly_the_names_needed(self, env, tmp_path):
+        assert run_loader(env, tmp_path) == names_the_resolver_would_need(env)
 
-    def test_the_template_offers_exactly_the_fields_the_loader_expects(self):
-        # The template is what a person fills in. A field missing from it is a
-        # MISSING line at the end of a form somebody thought they had completed.
-        declared = {
-            line.split("=", 1)[0].strip()
-            for line in TEMPLATE.read_text().splitlines()
-            if line.strip() and not line.startswith("#") and "=" in line
-        }
-        written = fields_the_loader_writes()
-        expected = {
-            f"{db_key.upper()}_{field.upper()}"
-            for db_key in DB_KEYS
-            for field in written[db_key]
-        }
-        assert declared == expected
+    def test_dev_and_qa_need_no_bastion_password(self, tmp_path):
+        for env in (Environment.DEV, Environment.QA):
+            assert not any("ssh" in name for name in run_loader(env, tmp_path))
+
+    def test_stage_needs_a_bastion_password_for_both_databases(self, tmp_path):
+        names = run_loader(Environment.STAGE, tmp_path)
+        assert "trd365-stage-maindb-ssh-password" in names
+        assert "trd365-stage-orgdb-ssh-password" in names
+
+    def test_nothing_is_asked_for_a_database_with_no_known_server(self, tmp_path):
+        # trd365ai outside prod. Filling the template's fields for it should be
+        # reported as ignored rather than written under a name nothing reads.
+        for env in (Environment.DEV, Environment.QA, Environment.STAGE):
+            assert not any("trd365ai" in name for name in run_loader(env, tmp_path))
+
+
+class TestTheGuards:
+    def test_a_missing_required_value_stops_the_run(self, tmp_path):
+        filled = tmp_path / "qa.env"
+        filled.write_text("MAINDB_DBNAME=main_db\nMAINDB_PASSWORD=pw\n")  # orgdb absent
+        result = subprocess.run(
+            ["bash", str(LOADER), "qa", str(filled)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode != 0
+        assert "ORGDB_PASSWORD" in result.stdout
+        assert "required field" in result.stderr
+
+    def test_an_unknown_environment_is_refused(self, tmp_path):
+        filled = tmp_path / "x.env"
+        filled.write_text("MAINDB_PASSWORD=pw\n")
+        result = subprocess.run(
+            ["bash", str(LOADER), "production", str(filled)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode != 0
+        assert "not one of dev, qa, stage, prod" in result.stderr
+
+    def test_a_value_with_shell_metacharacters_survives_intact(self, tmp_path):
+        # The file is parsed, not sourced. `$`, a quote and a space in a password
+        # are ordinary; expanding or splitting any of them would store the wrong
+        # secret and the failure would look like a wrong password.
+        import hashlib
+
+        password = "p$$w'rd with space`echo x`"
+        filled = tmp_path / "qa.env"
+        filled.write_text(
+            "\n".join(
+                [
+                    "MAINDB_DBNAME=main_db",
+                    f"MAINDB_PASSWORD={password}",
+                    "ORGDB_DBNAME=org_db",
+                    "ORGDB_PASSWORD=org-pw",
+                ]
+            )
+            + "\n"
+        )
+        result = subprocess.run(
+            ["bash", str(LOADER), "qa", str(filled)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        expected = hashlib.sha256(password.encode()).hexdigest()[:12]
+        row = next(
+            line for line in result.stdout.splitlines() if "trd365-qa-maindb-password" in line
+        )
+        assert expected in row
+
+    def test_no_value_is_ever_printed(self, tmp_path):
+        filled = tmp_path / "qa.env"
+        filled.write_text(
+            "MAINDB_DBNAME=main_db\nMAINDB_PASSWORD=hunter2\nORGDB_DBNAME=o\nORGDB_PASSWORD=swordfish\n"
+        )
+        result = subprocess.run(
+            ["bash", str(LOADER), "qa", str(filled)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "hunter2" not in result.stdout + result.stderr
+        assert "swordfish" not in result.stdout + result.stderr
