@@ -1,0 +1,74 @@
+-- Backup — trd365_00353
+-- Generated 2026-08-25 from the live definition of trd365_00353.
+-- Baseline: trd365_00440.  trd365_00042 is deliberately excluded.
+--
+-- Run with psql.  ON_ERROR_STOP is on and every schema is one transaction:
+-- a statement that fails rolls its whole schema back and stops the run.
+\set ON_ERROR_STOP on
+
+
+BEGIN;
+SET LOCAL search_path = "trd365_00353";
+
+-- activities
+CREATE TABLE "trd365_00353"."r082506_activities" AS SELECT * FROM "trd365_00353"."activities";
+COMMENT ON TABLE "trd365_00353"."r082506_activities" IS 'r082506 pre-alignment copy of activities, taken 2026-08-25';
+
+-- ai_assessment_audit
+CREATE TABLE "trd365_00353"."r082506_ai_assessment_audit" AS SELECT * FROM "trd365_00353"."ai_assessment_audit";
+COMMENT ON TABLE "trd365_00353"."r082506_ai_assessment_audit" IS 'r082506 pre-alignment copy of ai_assessment_audit, taken 2026-08-25';
+
+-- ai_assessment_qre
+CREATE TABLE "trd365_00353"."r082506_ai_assessment_qre" AS SELECT * FROM "trd365_00353"."ai_assessment_qre";
+COMMENT ON TABLE "trd365_00353"."r082506_ai_assessment_qre" IS 'r082506 pre-alignment copy of ai_assessment_qre, taken 2026-08-25';
+
+-- case_history_submission
+CREATE TABLE "trd365_00353"."r082506_case_history_submission" AS SELECT * FROM "trd365_00353"."case_history_submission";
+COMMENT ON TABLE "trd365_00353"."r082506_case_history_submission" IS 'r082506 pre-alignment copy of case_history_submission, taken 2026-08-25';
+
+-- case_technical_summary
+CREATE TABLE "trd365_00353"."r082506_case_technical_summary" AS SELECT * FROM "trd365_00353"."case_technical_summary";
+COMMENT ON TABLE "trd365_00353"."r082506_case_technical_summary" IS 'r082506 pre-alignment copy of case_technical_summary, taken 2026-08-25';
+
+-- comments_attachments
+CREATE TABLE "trd365_00353"."r082506_comments_attachments" AS SELECT * FROM "trd365_00353"."comments_attachments";
+COMMENT ON TABLE "trd365_00353"."r082506_comments_attachments" IS 'r082506 pre-alignment copy of comments_attachments, taken 2026-08-25';
+
+-- project_history
+CREATE TABLE "trd365_00353"."r082506_project_history" AS SELECT * FROM "trd365_00353"."project_history";
+COMMENT ON TABLE "trd365_00353"."r082506_project_history" IS 'r082506 pre-alignment copy of project_history, taken 2026-08-25';
+
+-- task_attachments
+CREATE TABLE "trd365_00353"."r082506_task_attachments" AS SELECT * FROM "trd365_00353"."task_attachments";
+COMMENT ON TABLE "trd365_00353"."r082506_task_attachments" IS 'r082506 pre-alignment copy of task_attachments, taken 2026-08-25';
+
+-- task_collaborators
+CREATE TABLE "trd365_00353"."r082506_task_collaborators" AS SELECT * FROM "trd365_00353"."task_collaborators";
+COMMENT ON TABLE "trd365_00353"."r082506_task_collaborators" IS 'r082506 pre-alignment copy of task_collaborators, taken 2026-08-25';
+
+-- task_comments
+CREATE TABLE "trd365_00353"."r082506_task_comments" AS SELECT * FROM "trd365_00353"."task_comments";
+COMMENT ON TABLE "trd365_00353"."r082506_task_comments" IS 'r082506 pre-alignment copy of task_comments, taken 2026-08-25';
+
+-- task_tags
+CREATE TABLE "trd365_00353"."r082506_task_tags" AS SELECT * FROM "trd365_00353"."task_tags";
+COMMENT ON TABLE "trd365_00353"."r082506_task_tags" IS 'r082506 pre-alignment copy of task_tags, taken 2026-08-25';
+
+-- webhook_email_history
+CREATE TABLE "trd365_00353"."r082506_webhook_email_history" AS SELECT * FROM "trd365_00353"."webhook_email_history";
+COMMENT ON TABLE "trd365_00353"."r082506_webhook_email_history" IS 'r082506 pre-alignment copy of webhook_email_history, taken 2026-08-25';
+
+-- Row counts must match before anything is altered.
+DO $$
+DECLARE t text; a bigint; b bigint;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['activities', 'ai_assessment_audit', 'ai_assessment_qre', 'case_history_submission', 'case_technical_summary', 'comments_attachments', 'project_history', 'task_attachments', 'task_collaborators', 'task_comments', 'task_tags', 'webhook_email_history'] LOOP
+    EXECUTE format('SELECT count(*) FROM %I.%I', 'trd365_00353', t) INTO a;
+    EXECUTE format('SELECT count(*) FROM %I.%I', 'trd365_00353', 'r082506_' || t) INTO b;
+    IF a IS DISTINCT FROM b THEN
+      RAISE EXCEPTION 'backup row count mismatch for %: % vs %', t, a, b;
+    END IF;
+  END LOOP;
+END $$;
+
+COMMIT;
