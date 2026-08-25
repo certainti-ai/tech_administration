@@ -13,14 +13,17 @@ BEGIN;
 SET LOCAL search_path = "trd365_00363";
 
 
--- ---- widen (7) --------------------------------------------------
+-- ---- widen (6 applied, 1 held back) --------------------------------------------------
 ALTER TABLE "trd365_00363"."activities" ALTER COLUMN "created_datetime" TYPE timestamp with time zone USING "created_datetime"::timestamp with time zone;
 ALTER TABLE "trd365_00363"."activities" ALTER COLUMN "modified_datetime" TYPE timestamp with time zone USING "modified_datetime"::timestamp with time zone;
 ALTER TABLE "trd365_00363"."ai_assessment_qre" ALTER COLUMN "created_datetime" TYPE timestamp with time zone USING "created_datetime"::timestamp with time zone;
 ALTER TABLE "trd365_00363"."ai_assessment_qre" ALTER COLUMN "modified_datetime" TYPE timestamp with time zone USING "modified_datetime"::timestamp with time zone;
 ALTER TABLE "trd365_00363"."case_technical_summary" ALTER COLUMN "created_datetime" TYPE timestamp with time zone USING "created_datetime"::timestamp with time zone;
 ALTER TABLE "trd365_00363"."case_technical_summary" ALTER COLUMN "modified_datetime" TYPE timestamp with time zone USING "modified_datetime"::timestamp with time zone;
-ALTER TABLE "trd365_00363"."webhook_email_history" ALTER COLUMN "status" TYPE varchar(20) USING "status"::varchar(20);
+-- HELD BACK: "status" is the enum enum_webhook_email_history_status here, not a
+-- varchar.  Converting it to varchar(20) drops the enum's value constraint, so it
+-- is a constraint change rather than a widening.  See held_back.sql.
+-- ALTER TABLE "trd365_00363"."webhook_email_history" ALTER COLUMN "status" TYPE varchar(20) USING "status"::varchar(20);
 
 -- ---- loosen (1) -------------------------------------------------
 ALTER TABLE "trd365_00363"."project_history" ALTER COLUMN "new_value" DROP NOT NULL;

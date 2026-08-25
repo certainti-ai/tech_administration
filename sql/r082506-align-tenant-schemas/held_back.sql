@@ -62,3 +62,26 @@ SELECT count(*) AS would_be_truncated FROM "trd365_00388"."case_technical_summar
 -- trd365_00393.case_technical_summary.eid:  varchar(120)  ->  varchar(50)
 SELECT count(*) AS would_be_truncated FROM "trd365_00393"."case_technical_summary" WHERE length("eid") > 50;
 -- ALTER TABLE "trd365_00393"."case_technical_summary" ALTER COLUMN "eid" TYPE varchar(50) USING "eid"::varchar(50);
+
+-- ====================================================================
+-- webhook_email_history.status — enum -> varchar(20)
+-- ====================================================================
+-- Found during the r082506 run, in trd365_00353 and trd365_00363 only.
+--
+-- In these two schemas the column is the enum type
+-- enum_webhook_email_history_status, with five labels:
+--   SUCCESS, FAILED, MISSING_ATTACHMENT, INVALID_FORMAT, NO_MATCH_FOUND
+-- (longest label 18 characters).  The baseline trd365_00440 declares the
+-- same column as varchar(20).
+--
+-- The generator filed this under "widen" because character_maximum_length
+-- goes from NULL to 20.  That is a misreading: the change drops the enum's
+-- value constraint, so afterwards any string may be stored.  It is a
+-- constraint change, not a width change, and is held back for that reason.
+--
+-- It would succeed as written — trd365_00353 has 0 rows and trd365_00363
+-- has 128, all of them valid labels within 20 characters — and the undo in
+-- 03_undo/ restores the enum cleanly.  Decide deliberately, then run.
+--
+-- ALTER TABLE "trd365_00353"."webhook_email_history" ALTER COLUMN "status" TYPE varchar(20) USING "status"::varchar(20);
+-- ALTER TABLE "trd365_00363"."webhook_email_history" ALTER COLUMN "status" TYPE varchar(20) USING "status"::varchar(20);
