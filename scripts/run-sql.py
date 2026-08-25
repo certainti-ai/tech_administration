@@ -51,6 +51,11 @@ def main() -> int:
         print(f"no such file: {args.file}", file=sys.stderr)
         return 2
 
+    # psql runs with cwd set to the file's directory, so that the `\i` lines in
+    # the *_all.sql drivers resolve. The path handed to --file must therefore be
+    # absolute, or psql looks for it relative to that new directory and fails.
+    args.file = args.file.resolve()
+
     text = args.file.read_text()
     env = Environment(args.env)
     settings = connection_settings(env, args.db)
