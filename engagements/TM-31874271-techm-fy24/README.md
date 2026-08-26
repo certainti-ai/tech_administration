@@ -16,6 +16,7 @@ and the rules this engagement works under.
 | `documents/*.docx` | House-formatted Word renderings of the drafts, for sending. Regenerate; do not hand-edit. |
 | `build_docs.py` | Renders `drafts/` to `documents/` in the house format. |
 | `verify_arithmetic.py` | Re-computes every figure in the CRA package. 20 checks, all passing. |
+| `TM_SRED_Audit_Defence_Report.html` | The full assessment as a shareable page — CRA position, verified arithmetic, options, project-by-project drill-down, lessons, process gates, timeline. Published as a private Artifact; sharing is a deliberate act from the page's share menu. |
 
 The CRA source documents (proposal letter, Project Eligibility Report, Audit
 Adjustments working paper, Summary of Adjustments, Schedules 1, 31, 508, T661)
