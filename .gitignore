@@ -73,3 +73,9 @@ config.bat
 branch_structure.json
 temp_auto_push.bat
 temp_interactive_push.bat
+
+# Built HDM migration report — contains client names, staff and comment text.
+# This repo is public; the rendered report must never be committed. See
+# tools/hdm_report/REFRESH.md.
+hdm-dashboard.html
+tools/hdm_report/*.out.html

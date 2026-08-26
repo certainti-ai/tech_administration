@@ -107,6 +107,30 @@ lands in the owner's inbox. Lead with the link.
 
 ---
 
+## Do not publish this report to GitHub Pages
+
+Asked and decided against, 2026-08-26. Recording it here because the idea looks
+reasonable until you check what the page contains.
+
+`certainti-ai/tech_administration` is a **public** repository. The rendered
+report carries 20 named client companies with their jurisdictions and fiscal
+years, 9 named staff with their workloads, and verbatim internal comments about
+calculation errors and state-credit mismatches. Pages serves straight out of the
+repo, so committing the built HTML publishes all of that to a world-readable,
+search-indexable URL — the commit alone does it, before Pages is even enabled.
+Private Pages is a GitHub Enterprise Cloud feature and is not available here.
+
+The report is distributed as a **private Claude Artifact** instead: the owner
+controls who it is shared with, and both daily refreshes republish to the same
+link. If a hosted page is ever wanted, the fit is an Entra-gated Azure Static Web
+App (`infra/entra` and `infra/terraform` already exist), not Pages.
+
+**Never commit a built `hdm-dashboard.html` to this repo.** The generator and
+template here are data-free by design — that is what makes them safe to keep in
+a public repo, and the `.gitignore` entry guards it.
+
+---
+
 ## What lives where
 
 | File | Role |
