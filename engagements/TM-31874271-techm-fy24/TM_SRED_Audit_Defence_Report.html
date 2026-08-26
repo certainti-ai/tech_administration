@@ -310,6 +310,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
     <a href="#p5" class="sub">P5 · Rogers R4B 40633</a>
     <a href="#p6" class="sub">P6 · Rogers R4B Digital</a>
     <a href="#p7" class="sub">P7 · Legacy Ticketing</a>
+    <a href="#plan"><span class="dot sage"></span>The plan from here</a>
   </div>
 
   <div class="navgroup">
@@ -785,53 +786,45 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
   </div>
 </section>
 
-<!-- ============ 06 PROJECTS ============ -->
+<!-- ============ 07 PROJECTS ============ -->
 <section id="projects">
   <div class="sechead">
     <div class="eyebrow">Section 07</div>
     <h2>Project-by-project analysis</h2>
-    <p class="lede">Each project is graded on three dimensions. <span class="sb">Evidence</span> — do contemporaneous artefacts of experimentation exist on file? <span class="sb">Narrative</span> — did the written T661 description survive contact with the review? <span class="sb">Financial</span> — are the claimed costs substantiated and traceable? Grades run A strong, B adequate, C weak, D poor, F absent or failed, and ? not yet assessable. Select a project to open its full analysis.</p>
+    <p class="lede">Rewritten August 26 against the client records. Each project now carries what the filed narrative actually says, what the timesheets show, what rate the claim applied, and where the contractor evidence stands. <span class="sb">Evidence</span> — do contemporaneous artefacts of experimentation exist? <span class="sb">Narrative</span> — does the filed description survive reading? <span class="sb">Financial</span> — are the claimed costs substantiated and traceable? Grades run A strong, B adequate, C weak, D poor, F absent or failed. Several moved this week, in both directions.</p>
   </div>
 
   <details class="proj" id="p1">
     <summary>
       <span class="pcode rose">P1</span>
-      <span class="ptitle"><span class="pn">Rogers CBU Wireless · Y.IN2100170</span><span class="pd">Telecom BSS modernisation — CDR ingestion, simulation and validation, RTRM/Kafka, voucher validation</span></span>
+      <span class="ptitle"><span class="pn">Rogers CBU Wireless · Y.IN2100170</span><span class="pd">Denied on eligibility · timesheets and contractor invoices now in hand</span></span>
       <span class="pamt">$740,825</span><span class="chev">&#9654;</span>
     </summary>
     <div class="pbody">
-      <div><h4>Overall project brief</h4>
-      <p>Modernisation of a legacy telecom Business Support System to give near-real-time visibility of subscriber usage across voice, SMS and data. Because Tech Mahindra lacked direct access to the third-party data store at Amdocs/Openet, the team built a file-based CDR ingestion approach, simulated call detail records in a network lab at roughly 72 attributes per record, developed an SFTP pipeline into RTRM, scripted around missing Kafka integration, and built voucher-file decryption and validation for prepaid customers. Validation time fell from about four hours to about five minutes. This was the flagship project of the claim and the most deeply reviewed — two interview sessions on May 5 and 7, plus a request for information answered on June 4.</p></div>
+      <div><h4>Overall project brief</h4><p>Modernisation of a legacy telecom Business Support System to give near-real-time visibility of subscriber usage. The filed narrative frames it as validating a real-time rating and metering system <em>without access to the system of record</em> — guessing Kafka payload serialisation, offset tracking and message ordering from partial documentation, and substituting for a VoMS voucher retrieval path throttled by a 14–20 day ticketing SLA. CRA read the same work as file-based ingestion, an SFTP pipeline and scripted workarounds. Reviewed over two sessions, May 5 and 7.</p></div>
 
       <div><h4>Quality of R&amp;D evidence and narrative</h4>
       <div class="grades">
-        <div class="grade"><div class="gh"><span class="gmark d">D</span><span class="gl">Evidence</span></div><div class="gt">Reference 5 is ten slides of architecture, SharePoint, test-plan approvals and status reports. CRA's words: no evidence of an experiment, experimental data, or analysis of such data. Interview detail was rich but described workarounds, not investigations.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Narrative</span></div><div class="gt">Section 244 claimed timestamp-skew, message-ordering and Kafka-runtime-uncertainty investigation with hypothesis-driven cycles. None was demonstrated. CRA called out the gap explicitly — this finding damages the whole file.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark b">B</span><span class="gl">Financial</span></div><div class="gt">Salary breakdown documentation was submitted and received for this project. Costs fell with eligibility, not with substantiation. Contractor costs, however, were not supported.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark d">D</span><span class="gl">Evidence</span></div><div class="gt">Reference 5 is ten slides of architecture and status reporting. CRA's words: no evidence of an experiment, experimental data, or analysis of such data.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Narrative</span></div><div class="gt">Section 244 claimed timestamp-skew, message-ordering and Kafka-runtime investigation with hypothesis-driven cycles. None demonstrated. The narrative also quotes 79,173.75 hours — every hour booked to the project — as investigative effort, against a claim asserting 15%.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark d">D</span><span class="gl">Financial</span></div><div class="gt">Downgraded from B. The salary breakdown was submitted and received, but we now know what was behind it: 96 employees at a flat 15%, applied to capacity hours rather than booked hours. Seven of the 96 are unnamed in the workbook.</div></div>
       </div></div>
 
-      <div><h4>Financial correctness &amp; completeness</h4>
-      <p>Salary substantiation was accepted as provided; the disallowance flows from the eligibility determination under Note 1 of the audit adjustments. The <span class="num">$127,602</span> of arm's-length contractor cost was <em>additionally</em> unsupported — no contracts, no invoices, no hour attribution, no taxable-supplier confirmation — so even a successful eligibility appeal would still leave the contractor amount exposed.</p></div>
+      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> 79,173.8 hours booked across 48 employees over all twelve months, of which 43,244.8 carry Approved status. <span class="sb">The claim:</span> 96 employees in the workbook at a flat 15% — more employees than booked time to the project — applied to 128,093 capacity hours rather than the 79,174 actually booked. The claimed 19,214 SR&amp;ED hours are therefore <span class="sb">24.3% of hours actually recorded</span>, not 15%. <span class="sb">Contractors:</span> the strongest documented position in the file — 26 named individuals, signed agreements with Canadian-incorporated suppliers, and invoices tagged to this project code.</p></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
-        <div class="fig"><div class="fv num">$613,223</div><div class="fl">Salaries claimed, non-specified employees</div></div>
-        <div class="fig"><div class="fv num">$127,602</div><div class="fl">Arm's-length contracts claimed</div></div>
-        <div class="fig"><div class="fv num">$740,825</div><div class="fl">Total allowable expenditure claimed</div></div>
-        <div class="fig"><div class="fv num">$189,201</div><div class="fl">Share of credits at stake — 31.8%, the largest in the claim</div></div>
+        <div class="fig"><div class="fv num">$613,223</div><div class="fl">Salaries claimed — 15% of $4,088,153 project payroll</div></div>
+        <div class="fig"><div class="fv num">$127,602</div><div class="fl">Arm's-length contracts — 26 individuals, invoices held</div></div>
+        <div class="fig"><div class="fv num">79,173.8</div><div class="fl">Hours booked in the timesheet system, 48 employees, 12 months</div></div>
+        <div class="fig"><div class="fv num">$189,201</div><div class="fl">Share of credits at stake — 31.8%, the largest</div></div>
       </div></div>
 
-      <div><h4>Employees &amp; their details</h4>
-      <p>A salary breakdown for P1 was submitted in response to the May 7 request, so an employee-level allocation exists. No employee names, roles or hour splits appear in the CRA package we hold — the underlying breakdown must be pulled from the June 4 response and re-validated before any further submission. Key personnel availability was already a problem: the second review meeting was needed because key technical staff were absent on May 7.</p></div>
-
-      <div><h4>Subcontractors &amp; their details</h4>
-      <p>Unknown. <span class="num">$127,602</span> claimed, zero supporting documents on file. Required if contested: contractor identity, agreement, invoices tied to this project, SR&amp;ED-hour attribution, arm's-length confirmation, and taxable-supplier status of the ultimate performers. Offshore performers would fail the qualified-expenditure test.</p></div>
-
-      <div><h4>Options for this project</h4>
+      <div><h4>Proposed next steps</h4>
       <div class="stack">
-        <div class="opt hold"><div class="ol">CONTEST — ONLY IF</div><p>Dated artefacts exist for the specific claimed mechanisms: commit history, defect tickets and test logs showing the undocumented one-minute versus two-minute CDR interval discovery, the timing-delay experiments behind the six-second buffer, and the Kafka behaviour investigation. The interval-change discovery is the single strongest candidate for genuine technological uncertainty in the whole interview record — if it was investigated systematically and that investigation is documented, a partial-eligibility argument exists.</p></div>
-        <div class="opt stop"><div class="ol">CONCEDE — IF</div><p>No artefacts beyond slides exist. Re-arguing the narrative without evidence confirms CRA's credibility concern and contaminates P3–P7. A professional written concession on P1 and P2, paired with a strong P3–P7 submission, is the stronger overall posture.</p></div>
-        <div class="opt"><div class="ol">REALISTIC ODDS</div><p>Low to medium. The recoverable kernel, if any, is a subset of the salary base tied to the specific investigative episodes — not the full <span class="num">$740,825</span>.</p></div>
+        <div class="opt stop"><div class="ol">CONCEDE — RECOMMENDED</div><p>Unchanged, and now better founded. The eligibility finding stands, the narrative overstates investigative effort about fivefold against the company's own claim, and the allocation cannot be defended as a measurement.</p></div>
+        <div class="opt hold"><div class="ol">BUT PRESERVE THE CONTRACTOR POSITION</div><p>Note in the file that P1's $127,602 is the only contract claim in the case with agreements and invoices behind it. If eligibility is ever reopened at objection, this piece is supportable — which is not true of P3 to P6.</p></div>
+        <div class="opt "><div class="ol">ARTEFACT HUNT — STILL WORTH 48 HOURS</div><p>The one-minute versus two-minute CDR interval discovery and the six-second timing buffer remain the strongest candidates for genuine uncertainty anywhere in the file. Dated commits or defect tickets would change this project's posture. Nothing else will.</p></div>
       </div></div>
     </div>
   </details>
@@ -839,42 +832,34 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
   <details class="proj" id="p2">
     <summary>
       <span class="pcode rose">P2</span>
-      <span class="ptitle"><span class="pn">CBT Scotia QA Managed Service · Y.IN2201961</span><span class="pd">Cross-platform test orchestration over 500+ banking apps — Quantum Framework, mainframe, mobile and web automation</span></span>
+      <span class="ptitle"><span class="pn">CBT Scotia QA Managed Service · Y.IN2201961</span><span class="pd">Denied on eligibility · zero hours in 846,994 rows · concede without qualification</span></span>
       <span class="pamt">$559,305</span><span class="chev">&#9654;</span>
     </summary>
     <div class="pbody">
-      <div><h4>Overall project brief</h4>
-      <p>Work inside Scotiabank's transition to a Tech Mahindra-managed QA service across more than 500 legacy banking applications, including COBOL mainframe and batch systems with no user interface, telemetry or observability. The team stitched Appium, Selenium, Postman, Python and LeanFT/UFT into an end-to-end framework called the Quantum Framework, handled web-to-mobile authentication handoffs, batch and future-dated transaction validation, and mainframe green-screen automation. Delivery model: roughly 500 people, about 35% Toronto, 8–10% Mexico, the remainder offshore in India — a fact that matters for how much of any salary base is even claimable.</p></div>
+      <div><h4>Overall project brief</h4><p>Scotiabank's transition to a Tech Mahindra-managed quality engineering service across more than 500 legacy banking applications. The narrative names two uncertainties: a technical void in automating QA for mainframe and batch systems where Selenium, LeanFT and UFT failed entirely, and a managed-service launch coinciding with severe subject-matter-expert attrition that left business logic locked in undocumented shell scripts and COBOL. Delivery is roughly 500 people — about 35% Toronto, 8–10% Mexico, the rest India.</p></div>
 
       <div><h4>Quality of R&amp;D evidence and narrative</h4>
       <div class="grades">
-        <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Evidence</span></div><div class="gt">References 10–16: a KPI dashboard, a demo-homepage screenshot, a tools slide, a Confluence page and three portal screenshots. CRA's assessment is blunt and, honestly, correct — this is operational collateral, not R&amp;D evidence.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Narrative</span></div><div class="gt">Section 244 claimed schema-agnostic parsers, checkpoint markers, buffer delay handling, telemetry injection, anomaly clustering and adaptive script logic. The review surfaced none of these — discussion stayed at tool selection and delivery process. The worst narrative-to-reality gap in the claim.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark b">B</span><span class="gl">Financial</span></div><div class="gt">Salary breakdown submitted for this project. But the 500-person, majority-offshore delivery model makes the Canadian SR&amp;ED-hours attribution inherently fragile — the allocation basis must be re-verified before relying on it anywhere.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Evidence</span></div><div class="gt">References 10–16: a KPI dashboard, a demo screenshot, a tools slide, a Confluence page and three portal captures. Operational collateral, not R&amp;D evidence.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Narrative</span></div><div class="gt">Schema-agnostic parsers, checkpoint markers, buffer delay handling, telemetry injection, anomaly clustering, adaptive script logic — none surfaced in review. The narrative quotes 1,823 hours whose source we cannot locate in any system.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Financial</span></div><div class="gt">Downgraded from B. The project code appears nowhere in 846,994 rows of Canadian timesheet data, and the claimant's own workbook records Total Hours: 0 for it — while sheet 3 of the same workbook shows 252,897 hours. The workbook contradicts itself.</div></div>
       </div></div>
 
-      <div><h4>Financial correctness &amp; completeness</h4>
-      <p>As with P1, salaries fell on eligibility rather than substantiation. The QA-managed-service framing is itself a structural problem: work performed under a services contract for a client, largely offshore, with Toronto doing coordination and sign-off, is difficult ground for experimental development claims. CRA read the Toronto role as requirements-gathering and process governance.</p></div>
+      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> none. Y.IN2201961 does not appear in any of the six monthly exports. <span class="sb">The claim:</span> 169 employee rows — the largest headcount of any project — at a flat 15%, of which <span class="sb">46 are unnamed</span>, recorded only as &ldquo;Not in source&rdquo;. That is 27% of the claimed headcount that cannot currently be identified. <span class="sb">Contractors:</span> two individuals, $10,576; invoices exist for this code, which is more than P3 to P6 can say.</p></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
-        <div class="fig"><div class="fv num">$548,729</div><div class="fl">Salaries claimed</div></div>
-        <div class="fig"><div class="fv num">$10,576</div><div class="fl">Arm's-length contracts claimed</div></div>
-        <div class="fig"><div class="fv num">$559,305</div><div class="fl">Total allowable expenditure claimed</div></div>
+        <div class="fig"><div class="fv num">$548,729</div><div class="fl">Salaries claimed — 15% of $3,658,196 project payroll</div></div>
+        <div class="fig"><div class="fv num">$10,576</div><div class="fl">Arm's-length contracts — 2 individuals</div></div>
+        <div class="fig"><div class="fv num">0.0</div><div class="fl">Hours booked in the timesheet system. Zero rows, zero employees, zero months</div></div>
         <div class="fig"><div class="fv num">$154,404</div><div class="fl">Share of credits at stake — 26.0%</div></div>
       </div></div>
 
-      <div><h4>Employees &amp; their details</h4>
-      <p>Breakdown submitted with the June 4 response; names and roles are not in the CRA package we hold. Before any contest we need the Canadian-payroll subset identified person by person, with the basis for tagging their hours as SR&amp;ED — and confirmation that the Appium-to-Selenium authentication-coordination work, stated to have been performed in Canada, maps to specific named individuals.</p></div>
-
-      <div><h4>Subcontractors &amp; their details</h4>
-      <p><span class="num">$10,576</span> claimed, undocumented. Small enough that it is not worth a fight unless the paperwork is trivially available.</p></div>
-
-      <div><h4>Options for this project</h4>
+      <div><h4>Proposed next steps</h4>
       <div class="stack">
-        <div class="opt stop"><div class="ol">RECOMMENDED — CONCEDE</div><p>Unless the Quantum Framework's claimed novel components exist in a dated repository with design iterations and failure records, this project is not winnable — and it is the project where pushing hardest would cost the most credibility. The evidence submitted was screenshots, and CRA has already said what it thinks of that.</p></div>
-        <div class="opt hold"><div class="ol">SALVAGE CHECK</div><p>One narrow question worth 48 hours: does the Appium-to-Selenium pause and resume synchronisation mechanism exist as code with a development history showing failed approaches? If yes, a partial claim on that workstream alone could be preserved for the objection stage. If no, close the book.</p></div>
-        <div class="opt"><div class="ol">REALISTIC ODDS</div><p>Low. Treat as the credibility-protection concession that buys goodwill for the P3–P7 fight.</p></div>
+        <div class="opt stop"><div class="ol">CONCEDE WITHOUT QUALIFICATION</div><p>Changed from &ldquo;recommended concede&rdquo;. This is now the weakest project in the case on both limbs — no eligibility, and no hours at all. A document request would produce nothing. Conceding it cleanly and early is the single cheapest way to demonstrate good faith on the rest of the file.</p></div>
+        <div class="opt stop"><div class="ol">DO NOT ATTEMPT THE SALVAGE CHECK</div><p>The Appium-to-Selenium synchronisation question is no longer worth 48 hours. Even if the code exists, there are no Canadian hours to attach a claim to.</p></div>
+        <div class="opt hold"><div class="ol">ONE THING TO RESOLVE INTERNALLY</div><p>Understand where the 252,897 workbook hours and the narrative's 1,823 hours came from, if not from the time system. We need the answer for our own quality process even though we are conceding the project.</p></div>
       </div></div>
     </div>
   </details>
@@ -882,42 +867,35 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
   <details class="proj" id="p3">
     <summary>
       <span class="pcode amber">P3</span>
-      <span class="ptitle"><span class="pn">Rogers QE Channels · Y.IN2100171</span><span class="pd">Largest unreviewed project — denied on substantiation only</span></span>
+      <span class="ptitle"><span class="pn">Rogers QE Channels · Y.IN2100171</span><span class="pd">Never reviewed · best records in the file · but the narrative describes a cloud migration</span></span>
       <span class="pamt">$495,321</span><span class="chev">&#9654;</span>
     </summary>
     <div class="pbody">
-      <div><h4>Overall project brief</h4>
-      <p>No technical description exists in the CRA file — the Advisor never reviewed this project. From the project title and its position in the Rogers portfolio it is a quality-engineering workstream adjacent to P1. We must reconstruct the brief internally before deciding whether its eligibility case is stronger than P1's or merely a smaller copy of it.</p></div>
+      <div><h4>Overall project brief</h4><p>No technical description exists in the CRA file — the Advisor never reviewed it. The filed narrative, which we have now read, does not describe quality engineering at all. It describes <span class="sb">a migration of containerised telecom microservices from Amazon EKS to Azure AKS</span> across live billing systems, naming three uncertainties: identity propagation between AWS IAM and Azure AD RBAC, instability in undocumented third-party APIs (Semafone, Britebill, OneView) that changed DNS bindings without notice, and whether the AKS autoscaler could sustain telecom-scale concurrency.</p></div>
 
       <div><h4>Quality of R&amp;D evidence and narrative</h4>
       <div class="grades">
         <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Evidence</span></div><div class="gt">Nothing on file. Not assessed by CRA, and nothing was given to assess.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark q">?</span><span class="gl">Narrative</span></div><div class="gt">Never tested in review. Caution: drafted in the same batch as P1 and P2 — assume the same overstatement risk until each claimed mechanism is verified against artefacts.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Financial</span></div><div class="gt">No salary breakdown, no employee identification, no SR&amp;ED versus non-SR&amp;ED split, no contractor support. Denied entirely for this reason.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark d">D</span><span class="gl">Narrative</span></div><div class="gt">Upgraded from unassessable now that we have read it — and the reading is not encouraging. A platform-to-platform migration is the fact pattern CRA has already rejected on P1 as integration rather than advancement. The claimed outputs (an authentication sidecar, a DNS drift logger, a load harness) are the same class of mechanism CRA found undemonstrated on P1 and P2. The narrative also quotes all 90,831.98 booked hours as investigative.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark c">C</span><span class="gl">Financial</span></div><div class="gt">Upgraded from F. Hours are now fully traceable — 49 employees, twelve months, 71,404 of 90,832 hours Approved. The allocation is not: a flat 15% across all 64 workbook employees.</div></div>
       </div></div>
 
-      <div><h4>Financial correctness &amp; completeness</h4>
-      <p>The claimed figures are, as filed, unverifiable — that is CRA's point and on the current record it is correct. The recovery case is purely about producing what the May 7 request asked for: monthly hours per employee split by SR&amp;ED and non-SR&amp;ED activity, tied to this project code, reconciling to the amount reported on the T661.</p></div>
+      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> the strongest in the file — 90,832 hours across 49 employees over twelve months, 71,404 of them Approved. <span class="sb">The claim:</span> 64 workbook employees at a flat 15% applied to 115,390 capacity hours; the resulting 17,309 SR&amp;ED hours are <span class="sb">19.1% of hours actually booked</span>. Three employees are unnamed. <span class="sb">Contractors:</span> four individuals, $215,298 gross reduced to $20,992 claimed — and <span class="sb">no invoices</span> for this project code.</p></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
-        <div class="fig"><div class="fv num">$474,329</div><div class="fl">Salaries claimed</div></div>
-        <div class="fig"><div class="fv num">$20,992</div><div class="fl">Arm's-length contracts claimed</div></div>
-        <div class="fig"><div class="fv num">$495,321</div><div class="fl">Total allowable expenditure claimed</div></div>
-        <div class="fig"><div class="fv num">$135,173</div><div class="fl">Share of credits at stake — 22.7%, the largest single recovery target</div></div>
+        <div class="fig"><div class="fv num">$474,329</div><div class="fl">Salaries claimed — 15% of $3,162,194 project payroll</div></div>
+        <div class="fig"><div class="fv num">$20,992</div><div class="fl">Arm's-length contracts — 4 individuals, no invoices</div></div>
+        <div class="fig"><div class="fv num">90,832.0</div><div class="fl">Hours booked, 49 employees, 12 months — the best-covered project</div></div>
+        <div class="fig"><div class="fv num">$135,173</div><div class="fl">Share of credits at stake — 22.7%, the largest recoverable</div></div>
       </div></div>
 
-      <div><h4>Employees &amp; their details</h4>
-      <p>Unknown — this is the gap. Required: named employees on project Y.IN2100171, roles, monthly hours with SR&amp;ED versus regular-duty split, and the source system of record — timesheets, Clarity or SAP exports, with manager attestations only as a last resort. CRA's own future-claims note is the template: per-project T661 amounts must reconcile to per-employee monthly hour records.</p></div>
-
-      <div><h4>Subcontractors &amp; their details</h4>
-      <p>Unknown. <span class="num">$20,992</span> claimed. Required: contractor identity, agreement, invoices, hour attribution, and arm's-length and taxable-supplier confirmations.</p></div>
-
-      <div><h4>Options for this project</h4>
+      <div><h4>Proposed next steps</h4>
       <div class="stack">
-        <div class="opt go"><div class="ol">CONTEST — PRIORITY 1</div><p>Highest-value recoverable item in the claim. Evidence sprint: pull time records, build the reconciliation CRA specified, submit with the representation. Simultaneously prepare a defensible technical narrative for the eligibility review that will follow — grounded strictly in what the SMEs can demonstrate.</p></div>
-        <div class="opt hold"><div class="ol">ELIGIBILITY RISK</div><p>Substantiation reopens the file; it does not win it. A Rogers QE project will be read against the P1 precedent by the same Advisor. The narrative must show investigation, not integration — or we accept partial outcomes.</p></div>
-        <div class="opt"><div class="ol">REALISTIC ODDS</div><p>Medium, conditional on records existing. This project decides whether the FY2024 defence is worth its cost.</p></div>
+        <div class="opt go"><div class="ol">CONTEST — STILL PRIORITY 1, ON THE HOURS</div><p>The hours half of the May 7 request can be answered in full and well. Produce the per-employee monthly reconciliation from the time system, tied to this project code and reconciled to payroll.</p></div>
+        <div class="opt hold"><div class="ol">BUT THE NARRATIVE IS NOW THE RISK, NOT THE RECORDS</div><p>Substantiation delivers this project to an eligibility review that will read an EKS-to-AKS migration against the P1 precedent, decided by the same Advisor. Do not assume the records win it. Build the eligibility position before submitting, not after.</p></div>
+        <div class="opt hold"><div class="ol">RESOLVE THE TITLE-VERSUS-WORK QUESTION FIRST</div><p>The 49 people booked here were booked to a quality-engineering project. The narrative describes infrastructure migration. Establish which of those people did the migration work before claiming their hours — CRA will ask, and it is a fair question.</p></div>
+        <div class="opt go"><div class="ol">THEN BUILD THE ALLOCATION HONESTLY</div><p>Per employee, against what that person actually did. It may come out well below 15%. That is an acceptable outcome; an indefensible 15% is not.</p></div>
       </div></div>
     </div>
   </details>
@@ -925,42 +903,34 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
   <details class="proj" id="p4">
     <summary>
       <span class="pcode amber">P4</span>
-      <span class="ptitle"><span class="pn">Rogers QE Media · Y.IN2100190</span><span class="pd">Unreviewed — heaviest contractor weighting in the claim</span></span>
+      <span class="ptitle"><span class="pn">Rogers QE Media · Y.IN2100190</span><span class="pd">Never reviewed · the most defensible narrative of the unreviewed set</span></span>
       <span class="pamt">$176,632</span><span class="chev">&#9654;</span>
     </summary>
     <div class="pbody">
-      <div><h4>Overall project brief</h4>
-      <p>Not described in the CRA file; presumed Rogers media-channel quality-engineering work adjacent to P3, requiring internal reconstruction. Distinctive feature: contractors are about 39% of the claimed cost — the highest ratio in the portfolio — so this project's recovery leans hardest on the contractor documentation nobody has produced yet.</p></div>
+      <div><h4>Overall project brief</h4><p>Automating video playback validation across web, Android and iOS for Rogers' media streaming applications. The narrative is the most technically credible in the whole claim: whether frame-accurate playback validation — audio-video sync, buffering behaviour, user-triggered seek and pause — could be automated at all when Selenium and Appium cannot detect actual playback, GPU rendering freezes or desynchronisation, and returned false positives; then the divergence when emulator success failed to reproduce on Sauce Labs real devices under thermal throttling and frame jitter.</p></div>
 
       <div><h4>Quality of R&amp;D evidence and narrative</h4>
       <div class="grades">
         <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Evidence</span></div><div class="gt">Nothing on file.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark q">?</span><span class="gl">Narrative</span></div><div class="gt">Untested; same drafting-batch caution as P3.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Financial</span></div><div class="gt">Salaries and contracts both unsubstantiated.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark c">C</span><span class="gl">Narrative</span></div><div class="gt">The best grade any narrative in this claim earns, and it moved up on reading. This is a genuine capability gap in commercial tooling, not a migration between two vendor platforms, and the emulator-versus-real-device divergence is the kind of unknown outcome SR&amp;ED contemplates. It still asserts all 13,696 booked hours as investigative, and it still needs artefacts.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark c">C</span><span class="gl">Financial</span></div><div class="gt">Upgraded from F on hours — 10 employees, twelve months, fully traceable. The contractor half is the problem.</div></div>
       </div></div>
 
-      <div><h4>Financial correctness &amp; completeness</h4>
-      <p>The same defect as P3 on salaries, plus a sharper contractor problem: <span class="num">$68,288</span> with no agreement, invoice, or taxable-supplier evidence. If the ultimate performers were offshore — common in Rogers delivery — these costs fail as qualified expenditures even with the paperwork. Verify before spending effort.</p></div>
+      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> 13,696 hours across 10 employees over twelve months, 8,167 Approved. A small, clean population — ten people is a technical review that can actually be done properly. <span class="sb">The claim:</span> 26 workbook employees against 10 with booked time; flat 15% on 21,182 capacity hours, giving 3,177 SR&amp;ED hours or <span class="sb">23.2% of hours booked</span>. Two employees unnamed. <span class="sb">Contractors:</span> 15 individuals, $700,386 gross reduced to $68,288 claimed, no invoices, no residency evidence.</p></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
-        <div class="fig"><div class="fv num">$108,344</div><div class="fl">Salaries claimed</div></div>
-        <div class="fig"><div class="fv num">$68,288</div><div class="fl">Arm's-length contracts claimed — 39% of project cost</div></div>
-        <div class="fig"><div class="fv num">$176,632</div><div class="fl">Total allowable expenditure claimed</div></div>
+        <div class="fig"><div class="fv num">$108,344</div><div class="fl">Salaries claimed — 15% of $722,292 project payroll</div></div>
+        <div class="fig"><div class="fv num">$68,288</div><div class="fl">Arm's-length contracts — 15 individuals, 39% of project cost, no invoices</div></div>
+        <div class="fig"><div class="fv num">13,696.0</div><div class="fl">Hours booked, 10 employees, 12 months</div></div>
         <div class="fig"><div class="fv num">$40,006</div><div class="fl">Share of credits at stake — 6.7%</div></div>
       </div></div>
 
-      <div><h4>Employees &amp; their details</h4>
-      <p>Unknown. The same compilation requirement as P3, scoped to Y.IN2100190.</p></div>
-
-      <div><h4>Subcontractors &amp; their details</h4>
-      <p>Unknown, and decisive here. First question to Tech Mahindra: who was the contractor, where did the performers sit, and does a written agreement exist? If the performers were non-resident, write this portion off early rather than late.</p></div>
-
-      <div><h4>Options for this project</h4>
+      <div><h4>Proposed next steps</h4>
       <div class="stack">
-        <div class="opt go"><div class="ol">CONTEST SALARIES</div><p>Bundle with the P3 evidence sprint — same systems, same reconciliation format, marginal additional effort.</p></div>
-        <div class="opt hold"><div class="ol">TRIAGE CONTRACTS</div><p>One-day documentation check before committing. Concede the contractor portion quickly if the performers were offshore.</p></div>
-        <div class="opt"><div class="ol">REALISTIC ODDS</div><p>Medium on salaries; low to medium on contracts, pending the taxable-supplier answer.</p></div>
+        <div class="opt go"><div class="ol">UPGRADE TO PRIORITY 2 — AHEAD OF P7</div><p>Changed. On the records this project is small and clean; on eligibility it has the only narrative in the set that does not describe a platform migration. Ten employees makes an honest per-person allocation cheap. This is the best value-to-effort eligibility bet among the unreviewed projects.</p></div>
+        <div class="opt hold"><div class="ol">TRIAGE THE CONTRACTORS SEPARATELY AND EARLY</div><p>$68,288 across 15 individuals with no invoices and no residency evidence. Ask for the invoices; if they do not arrive within the week, concede the contractor portion and contest the salaries alone. Do not let the contractor half delay the salary half.</p></div>
+        <div class="opt go"><div class="ol">RECONCILE 26 WORKBOOK EMPLOYEES AGAINST 10 WITH BOOKED TIME</div><p>The gap needs explaining before submission, not after.</p></div>
       </div></div>
     </div>
   </details>
@@ -968,41 +938,34 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
   <details class="proj" id="p5">
     <summary>
       <span class="pcode amber">P5</span>
-      <span class="ptitle"><span class="pn">Rogers R4B 40633</span><span class="pd">Unreviewed — near-even salary and contractor split</span></span>
+      <span class="ptitle"><span class="pn">Rogers R4B 40633</span><span class="pd">Never reviewed · shares one narrative with P6 · contractor-heavy</span></span>
       <span class="pamt">$127,237</span><span class="chev">&#9654;</span>
     </summary>
     <div class="pbody">
-      <div><h4>Overall project brief</h4>
-      <p>Not described in the CRA file; presumed a Rogers-for-Business workstream. Internal reconstruction required before the follow-on eligibility review.</p></div>
+      <div><h4>Overall project brief</h4><p>Migration of Rogers' integration middleware from MuleSoft to a Spring Boot stack on Azure. The narrative — which this project <span class="sb">shares with P6</span>, one document covering two separately claimed projects — names the architectural gap between MuleSoft's declarative orchestration and hand-built Spring Boot equivalents, limited prior experience with Azure API Management, Key Vault, DNS routing and Service Bus at throughput, and the absence of a native rollback path making blue-green deployment by DNS toggle an open question.</p></div>
 
       <div><h4>Quality of R&amp;D evidence and narrative</h4>
       <div class="grades">
         <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Evidence</span></div><div class="gt">Nothing on file.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark q">?</span><span class="gl">Narrative</span></div><div class="gt">Untested; verify against artefacts before reuse.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Financial</span></div><div class="gt">Unsubstantiated in full.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark d">D</span><span class="gl">Narrative</span></div><div class="gt">Assessable now, and weak. A migration between two commercially supported integration platforms is squarely the pattern CRA rejects. It is also filed as one narrative covering two claimed projects, which invites the question of why they were claimed separately.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark c">C</span><span class="gl">Financial</span></div><div class="gt">Upgraded from F on hours — 6 employees, twelve months. Contractors remain unsupported.</div></div>
       </div></div>
 
-      <div><h4>Financial correctness &amp; completeness</h4>
-      <p>The same twin defects as P4: no employee-hour records provided, and <span class="num">$53,718</span> of contracts — 42% of project cost — with no documentation and no taxable-supplier verification.</p></div>
+      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> 7,921 hours across 6 employees over twelve months, but only 3,900 Approved — <span class="sb">the weakest approval ratio in the claim at 49%</span>. <span class="sb">The claim:</span> 15 workbook employees against 6 with booked time; flat 15% on 13,820 capacity hours giving 2,073 SR&amp;ED hours, or <span class="sb">26.2% of hours booked</span> — the highest ratio of the 15% projects. <span class="sb">Contractors:</span> 8 individuals, $550,958 gross reduced to $53,718, no invoices.</p></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
-        <div class="fig"><div class="fv num">$73,519</div><div class="fl">Salaries claimed</div></div>
-        <div class="fig"><div class="fv num">$53,718</div><div class="fl">Arm's-length contracts claimed — 42% of project cost</div></div>
-        <div class="fig"><div class="fv num">$127,237</div><div class="fl">Total allowable expenditure claimed</div></div>
+        <div class="fig"><div class="fv num">$73,519</div><div class="fl">Salaries claimed — 15% of $490,124 project payroll</div></div>
+        <div class="fig"><div class="fv num">$53,718</div><div class="fl">Arm's-length contracts — 8 individuals, 42% of project cost, no invoices</div></div>
+        <div class="fig"><div class="fv num">7,921.0</div><div class="fl">Hours booked, 6 employees, 12 months</div></div>
         <div class="fig"><div class="fv num">$28,208</div><div class="fl">Share of credits at stake — 4.7%</div></div>
       </div></div>
 
-      <div><h4>Employees &amp; their details</h4>
-      <p>Unknown. Compile per the P3 template, scoped to project 40633.</p></div>
-
-      <div><h4>Subcontractors &amp; their details</h4>
-      <p>Unknown. The same triage as P4 — performer residency first, paperwork second.</p></div>
-
-      <div><h4>Options for this project</h4>
+      <div><h4>Proposed next steps</h4>
       <div class="stack">
-        <div class="opt go"><div class="ol">CONTEST</div><p>Include in the consolidated P3–P7 substantiation package. Marginal effort once P3's format exists.</p></div>
-        <div class="opt"><div class="ol">REALISTIC ODDS</div><p>Medium on salaries; contracts follow the P4 pattern.</p></div>
+        <div class="opt hold"><div class="ol">RIDE-ALONG ON THE P3 AND P4 WORK</div><p>Include in the consolidated extract at zero marginal cost. Do not commission separate technical review at $28,208 of credit value.</p></div>
+        <div class="opt stop"><div class="ol">CONCEDE THE CONTRACTOR PORTION UNLESS INVOICES ARRIVE</div><p>$53,718 with no invoices and no residency evidence, on a project that will not justify chasing them.</p></div>
+        <div class="opt hold"><div class="ol">THE SHARED NARRATIVE NEEDS A DECISION</div><p>P5 and P6 were claimed as two projects on one description. Either explain the split or present them as one project in the representation. Leaving it unaddressed is worse than either.</p></div>
       </div></div>
     </div>
   </details>
@@ -1010,40 +973,33 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
   <details class="proj" id="p6">
     <summary>
       <span class="pcode amber">P6</span>
-      <span class="ptitle"><span class="pn">Rogers R4B Digital · Y.IN2031013</span><span class="pd">Unreviewed — smallest project, contractor-majority cost</span></span>
+      <span class="ptitle"><span class="pn">Rogers R4B Digital · Y.IN2031013</span><span class="pd">Never reviewed · smallest project · contractor-majority · project code discrepancy</span></span>
       <span class="pamt">$41,715</span><span class="chev">&#9654;</span>
     </summary>
     <div class="pbody">
-      <div><h4>Overall project brief</h4>
-      <p>Not described in the CRA file; presumed a digital-channel R4B workstream. The smallest project in the claim, with contractors at <span class="num">$23,576</span> exceeding salaries at <span class="num">$18,139</span>.</p></div>
+      <div><h4>Overall project brief</h4><p>The digital-channel half of the MuleSoft-to-Spring-Boot migration described above; it shares P5's single narrative. The smallest project in the claim, and the only one whose contractor cost exceeds its salary cost. <span class="sb">Note a discrepancy to resolve:</span> CRA's schedules cite Y.IN2031013 while the client's narrative file and workbook both use Y.IN2301013 — transposed digits. The timesheet system has hours under the latter.</p></div>
 
       <div><h4>Quality of R&amp;D evidence and narrative</h4>
       <div class="grades">
         <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Evidence</span></div><div class="gt">Nothing on file.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark q">?</span><span class="gl">Narrative</span></div><div class="gt">Untested.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Financial</span></div><div class="gt">Unsubstantiated in full.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark d">D</span><span class="gl">Narrative</span></div><div class="gt">Shares P5's migration narrative and carries the same weakness, with even less claimed value to justify defending it.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark c">C</span><span class="gl">Financial</span></div><div class="gt">Upgraded from F on hours — 3 employees, twelve months. At this size the finding barely matters.</div></div>
       </div></div>
 
-      <div><h4>Financial correctness &amp; completeness</h4>
-      <p>The same defects as its siblings. At roughly <span class="num">$8,400</span> of credit value this project cannot justify standalone effort — it rides along with the consolidated package or it gets conceded.</p></div>
+      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> 4,332 hours across 3 employees over twelve months, 3,412 Approved — a good ratio on a tiny population. <span class="sb">The claim:</span> 6 workbook employees against 3 with booked time; flat 15% on 7,191 capacity hours giving 1,079 SR&amp;ED hours, or <span class="sb">24.9% of hours booked</span>. One of the six is unnamed. <span class="sb">Contractors:</span> 3 individuals, $241,799 gross reduced to $23,575, no invoices.</p></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
-        <div class="fig"><div class="fv num">$18,139</div><div class="fl">Salaries claimed</div></div>
-        <div class="fig"><div class="fv num">$23,576</div><div class="fl">Arm's-length contracts claimed — the majority of project cost</div></div>
-        <div class="fig"><div class="fv num">$41,715</div><div class="fl">Total allowable expenditure claimed</div></div>
+        <div class="fig"><div class="fv num">$18,139</div><div class="fl">Salaries claimed — 15% of $120,924 project payroll</div></div>
+        <div class="fig"><div class="fv num">$23,576</div><div class="fl">Arm's-length contracts — 3 individuals, the majority of project cost</div></div>
+        <div class="fig"><div class="fv num">4,332.0</div><div class="fl">Hours booked, 3 employees, 12 months</div></div>
         <div class="fig"><div class="fv num">$8,444</div><div class="fl">Share of credits at stake — 1.4%</div></div>
       </div></div>
 
-      <div><h4>Employees &amp; their details</h4>
-      <p>Unknown. Include in the consolidated compilation only if the records fall out of the same system extract as P3–P5.</p></div>
-
-      <div><h4>Subcontractors &amp; their details</h4>
-      <p>Unknown. The same residency-first triage. If the paperwork is not immediate, concede.</p></div>
-
-      <div><h4>Options for this project</h4>
+      <div><h4>Proposed next steps</h4>
       <div class="stack">
-        <div class="opt hold"><div class="ol">RIDE-ALONG OR CONCEDE</div><p>Zero-marginal-cost inclusion in the package; no bespoke effort justified at this credit value.</p></div>
+        <div class="opt hold"><div class="ol">RIDE-ALONG OR CONCEDE</div><p>Unchanged. Zero-marginal-cost inclusion in the consolidated extract; no bespoke effort at $8,444 of credit value.</p></div>
+        <div class="opt go"><div class="ol">FIX THE PROJECT CODE IN ANY SUBMISSION</div><p>Y.IN2031013 on CRA's schedules against Y.IN2301013 in our own records. Whichever is right, a representation that quotes a code CRA cannot match to its file starts badly. Confirm which the T661 actually carried.</p></div>
       </div></div>
     </div>
   </details>
@@ -1051,50 +1007,94 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
   <details class="proj" id="p7">
     <summary>
       <span class="pcode amber">P7</span>
-      <span class="ptitle"><span class="pn">Mt_Cc_Fp_Legacy_Ticketing · #38370</span><span class="pd">Unreviewed — salary only, no contractor exposure, the only non-Rogers, non-Scotia project</span></span>
+      <span class="ptitle"><span class="pn">Mt_Cc_Fp_Legacy_Ticketing · #38370</span><span class="pd">Never reviewed · salary only · the 50% rate now needs its own justification</span></span>
       <span class="pamt">$139,854</span><span class="chev">&#9654;</span>
     </summary>
     <div class="pbody">
-      <div><h4>Overall project brief</h4>
-      <p>Not described in the CRA file; a legacy ticketing platform workstream. Two features make it strategically interesting: it is salary-only, so there is no contractor documentation problem at all, and it sits outside the Rogers QE pattern the Advisor has already ruled against — so its eligibility narrative is not pre-judged by the P1 precedent the way P3–P6 arguably are.</p></div>
+      <div><h4>Overall project brief</h4><p>Modernisation of a legacy ticketing and middleware platform from WebSphere and DMaaP into stateless microservices. The narrative names four uncertainties: untangling session logic embedded in WebSphere portlets and replicating it through stateless APIs; containerising Apache Spark on AKS where the in-memory model repeatedly failed under Kubernetes resource limits; migrating DMaaP to Kafka with duplicate processing, inconsistent ordering and replay storms; and OpenID Connect and SAML migration producing redirect loops and session persistence failures.</p></div>
 
       <div><h4>Quality of R&amp;D evidence and narrative</h4>
       <div class="grades">
         <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Evidence</span></div><div class="gt">Nothing on file.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark q">?</span><span class="gl">Narrative</span></div><div class="gt">Untested — and the freshest chance to write one grounded purely in demonstrable artefacts.</div></div>
-        <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Financial</span></div><div class="gt">Salary substantiation absent, like its siblings.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark d">D</span><span class="gl">Narrative</span></div><div class="gt">Assessable now. Another platform migration — WebSphere to microservices, DMaaP to Kafka — and the Kafka ordering and replay language is close kin to the P1 narrative CRA has already rejected as undemonstrated. This lowers our earlier read that P7 sat outside the ruled-against pattern.</div></div>
+        <div class="grade"><div class="gh"><span class="gmark c">C</span><span class="gl">Financial</span></div><div class="gt">Upgraded from F, and the cleanest financial structure in the claim: four named employees, no contractors, and hours that tie exactly. But the rate is now the issue, not the hours.</div></div>
       </div></div>
 
-      <div><h4>Financial correctness &amp; completeness</h4>
-      <p>The cleanest structure in the P3–P7 group: one cost type, one substantiation task. Everything turns on the employee-hour records.</p></div>
+      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> 8,182.6 hours across 4 employees over twelve months, 6,700.6 Approved. Uniquely in this claim, the workbook's hours for P7 equal the hours actually booked — every other project used capacity hours instead. No employees unnamed. <span class="sb">The claim:</span> four employees at a flat <span class="sb">50%</span>, the only departure from 15% anywhere in the file, giving 4,091 SR&amp;ED hours — exactly half of all time booked to the project. <span class="sb">Contractors:</span> none.</p></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
-        <div class="fig"><div class="fv num">$139,854</div><div class="fl">Salaries claimed</div></div>
-        <div class="fig"><div class="fv num">$0</div><div class="fl">Contracts claimed — none, so no contractor exposure</div></div>
-        <div class="fig"><div class="fv num">$139,854</div><div class="fl">Total allowable expenditure claimed</div></div>
+        <div class="fig"><div class="fv num">$139,854</div><div class="fl">Salaries claimed — 50% of $279,708 project payroll</div></div>
+        <div class="fig"><div class="fv num">$0</div><div class="fl">Contracts — none claimed, no contractor exposure</div></div>
+        <div class="fig"><div class="fv num">8,182.6</div><div class="fl">Hours booked, 4 employees, 12 months — the only project where claimed and booked hours tie exactly</div></div>
         <div class="fig"><div class="fv num">$38,965</div><div class="fl">Share of credits at stake — 6.6%</div></div>
       </div></div>
 
-      <div><h4>Employees &amp; their details</h4>
-      <p>Unknown. Compile per the standard template, scoped to project #38370.</p></div>
-
-      <div><h4>Subcontractors &amp; their details</h4>
-      <p>None claimed — no exposure, no work required.</p></div>
-
-      <div><h4>Options for this project</h4>
+      <div><h4>Proposed next steps</h4>
       <div class="stack">
-        <div class="opt go"><div class="ol">CONTEST — PRIORITY 2</div><p>Second-best value-to-effort in the claim after P3. A salary-only structure plus a fact pattern distinct from the ruled-against Rogers QE work makes it the P3–P7 project most likely to survive the follow-on eligibility review intact.</p></div>
-        <div class="opt"><div class="ol">REALISTIC ODDS</div><p>Medium, conditional on records — with slightly better conditional odds than P3–P6 on eligibility.</p></div>
+        <div class="opt hold"><div class="ol">DOWNGRADE TO PRIORITY 3 — BEHIND P3 AND P4</div><p>Changed. Our earlier read was that P7 sat outside the ruled-against Rogers pattern. Having read the narrative, it is another platform migration with Kafka ordering language close to P1's. And the 50% is now the exposed flank.</p></div>
+        <div class="opt hold"><div class="ol">THE 50% NEEDS ITS OWN JUSTIFICATION BEFORE ANYTHING IS FILED</div><p>Asserting that half of everything four people did for a year was experimental development is a strong claim. It may be true — a four-person team on a migration could plausibly spend half its time on genuinely uncertain work. But it has to be established person by person, and if it cannot be, the number must come down before CRA asks.</p></div>
+        <div class="opt go"><div class="ol">STILL THE CHEAPEST HONEST TEST IN THE FILE</div><p>Four named people, one cost type, twelve months of clean hours. If a defensible allocation can be built anywhere in this claim, it can be built here fastest. Run it early precisely because it is cheap — the answer will tell us what the method produces before we spend on P3.</p></div>
       </div></div>
     </div>
   </details>
 </section>
 
+
+<!-- ============ 08 PLAN ============ -->
+<section id="plan">
+  <div class="sechead">
+    <div class="eyebrow">Section 08</div>
+    <h2>The plan from here</h2>
+    <p class="lede">What the records changed, in one place: the order the projects should now be worked in, and the sequence to the September 30 submission date we are asking CRA for.</p>
+  </div>
+  <div class="stack">
+
+    <div class="card">
+      <h3>Revised priority order</h3>
+      <p style="margin-bottom:13px">Two projects moved this week. P4 goes up because it has the only narrative in the unreviewed set that is not a platform migration. P7 goes down because its narrative <em>is</em> one, and because its 50% rate is now the exposed flank rather than an advantage.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Order</th><th>Project</th><th class="r">Credits</th><th>Why here</th><th>Change</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td><span class="sb">P3</span> Rogers QE Channels</td><td class="r num">$135,173</td><td>Largest recoverable value and the best timesheet coverage in the file. The records are strong; the EKS-to-AKS narrative is the risk.</td><td><span class="tag peri">Unchanged</span></td></tr>
+            <tr><td class="num">2</td><td><span class="sb">P4</span> Rogers QE Media</td><td class="r num">$40,006</td><td>Only narrative describing a real gap in commercial tooling rather than a migration. Ten employees makes an honest allocation cheap.</td><td><span class="tag sage">Up from 4th</span></td></tr>
+            <tr><td class="num">3</td><td><span class="sb">P7</span> Legacy Ticketing</td><td class="r num">$38,965</td><td>Cheapest honest test in the file — four people, one cost type. But another migration narrative, and a 50% rate to justify.</td><td><span class="tag rose">Down from 2nd</span></td></tr>
+            <tr><td class="num">4</td><td><span class="sb">P5 · P6</span> Rogers R4B</td><td class="r num">$36,652</td><td>Ride along on the consolidated extract. No bespoke technical review at this value.</td><td><span class="tag peri">Unchanged</span></td></tr>
+            <tr><td class="num">5</td><td><span class="sb">P1</span> Rogers CBU Wireless</td><td class="r num">$189,201</td><td>Concede on eligibility, but record that its contractor position is the only documented one in the case.</td><td><span class="tag peri">Unchanged</span></td></tr>
+            <tr><td class="num">6</td><td><span class="sb">P2</span> Scotia QA Managed Service</td><td class="r num">$154,404</td><td>Concede without qualification. Zero hours in 846,994 rows; nothing a document request would produce.</td><td><span class="tag rose">Hardened</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Sequence to September 30</h3>
+      <div class="tl" style="margin-top:8px">
+        <div class="tlrow now"><div class="td">TODAY · AUGUST 26</div><div class="tx"><span class="sb">Call the Financial Reviewer and submit the extension letter the same day.</span> Separately, put the flat-rate finding to Heena Shah. It changes what can honestly be claimed and is not Certainti's decision to take alone.</div></div>
+        <div class="tlrow"><div class="td">AUGUST 27–28</div><div class="tx">Client decision on method. Obtain the FY2023 notice of reassessment — still the highest-value document outstanding. Confirm level 2 representative authorisation. Request the missing subcontractor invoices for P3 to P6 and an explanation of the 0.65 factor.</div></div>
+        <div class="tlrow"><div class="td">AUGUST 29 – SEPTEMBER 5</div><div class="tx"><span class="sb">Run P7 as the pilot.</span> Four named employees, twelve months of clean hours, one cost type. Build the per-person allocation there first — it is the cheapest place to find out what an honest method actually produces, and the answer sets expectations before we spend on P3.</div></div>
+        <div class="tlrow"><div class="td">SEPTEMBER 8–19</div><div class="tx">Technical review of P3 and P4 using the method the pilot validated. Resolve P3's title-versus-work question — which of the 49 people booked to a quality-engineering project did the migration the narrative describes. Reconcile P4's 26 workbook employees against the 10 with booked time.</div></div>
+        <div class="tlrow"><div class="td">SEPTEMBER 22–26</div><div class="tx">Assemble the package: per-employee monthly hours reconciled to payroll, the allocation method stated plainly as a present-day technical judgment, the concessions on P1 and P2, and our own account of the narrative-versus-hours contradiction. Tax counsel review before anything is filed.</div></div>
+        <div class="tlrow"><div class="td">SEPTEMBER 30</div><div class="tx">Submit through Submit Documents, case 31874271 — or by August 31 if the extension is refused, with a covering letter stating what is still being compiled.</div></div>
+      </div>
+    </div>
+
+    <div class="callout rose">
+      <div class="ct">Three things that must not happen</div>
+      <ul class="clean rose" style="margin-top:8px">
+        <li><span class="sb">Do not submit the timesheet extracts on their own.</span> Without an allocation method they demonstrate the defect CRA identified rather than curing it.</li>
+        <li><span class="sb">Do not present a re-derived allocation as a contemporaneous record.</span> It is a present-day judgment applied to historic data, and saying so plainly is what keeps the rest of the submission credible.</li>
+        <li><span class="sb">Do not defend the 15% as a measurement.</span> If the technical review supports something near it, that is the reason to claim it. The workbook is not.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
 <!-- ============ 07 DOCUMENTS ============ -->
 <section id="documents">
   <div class="sechead">
-    <div class="eyebrow">Section 08</div>
+    <div class="eyebrow">Section 09</div>
     <h2>Documents on the file</h2>
     <p class="lede">Four documents are drafted and ready to move. Two go outside the engagement team, two do not — the distinction matters and is marked on each.</p>
   </div>
@@ -1141,7 +1141,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
 <!-- ============ 08 LESSONS ============ -->
 <section id="lessons">
   <div class="sechead">
-    <div class="eyebrow">Section 09</div>
+    <div class="eyebrow">Section 10</div>
     <h2>Lessons learnt</h2>
     <p class="lede">Written for us, not for the client. Each one cost real money on this file.</p>
   </div>
@@ -1172,7 +1172,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
 <!-- ============ 09 GATES ============ -->
 <section id="gates">
   <div class="sechead">
-    <div class="eyebrow">Section 10</div>
+    <div class="eyebrow">Section 11</div>
     <h2>Process changes needed</h2>
     <p class="lede">Each change maps to a specific failure in this file, and each is encodable into the Think R&amp;D 365 assessment workflow rather than left as policy text.</p>
   </div>
@@ -1192,7 +1192,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
 <!-- ============ 10 TIMELINE ============ -->
 <section id="timeline">
   <div class="sechead">
-    <div class="eyebrow">Section 11</div>
+    <div class="eyebrow">Section 12</div>
     <h2>Critical timeline</h2>
   </div>
   <div class="card">

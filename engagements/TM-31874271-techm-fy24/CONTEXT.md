@@ -78,7 +78,11 @@ Rules that follow from this:
 - **Never present a re-derived allocation as a contemporaneous record.** It is a present-day technical judgment on historic records and must be labelled as such.
 - **Do not defend the 15% as a measurement.** A re-derived figure may come out lower.
 - **P2 (Y.IN2201961) is now concede-without-qualification.** Zero hours in 846,994 rows; the claimant's own workbook records Total Hours: 0; yet 169 employee rows and $548,729 claimed.
-- **P7's flat 50% needs its own justification** before P7 can be treated as the second-priority contest.
+- **Priority order revised after reading the filed narratives.** P3 stays first on value and records. **P4 moves up to second** — it has the only narrative in the unreviewed set describing a real gap in commercial tooling (frame-accurate video playback validation, emulator-vs-real-device divergence) rather than a platform migration. **P7 drops to third**: its narrative is another migration (WebSphere/DMaaP to microservices, DMaaP to Kafka, close kin to P1's rejected language) and its flat 50% is the exposed flank. Run P7 first anyway as the cheap pilot — four named people, one cost type — to see what an honest method produces before spending on P3.
+- **P3, P5, P6 and P7 narratives all describe platform migrations** (EKS→AKS, MuleSoft→Spring Boot, WebSphere→microservices). That is the fact pattern CRA already rejected on P1 as integration rather than advancement.
+- **P3 has a title-versus-work problem.** 49 people booked to a quality-engineering project; the narrative describes an infrastructure migration. Establish who actually did the migration before claiming their hours.
+- **The SR&ED hours were computed off capacity, not booked time.** Six of seven projects applied 15% to workbook FTE hours that exceed hours actually booked by 30-45%. Against time actually recorded the claim asserts 19-26% SR&ED, not 15% (P7: 50%).
+- **P5/P6 share one narrative** for two separately claimed projects, and CRA cites Y.IN2031013 where our records say Y.IN2301013 — transposed digits to resolve before filing.
 - **The narratives quote real system hours** (five of six reconcile exactly) but describe total project hours as investigative effort — roughly sevenfold overstatement against the company's own 15%. Address this on our terms before CRA finds it.
 - Subcontractor agreements are all with Canadian-incorporated suppliers (good for the taxable-supplier test), but all nineteen invoices cover P1 and P2 only — nothing for P3–P6's $166,574.
 
