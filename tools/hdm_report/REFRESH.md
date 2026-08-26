@@ -19,6 +19,31 @@ transforms — the split is deliberate, not an unfinished job.
 This also means the refresh cannot run as a plain cron job or a GitHub Action.
 It needs a Claude session with the Atlassian connector attached.
 
+### Known blocker: connectors on scheduled sessions
+
+The two Routines are created and enabled:
+
+| Routine | Cron (UTC) | Local |
+|---|---|---|
+| `trig_01CqBfQwZAPdRKjoKxXYEevQ` | `30 3 * * *` | 09:00 IST |
+| `trig_01CxkkTYyhbj1ijYkDGCWWPh` | `30 12 * * *` | 18:00 IST |
+
+They will fire on time, **but as created they carry no connector grant**, so the
+sessions they spawn start without `mcp__Atlassian__*` tools and cannot reach
+Jira. This org does not permit attaching connectors to a Routine through the MCP
+API — the call is rejected outright — and this session had no passable grant to
+inherit.
+
+Until that is fixed, each run will report that the connector is missing rather
+than publish a stale report. Two ways to fix it, both outside this repo:
+
+1. Open the Routine in the **claude.ai Routines UI** and attach the Atlassian
+   connector there, or recreate it from that UI. This is the quicker path.
+2. Have an org owner enable connector grants on Routines for the workspace.
+
+Verify the fix by firing a Routine manually once and checking that the run
+publishes rather than reporting a missing connector.
+
 ---
 
 ## Steps
