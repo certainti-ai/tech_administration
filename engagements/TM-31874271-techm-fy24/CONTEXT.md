@@ -92,6 +92,12 @@ Rules that follow from this:
 
 Two open items closed: line 429's $77,698 is an unresolved preparer uncertainty annotated "Used on line 429??" in the client's own worksheet (still do not raise it with CRA); and the FY2023 basis is confirmed at $3,118,181.80 net eligible, $467,727 ITC at 15%.
 
+### Contractor evidence — corrected Aug 26
+
+Reading the eight agreements reversed an earlier, too-optimistic read. **Payment evidence is strong** (19 invoices plus 36 SAP screenshots whose document numbers tie). **Agreement coverage is not.** Of $1,417,216 gross in the submitted pivot: only Pragra ($113,170, 8%) is covered by a right-party agreement spanning FY2024; Vy Systems ($204,168) is partial from 30 Oct 2023; J & M, SAPSOL and TechDoQuest ($335,554) begin *after* the year ended, TechDoQuest after the audit started; and **NextGen ($674,706, 48%) is a US agreement between Tech Mahindra (Americas) Inc. and NextGen Innovation Labs LLC** — wrong parties, wrong country, going to both the "on your behalf" and taxable-supplier tests. TES and XpertVantage unresolved.
+
+Do not repeat the line that Canadian incorporation settles the taxable-supplier test. When requesting P3-P6 contractor evidence, **ask for agreements first**, then invoices.
+
 ## Still outstanding
 
 1. Make the call to Kitty Leung, fill the letter placeholders, and submit the same day. A verbal extension that is never confirmed in writing protects nobody.
