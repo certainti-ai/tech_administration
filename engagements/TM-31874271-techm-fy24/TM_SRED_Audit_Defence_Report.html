@@ -364,7 +364,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
   </div>
   <div class="stack">
     <p>CRA proposes to reduce every SR&amp;ED figure on the claim to zero. Two projects were technically reviewed and found not eligible. Five were never reviewed for eligibility at all — they were denied because the documentation requested on May 7, 2026 was not provided. Those are two different failures needing two different responses, and until this week we believed only the second was recoverable.</p>
-    <p>The client records have narrowed that further. <span class="sb">The claim was not built from time records.</span> It was built by applying a flat 15% to every employee's salary on six projects, and 50% on the seventh. The timesheets to do it properly existed throughout — 846,994 rows of daily, per-project, per-employee data in a system with a manager approval workflow. They were never used, and the workbook that was submitted to CRA carried the monthly hour columns as <span class="num">#REF!</span> errors for all 305 employees.</p>
+    <p>The client records have narrowed that further. <span class="sb">The claim was not built from time records.</span> It was built by applying a flat 15% to every employee's salary on six projects, and 50% on the seventh. The timesheets to do it properly existed throughout — 846,994 rows of daily, per-project, per-employee data in a system with a manager approval workflow. They were never used. A workbook in the client's audit folder also carries its monthly hour columns as <span class="num">#REF!</span> errors for all 305 employees — but whether that particular file reached CRA is <a href="#refdispute">disputed and unresolved</a>.</p>
 
     <div class="card">
       <h3>Where the <span class="num">$2,280,889</span> of denied expenditure sits</h3>
@@ -476,7 +476,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
           <thead><tr><th>Requested May 7, 2026</th><th>Tech Mahindra's status, Aug 24</th><th>What we can verify</th></tr></thead>
           <tbody>
             <tr><td>Breakdown of salaries and arm's-length contracts with working papers and formulas, reconciling to the T661</td><td><span class="tag sage">Provided</span></td><td>It does reconcile — because both sides of the reconciliation are the same flat percentage.</td></tr>
-            <tr><td>Hours by project, month and employee, with names, job titles, hourly wages, annual salaries, total hours, and the province worked in</td><td><span class="tag rose">&ldquo;…but it didn't provide the complete details&rdquo;</span></td><td>The twelve monthly columns were <span class="sb num">#REF!</span> — 3,660 broken cells across 305 employee rows, in the file as sent. Hourly wages were never included. Employee lists covered P1 and P2 only.</td></tr>
+            <tr><td>Hours by project, month and employee, with names, job titles, hourly wages, annual salaries, total hours, and the province worked in</td><td><span class="tag rose">&ldquo;…but it didn't provide the complete details&rdquo;</span></td><td>Hourly wages were never included and the employee lists covered P1 and P2 only. On the monthly columns see the <a href="#refdispute">unresolved question below</a> — we do not hold the workbook the client says was sent.</td></tr>
             <tr><td>Working papers showing salaries per project reconciled to the T661, identifying bonuses, taxable benefits and severance</td><td><span class="tag sage">Provided</span></td><td>Cost columns provided. The bonus and benefit identification is not visible in anything we hold.</td></tr>
             <tr><td>Working papers for arm's-length contracts per project, with statements of work and evidence the ultimate performers are taxable suppliers</td><td><span class="tag rose">&ldquo;…but it didn't provide the complete details&rdquo;</span></td><td>Nine vendor-project rows for P1 and P2 only. No statement of work, no taxable-supplier evidence, nothing at all for P3 to P6.</td></tr>
             <tr><td>Breakdown of provincial credit assistance and schedules</td><td><span class="tag sage">Provided</span></td><td>Provided and correct.</td></tr>
@@ -485,8 +485,17 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
       </div>
       <div class="callout rose" style="margin-top:13px">
         <div class="ct">The single most consequential fact in the file</div>
-        <p>The item CRA cared most about — hours by project, month and employee — was answered with a spreadsheet whose twelve monthly columns contained <span class="num">#REF!</span> errors for all 305 employees. The data to fill them existed in the time system throughout. The August 24 revision, two days ago, still has not fixed them.</p>
+        <p>The item CRA cared most about — hours by project, month and employee — was not answered in the form requested. The client's own status against it is that the complete details were not provided, and no monthly breakdown appears in anything we hold. Whether the file that reached CRA also carried broken formulas is a separate and unresolved question, set out immediately below.</p>
       </div>
+    </div>
+
+    <div id="refdispute" class="callout rose" style="scroll-margin-top:20px">
+      <div class="ct">Unresolved: which financial workbook did CRA actually receive?</div>
+      <p>This matters more than its length suggests, and we cannot currently answer it.</p>
+      <p style="margin-top:9px"><span class="sb">What we can verify.</span> A file in the client's audit folder named <span class="num">Financial details for June 7 2026 response.xlsx</span> contains 3,660 <span class="num">#REF!</span> cells at <span class="num">D14:O320</span> on the sheet <em>2- Emp hours by Project</em> — the twelve monthly hour columns, one row per employee for all 305 employees. Each cell is a sum across thirteen deleted references, so the source rows were removed from the workbook and Excel rewrote every reference. The same block is broken identically in the August 24 revision.</p>
+      <p style="margin-top:9px"><span class="sb">What CRA's own record says.</span> Appendix 1 of the Project Eligibility Report, page 10, lists as received: item 3 <span class="num">Tech Mahindra FY24 Audit Financials.xlsx</span> (May 4), item 4 <span class="num">Financial details for June 7 2026 response.xlsx</span> (June 4), and item 7 <span class="num">Tech Mahindra FY24 Audit Financials.xlsx</span> (June 4). A file of the broken workbook's exact name is listed as provided.</p>
+      <p style="margin-top:9px"><span class="sb">What the client says.</span> That file was not the one shared; the financial support given to CRA was <span class="num">Tech Mahindra FY24 Audit Financials.xlsx</span>. <span class="sb">We do not hold that workbook</span>, so we cannot say what state its hour columns were in, and nothing in this report is based on it.</p>
+      <p style="margin-top:9px"><span class="sb">Why it cannot be left open.</span> If CRA holds a workbook whose requested hour breakdown is 3,660 error cells, that is a live and serious exposure that our representation must address directly. If it does not, the exposure does not exist and we must not raise it. The two readings call for opposite drafting. <span class="sb">Resolve before anything is filed:</span> obtain <span class="num">Tech Mahindra FY24 Audit Financials.xlsx</span> as sent, reconcile the client's account against Appendix 1 item 4, and if necessary ask the Financial Reviewer to confirm which files are on the Agency's record.</p>
     </div>
 
     <div class="callout amber">
@@ -897,7 +906,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
 <div class="subcard"><div class="sh">Resources</div><ul class="clean" style="font-size:12.6px">
 <li><span class="sb">78 employees</span> listed with employee id, name, designation, band, function, work location, project, contract type, customer, gross salary and total hours for the year — $4,088,153 in total.</li>
 <li><span class="sb">7 subcontractor vendors</span> with SAP vendor ids and amounts: NextGen Consulting $674,706; Vy Systems Canada $148,224; TechDoQuest $129,823; Pragra $113,170; SAPSOL Technologies Canada $106,944; J &amp; M Group $98,787; XpertVantage Canada $37,088.</li>
-<li><span class="sb">Not submitted:</span> monthly hour breakdown (the columns were #REF!), hourly wages, and any SR&amp;ED versus non-SR&amp;ED split.</li>
+<li><span class="sb">Not submitted:</span> monthly hour breakdown, hourly wages, and any SR&amp;ED versus non-SR&amp;ED split. Which financial workbook CRA received, and what state its hour columns were in, is <a href="#refdispute">unresolved</a>.</li>
 </ul></div></div></div>
 
       <div><h4>Financials</h4>
@@ -1002,7 +1011,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
 <div class="subcard"><div class="sh">Resources</div><ul class="clean" style="font-size:12.6px">
 <li><span class="sb">No employee list.</span> The list submitted covers Y.IN2100170 and Y.IN2201961 only.</li>
 <li><span class="sb">No vendor detail.</span> The subcontractor pivot submitted covers the same two projects only.</li>
-<li><span class="sb">No hours.</span> The monthly breakdown columns were #REF! for every employee on every project, this one included.</li>
+<li><span class="sb">No hours.</span> No monthly breakdown for this project appears in anything we hold — see the <a href="#refdispute">open question</a> on which workbook CRA received.</li>
 <li>So CRA received a cost column and a percentage, and nothing to test either against. Its finding is the only one available on that record.</li>
 </ul></div></div></div>
 
@@ -1314,8 +1323,8 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
     <div class="card"><h3>2 · Narratives must never outrun the evidence</h3>
     <p>The finding that sank P1 and P2 was that our written descriptions claimed sophisticated experimentation the client's own SMEs could not demonstrate. Worse, we now know the narratives quoted every hour booked to each project as investigative effort while the claim asserted 15%. A modest, defensible narrative beats an impressive, indefensible one every time — and it must be consistent with the financial claim filed alongside it.</p></div>
 
-    <div class="card"><h3>3 · Never send a spreadsheet you have not opened</h3>
-    <p>The June 4 response went to CRA with 3,660 <span class="num">#REF!</span> cells filling the twelve monthly hour columns for all 305 employees — precisely the item the request asked for. Nobody looked. The revision two days ago still has not fixed them. A five-minute check would have changed the shape of this audit.</p></div>
+    <div class="card"><h3>3 · Never send a spreadsheet you have not opened — and keep a copy of exactly what you sent</h3>
+    <p>A workbook in the audit folder, <span class="num">Financial details for June 7 2026 response.xlsx</span>, carries 3,660 <span class="num">#REF!</span> cells across the twelve monthly hour columns for all 305 employees — precisely the item the request asked for — and the August 24 revision still has not fixed them. Whether that file went to CRA is <a href="#refdispute">disputed</a>. That we cannot answer the question from our own records is the lesson: the submission set was never archived as sent, so a month later nobody can say with certainty which workbook the Agency holds.</p></div>
 
     <div class="card"><h3>4 · An information request ignored is a claim conceded</h3>
     <p><span class="num">$980,759</span> across five projects was lost not on merit but because the May 7 requests went unanswered for P3–P7. Information requests need an owner, a deadline and a completeness sign-off like a production incident — because that is what they are.</p></div>
@@ -1365,7 +1374,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
   <div class="card">
     <div class="tl">
       <div class="tlrow done"><div class="td">MAY 5 &amp; 7, 2026</div><div class="tx">Review meetings on P1 and P2. Two sessions needed because key technical personnel were unavailable. Information request issued May 7 for salary breakdowns and contractor support on all seven projects.</div></div>
-      <div class="tlrow done"><div class="td">JUNE 4, 2026</div><div class="tx">Response submitted — breakdowns for P1 and P2 only, and the workbook's monthly hour columns entirely <span class="num">#REF!</span>. Nothing for P3–P7. This is the day the <span class="num">$980,759</span> was lost.</div></div>
+      <div class="tlrow done"><div class="td">JUNE 4, 2026</div><div class="tx">Response submitted — breakdowns for P1 and P2 only. Nothing for P3–P7. This is the day the <span class="num">$980,759</span> was lost. CRA's Appendix 1 records two financial workbooks received on this date; which of them carried the hour columns is <a href="#refdispute">unresolved</a>.</div></div>
       <div class="tlrow done"><div class="td">JULY 16, 2026</div><div class="tx">Project Eligibility Report signed by the Advisor and approved by the Research and Technology Manager.</div></div>
       <div class="tlrow done"><div class="td">JULY 30, 2026</div><div class="tx">Proposal letter issued. The full claim proposed to zero.</div></div>
       <div class="tlrow done"><div class="td">AUGUST 24, 2026</div><div class="tx">Tech Mahindra revises the workbook, adding the RFI items with their own status against each and computing hours-based ratios — but leaving the 3,660 broken cells in place.</div></div>

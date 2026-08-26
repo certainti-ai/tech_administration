@@ -30,7 +30,7 @@ dict(code="P1", cls="rose", id="p1", title="Rogers CBU Wireless · Y.IN2100170",
 <div class="subcard"><div class="sh">Resources</div><ul class="clean" style="font-size:12.6px">
 <li><span class="sb">78 employees</span> listed with employee id, name, designation, band, function, work location, project, contract type, customer, gross salary and total hours for the year — $4,088,153 in total.</li>
 <li><span class="sb">7 subcontractor vendors</span> with SAP vendor ids and amounts: NextGen Consulting $674,706; Vy Systems Canada $148,224; TechDoQuest $129,823; Pragra $113,170; SAPSOL Technologies Canada $106,944; J &amp; M Group $98,787; XpertVantage Canada $37,088.</li>
-<li><span class="sb">Not submitted:</span> monthly hour breakdown (the columns were #REF!), hourly wages, and any SR&amp;ED versus non-SR&amp;ED split.</li>
+<li><span class="sb">Not submitted:</span> monthly hour breakdown, hourly wages, and any SR&amp;ED versus non-SR&amp;ED split. Which financial workbook CRA received, and what state its hour columns were in, is <a href="#refdispute">unresolved</a>.</li>
 </ul></div></div>''',
  opts=[("stop","CONCEDE — RECOMMENDED","Unchanged, and now better founded. The eligibility finding stands, the narrative overstates investigative effort about fivefold against the company's own claim, and the allocation cannot be defended as a measurement."),
        ("hold","CORRECTION ON THE CONTRACTOR POSITION","We previously recorded P1's $127,602 as the one contract claim with real support behind it. Having read the agreements, that was too optimistic: the payment trail is excellent, but only Pragra's agreement clearly covers FY2024 with the right parties. If eligibility is ever reopened at objection, the agreements need fixing first, not just the invoices producing."),
@@ -95,7 +95,7 @@ dict(code="P3", cls="amber", id="p3", title="Rogers QE Channels · Y.IN2100171",
 <div class="subcard"><div class="sh">Resources</div><ul class="clean" style="font-size:12.6px">
 <li><span class="sb">No employee list.</span> The list submitted covers Y.IN2100170 and Y.IN2201961 only.</li>
 <li><span class="sb">No vendor detail.</span> The subcontractor pivot submitted covers the same two projects only.</li>
-<li><span class="sb">No hours.</span> The monthly breakdown columns were #REF! for every employee on every project, this one included.</li>
+<li><span class="sb">No hours.</span> No monthly breakdown for this project appears in anything we hold — see the <a href="#refdispute">open question</a> on which workbook CRA received.</li>
 <li>So CRA received a cost column and a percentage, and nothing to test either against. Its finding is the only one available on that record.</li>
 </ul></div></div>''',
  opts=[("go","CONTEST — STILL PRIORITY 1, ON THE HOURS","The hours half of the May 7 request can be answered in full and well. Produce the per-employee monthly reconciliation from the time system, tied to this project code and reconciled to payroll."),
