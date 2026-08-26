@@ -1,0 +1,901 @@
+<title>HDM Migration Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
+
+<style>
+/* ── Single, deliberate light identity: the brief specifies a white ground,
+      so every colour is painted explicitly and no theme inverts it. ── */
+:root{
+  --page:#FFFFFF; --card:#FFFFFF; --wash:#FAFAFC; --sunk:#F4F4F8;
+  --ink:#1A1A2E; --ink-2:#4A4A5C; --ink-3:#7C7C90;
+  --line:#E6E6EE; --line-2:#D2D2DE;
+
+  /* categorical slots — one distinct hue per series, fixed order.
+     Validated on #ffffff (all 8): lightness band PASS, chroma floor PASS,
+     worst adjacent CVD ΔE 9.0, worst adjacent normal-vision ΔE 17.9.
+     Gold and rose sit below 3:1, so every mark carries a visible value label
+     and the full table view — the relief the contrast WARN requires. */
+  --c1:#3D7EC4; --c2:#DE6B3A; --c3:#2A9E76; --c4:#C9931A;
+  --c5:#D9799F; --c6:#2F7D2F; --c7:#5A4BA8; --c8:#CF4A49;
+  --accent:#3D7EC4;
+  /* single-series magnitude fill (3.29:1 on white) */
+  --mag:#4E9A94; --mag-wash:#E8F2F1;
+  /* status — pastel ground + same-hue dark ink, always with icon + label */
+  --good-bg:#E4F3E4; --good-fg:#1C6B24;
+  --warn-bg:#FBF0D6; --warn-fg:#7A5310;
+  --sers-bg:#FBE7DC; --sers-fg:#8A3F1C;
+  --crit-bg:#FAE3E3; --crit-fg:#8E2626;
+  --neut-bg:#EEEEF4; --neut-fg:#4A4A5C;
+  --good:#4E9E58; --warn:#B8862C; --sers:#C97052; --crit:#B84F4F;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--page); color:var(--ink);
+  font-family:Poppins,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-weight:400; font-size:14px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.sb{font-weight:600}
+h1{margin:0;font-size:24px;letter-spacing:-.02em;line-height:1.2;text-wrap:balance}
+h2{margin:0;font-size:15px;letter-spacing:-.01em}
+h3{margin:0;font-size:13px;letter-spacing:-.005em}
+.num{font-variant-numeric:tabular-nums}
+a{color:var(--mag)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.shell{max-width:1440px;margin:0 auto;padding:0 28px 64px}
+
+/* ── header ── */
+.top{padding:30px 0 20px;border-bottom:1px solid var(--line)}
+.eyebrow{font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 6px}
+.subline{margin:7px 0 0;font-size:12.5px;color:var(--ink-2);max-width:78ch}
+.jql{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;background:var(--sunk);padding:2px 6px;border-radius:4px;color:var(--ink-2)}
+
+/* ── filter bar ── */
+.filters{
+  display:flex;flex-wrap:wrap;gap:10px 12px;align-items:flex-end;
+  padding:16px 0 18px;border-bottom:1px solid var(--line);position:sticky;top:0;
+  background:var(--page);z-index:30
+}
+.fgroup{display:flex;flex-direction:column;gap:4px}
+.fgroup>label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+select,input[type=search]{
+  font-family:inherit;font-weight:400;font-size:13px;color:var(--ink);
+  background:var(--card);border:1px solid var(--line-2);border-radius:7px;padding:7px 10px;min-width:150px
+}
+input[type=search]{min-width:210px}
+input[type=search]::placeholder{color:var(--ink-3)}
+.fcount{margin-left:auto;font-size:12.5px;color:var(--ink-2);padding-bottom:8px}
+.fcount b{font-weight:600;color:var(--ink)}
+.clear{
+  font:inherit;font-size:12.5px;background:var(--sunk);border:1px solid var(--line-2);
+  color:var(--ink-2);border-radius:7px;padding:7px 12px;cursor:pointer
+}
+.clear:hover{background:var(--neut-bg)}
+
+/* ── stat tiles ── */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:22px 0 26px}
+.tile{background:var(--card);padding:15px 16px 14px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.tile .tl{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.tile .tv{font-size:29px;font-weight:600;line-height:1.05;letter-spacing:-.03em}
+.tile .tn{font-size:11.5px;color:var(--ink-2);line-height:1.35}
+.tile.acc-crit .tv{color:var(--crit-fg)} .tile.acc-warn .tv{color:var(--warn-fg)}
+.tile.acc-good .tv{color:var(--good-fg)} .tile.acc-mag .tv{color:var(--mag)}
+
+/* ── cards & grid ── */
+.grid{display:grid;gap:18px;margin-bottom:18px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g21{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:17px 18px 15px;
+  min-width:0;display:flex;flex-direction:column}
+.chead{display:flex;align-items:baseline;gap:10px;margin-bottom:3px}
+.chead .ct{flex:1;min-width:0}
+.csub{font-size:11.5px;color:var(--ink-3);margin:2px 0 13px;line-height:1.4}
+.toggle{display:flex;gap:2px;background:var(--sunk);border-radius:6px;padding:2px}
+.toggle button{font:inherit;font-size:11px;font-weight:600;border:0;background:transparent;color:var(--ink-3);
+  padding:4px 9px;border-radius:4px;cursor:pointer}
+.toggle button[aria-pressed=true]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(26,26,46,.08)}
+
+/* ── legend ── */
+.legend{display:flex;flex-wrap:wrap;gap:5px 14px;margin:0 0 12px}
+.lg{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-2);cursor:default}
+.sw{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+.lg .lgn{font-variant-numeric:tabular-nums;color:var(--ink-3)}
+
+/* ── svg chart chrome ── */
+svg{display:block;max-width:100%;overflow:visible}
+.gridline{stroke:var(--line);stroke-width:1}
+.baseline{stroke:var(--line-2);stroke-width:1}
+.axis{font-size:10.5px;fill:var(--ink-3)}
+.axis.sb{font-weight:600}
+.vlab{font-size:11px;font-weight:600;fill:var(--ink);font-variant-numeric:tabular-nums}
+.rowlab{font-size:11.5px;fill:var(--ink-2)}
+.hit{fill:transparent;cursor:pointer}
+.seg,.bar{transition:opacity .12s}
+.dim{opacity:.28}
+
+/* ── methodology ── */
+.method{border:1px solid var(--line);border-radius:12px;background:var(--card);
+  padding:20px 22px 18px;margin:22px 0 6px}
+.method>.mh{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.method .mlead{font-size:12.5px;color:var(--ink-2);margin:0 0 16px;max-width:92ch;line-height:1.6}
+.mgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+@media (max-width:1000px){.mgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.mgrid{grid-template-columns:minmax(0,1fr)}}
+.mcell{background:var(--card);padding:14px 15px 13px;display:flex;flex-direction:column;gap:6px}
+.mcell.flagged{background:var(--wash)}
+.mcell h3{font-size:12px;display:flex;align-items:center;gap:7px}
+.mcell p{margin:0;font-size:12px;color:var(--ink-2);line-height:1.55}
+.mcell p+p{margin-top:5px}
+.mcell .tagrow{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px}
+.mnote{font-size:11.5px;color:var(--ink-3);margin:14px 0 0;line-height:1.55;max-width:92ch}
+.mnote b{color:var(--ink-2);font-weight:600}
+
+/* ── row charts: HTML bars, so labels ellipsise instead of overflowing and
+      nothing depends on canvas font metrics being ready ── */
+.rc{display:flex;flex-direction:column;gap:9px;margin-bottom:14px}
+.rcrow{display:grid;grid-template-columns:minmax(0,var(--lab,142px)) minmax(0,1fr) auto;
+  align-items:center;gap:10px}
+.rclab{font-size:11.5px;color:var(--ink-2);text-align:right;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0}
+.rctrack{min-width:0}
+.rcbar{display:flex;gap:2px;height:18px}          /* 2px surface gap between segments */
+.rcbar>span{min-width:2px;display:block}
+.rcbar>span:last-child{border-radius:0 4px 4px 0} /* rounded data-end, square at baseline */
+.rcval{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink);
+  min-width:24px;text-align:left}
+.rcrow:hover .rclab{color:var(--ink)}
+
+/* ── tooltip ── */
+#tip{
+  position:fixed;z-index:90;pointer-events:none;opacity:0;transition:opacity .1s;
+  background:var(--ink);color:#fff;border-radius:8px;padding:8px 10px;font-size:11.5px;
+  line-height:1.45;max-width:280px;box-shadow:0 6px 20px rgba(26,26,46,.22)
+}
+#tip .tt{font-weight:600;margin-bottom:2px}
+#tip .tr{display:flex;gap:8px;justify-content:space-between}
+#tip .tr span:last-child{font-variant-numeric:tabular-nums}
+#tip .tsw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+
+/* ── chips / attention ── */
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;
+  padding:3px 9px;border-radius:20px;white-space:nowrap}
+.chip .ic{font-size:10px;line-height:1}
+.c-good{background:var(--good-bg);color:var(--good-fg)}
+.c-warn{background:var(--warn-bg);color:var(--warn-fg)}
+.c-sers{background:var(--sers-bg);color:var(--sers-fg)}
+.c-crit{background:var(--crit-bg);color:var(--crit-fg)}
+.c-neut{background:var(--neut-bg);color:var(--neut-fg)}
+.risklist{display:flex;flex-direction:column;gap:0}
+.risk{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.risk:first-child{border-top:0}
+.risk .rb{flex:1;min-width:0}
+.risk .rt{font-size:12.5px;font-weight:600}
+.risk .rd{font-size:11.5px;color:var(--ink-2);line-height:1.45}
+.risk .rk{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
+.risk .rk a{color:var(--accent);text-decoration:none}
+.risk .rk a:hover{text-decoration:underline}
+
+/* ── insight callout ── */
+.insight{background:var(--wash);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:8px;padding:11px 13px;margin-top:auto;font-size:12px;color:var(--ink-2);line-height:1.5}
+.insight b{color:var(--ink);font-weight:600}
+
+/* ── table ── */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:1080px;font-size:12.5px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{
+  position:sticky;top:0;background:var(--wash);z-index:5;font-size:10.5px;font-weight:600;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap;cursor:pointer;
+  border-bottom:1px solid var(--line-2)
+}
+thead th:hover{color:var(--ink)}
+thead th .ar{opacity:.4;font-size:9px;margin-left:3px}
+thead th[aria-sort] .ar{opacity:1}
+tbody tr:hover{background:var(--wash)}
+tbody tr:last-child td{border-bottom:0}
+td.k{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;white-space:nowrap}
+td.k a{color:var(--accent);text-decoration:none}
+td.k a:hover{text-decoration:underline}
+td.cust{font-weight:600;white-space:nowrap}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.stagepip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.pip{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
+.cm{max-width:420px;min-width:260px}
+.cm .cmeta{font-size:10.5px;color:var(--ink-3);margin-bottom:2px}
+.cm .cbody{color:var(--ink-2);line-height:1.45}
+.cm .cbody.clip{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cm button{font:inherit;font-size:10.5px;font-weight:600;background:none;border:0;color:var(--accent);
+  cursor:pointer;padding:2px 0 0}
+.none{color:var(--ink-3);font-style:italic}
+.empty{padding:26px;text-align:center;color:var(--ink-3);font-size:13px}
+
+/* ── footnotes ── */
+.notes{margin-top:26px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-2);
+  line-height:1.6;max-width:88ch}
+.notes h2{font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 8px}
+.notes p{margin:0 0 8px}
+.notes code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;background:var(--sunk);padding:1px 4px;border-radius:3px}
+.sectitle{display:flex;align-items:baseline;gap:10px;margin:30px 0 14px}
+.sectitle h2{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.sectitle .rule{flex:1;height:1px;background:var(--line)}
+@media (max-width:1080px){.g2,.g3,.g21{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){.shell{padding:0 16px 48px}.filters{position:static}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<div class="shell">
+
+<header class="top">
+  <p class="eyebrow">Jira · certainti · project HDM · task-level report</p>
+  <h1>Historical Data Migration Tracker</h1>
+  <p class="subline">
+    All <b class="sb">44</b> issues of type <b class="sb">Task</b> — one per customer / jurisdiction / fiscal year migration.
+    Bugs and subtasks are out of scope by design. Source: <span class="jql">project = HDM AND issuetype = Task</span>
+    · read <span id="asof"></span> · <a href="https://certainti.atlassian.net/jira/software/projects/HDM/list" target="_blank" rel="noopener">open in Jira</a>
+  </p>
+</header>
+
+<section class="method">
+  <div class="mh"><h2>Methodology &amp; scope</h2></div>
+  <p class="mlead">
+    This report tracks the migration of historical R&amp;D tax-credit submissions onto the platform.
+    One task per <b class="sb">customer / jurisdiction / fiscal year</b> combination. Read the scope
+    decisions below before drawing conclusions from the numbers — some jurisdictions are deliberately
+    migrating less than a full submission.
+  </p>
+
+  <div class="mgrid">
+    <div class="mcell flagged">
+      <h3><span class="chip c-warn"><span class="ic">▲</span>USA</span> State-level forms excluded</h3>
+      <p>State-level forms were never produced for the US, so <b class="sb">no state-level forms will be generated for any historical submission</b>.</p>
+      <p>The Finance team is building the requirements for state-level forms. Those will apply only to future submissions, once development is complete.</p>
+    </div>
+
+    <div class="mcell flagged">
+      <h3><span class="chip c-warn"><span class="ic">▲</span>Canada</span> Forms and logic both excluded</h3>
+      <p>State-level forms were never produced for Canada either, so <b class="sb">no state-level forms will be generated for any historical submission</b>.</p>
+      <p>Finance has additionally revised the financial calculation logic itself for Canada. That revised logic <b class="sb">will not be applied to historical submissions</b> — they keep the logic they were originally filed under.</p>
+    </div>
+
+    <div class="mcell">
+      <h3>What counts as progress</h3>
+      <p><b class="sb">Migration Status</b> is the field of record and drives every number here.</p>
+      <p>Jira's own status categories disagree: the <code>Prod Forms Validation</code> column is mapped to Jira's green <i>Done</i> category, so a stock Jira progress bar reads far more complete than the team's own tracking does. Where the two differ, this report follows Migration Status.</p>
+    </div>
+
+    <div class="mcell">
+      <h3>Scope of the extract</h3>
+      <p>Issue type <b class="sb">Task</b> only — the migration records themselves. Bugs and subtasks are excluded, so defect load does not appear anywhere in this report.</p>
+      <p>Source query: <span class="jql">project = HDM AND issuetype = Task</span></p>
+    </div>
+
+    <div class="mcell">
+      <h3>Refresh cadence</h3>
+      <p>Rebuilt from Jira <b class="sb">twice daily — 09:00 and 18:00 IST</b>, and republished to this same link. The timestamp in the header is the read time of the data on screen.</p>
+      <p>Nothing on this page is live; it is a snapshot from the last refresh.</p>
+    </div>
+
+    <div class="mcell">
+      <h3>Reading the data</h3>
+      <p>Migration Status is shown in pipeline order — requirements, import, code fix, validation, complete. Jira stores no rank between these options, so that order is inferred from their names.</p>
+      <p>Latest comment is the newest comment carrying text; where the newest holds only screenshots, the most recent text comment is shown and marked <i>after attachment</i>.</p>
+    </div>
+  </div>
+
+  <p class="mnote" id="mcaveat"></p>
+</section>
+
+<div class="filters">
+  <div class="fgroup"><label for="f-cust">Customer</label><select id="f-cust"></select></div>
+  <div class="fgroup"><label for="f-jur">Jurisdiction</label><select id="f-jur"></select></div>
+  <div class="fgroup"><label for="f-fy">Fiscal year</label><select id="f-fy"></select></div>
+  <div class="fgroup"><label for="f-mig">Migration status</label><select id="f-mig"></select></div>
+  <div class="fgroup"><label for="f-st">Workflow status</label><select id="f-st"></select></div>
+  <div class="fgroup"><label for="f-as">Assignee</label><select id="f-as"></select></div>
+  <div class="fgroup"><label for="f-q">Search</label><input type="search" id="f-q" placeholder="key, customer, comment text…"></div>
+  <button class="clear" id="f-clear">Clear all</button>
+  <div class="fcount" id="fcount"></div>
+</div>
+
+<div class="tiles" id="tiles"></div>
+
+<div class="sectitle"><h2>Pipeline</h2><div class="rule"></div></div>
+<div class="grid g21">
+  <div class="card">
+    <div class="chead"><div class="ct"><h2>Migration status</h2></div></div>
+    <p class="csub">The tracked progress field. Ordered along the pipeline — palest is earliest, darkest is furthest along.</p>
+    <div id="ch-mig"></div>
+    <div class="insight" id="ins-mig"></div>
+  </div>
+  <div class="card">
+    <div class="chead"><div class="ct"><h2>Workflow status</h2></div></div>
+    <p class="csub">The Jira board column. Counts labelled on every bar.</p>
+    <div id="ch-status"></div>
+    <div class="insight" id="ins-status"></div>
+  </div>
+</div>
+
+<div class="sectitle"><h2>Schedule</h2><div class="rule"></div></div>
+<div class="grid g21">
+  <div class="card">
+    <div class="chead"><div class="ct"><h2>Planned completion runway</h2></div></div>
+    <p class="csub">Cumulative share of in-scope tasks reaching their planned completion date. Plan only — not actuals.</p>
+    <div id="ch-burn"></div>
+  </div>
+  <div class="card">
+    <div class="chead"><div class="ct"><h2>Load per due date</h2></div></div>
+    <p class="csub">How many tasks land on each planned date.</p>
+    <div id="ch-due"></div>
+    <div class="insight" id="ins-due"></div>
+  </div>
+</div>
+
+<div class="sectitle"><h2>Coverage</h2><div class="rule"></div></div>
+<div class="grid g2">
+  <div class="card">
+    <div class="chead"><div class="ct"><h2>Jurisdiction</h2></div>
+      <div class="toggle" role="group" aria-label="Scale"><button data-sc="n" data-t="jur" aria-pressed="true">Count</button><button data-sc="p" data-t="jur" aria-pressed="false">Share</button></div></div>
+    <p class="csub">Migration status within each jurisdiction.</p>
+    <div class="legend" id="lg-jur"></div><div id="ch-jur"></div>
+    <div class="insight" id="ins-jur"></div>
+  </div>
+  <div class="card">
+    <div class="chead"><div class="ct"><h2>Fiscal year</h2></div>
+      <div class="toggle" role="group" aria-label="Scale"><button data-sc="n" data-t="fy" aria-pressed="true">Count</button><button data-sc="p" data-t="fy" aria-pressed="false">Share</button></div></div>
+    <p class="csub">Migration status within each fiscal year.</p>
+    <div class="legend" id="lg-fy"></div><div id="ch-fy"></div>
+    <div class="insight" id="ins-fy"></div>
+  </div>
+</div>
+
+<div class="grid g2">
+  <div class="card">
+    <div class="chead"><div class="ct"><h2>Customer portfolio</h2></div>
+      <div class="toggle" role="group" aria-label="Scale"><button data-sc="n" data-t="cust" aria-pressed="true">Count</button><button data-sc="p" data-t="cust" aria-pressed="false">Share</button></div></div>
+    <p class="csub">Every customer in scope, most engagements first.</p>
+    <div class="legend" id="lg-cust"></div><div id="ch-cust"></div>
+    <div class="insight" id="ins-cust"></div>
+  </div>
+  <div class="card">
+    <div class="chead"><div class="ct"><h2>Assignee workload</h2></div>
+      <div class="toggle" role="group" aria-label="Scale"><button data-sc="n" data-t="as" aria-pressed="true">Count</button><button data-sc="p" data-t="as" aria-pressed="false">Share</button></div></div>
+    <p class="csub">Open tasks per owner, split by migration status.</p>
+    <div class="legend" id="lg-as"></div><div id="ch-as"></div>
+    <div class="insight" id="ins-as"></div>
+  </div>
+</div>
+
+<div class="sectitle"><h2>Attention</h2><div class="rule"></div></div>
+<div class="grid g21">
+  <div class="card">
+    <div class="chead"><div class="ct"><h2>Comment recency</h2></div></div>
+    <p class="csub">Days since the most recent comment — the only activity signal these tasks carry.</p>
+    <div id="ch-stale"></div>
+    <div class="insight" id="ins-stale"></div>
+  </div>
+  <div class="card">
+    <div class="chead"><div class="ct"><h2>Flags</h2></div></div>
+    <p class="csub">Conditions worth a look, counted across the current filter.</p>
+    <div class="risklist" id="risks"></div>
+  </div>
+</div>
+
+<div class="sectitle"><h2>Task detail</h2><div class="rule"></div></div>
+<div class="tablewrap">
+  <table id="tbl">
+    <thead><tr>
+      <th data-s="key">Key<span class="ar">▾</span></th>
+      <th data-s="customer">Customer<span class="ar">▾</span></th>
+      <th data-s="jurisdiction">Jurisdiction<span class="ar">▾</span></th>
+      <th data-s="fiscal">Fiscal<span class="ar">▾</span></th>
+      <th data-s="status">Status<span class="ar">▾</span></th>
+      <th data-s="migStatus">Migration status<span class="ar">▾</span></th>
+      <th data-s="planned">Planned<span class="ar">▾</span></th>
+      <th data-s="assignee">Assignee<span class="ar">▾</span></th>
+      <th data-s="lastTouch">Latest comment<span class="ar">▾</span></th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<div class="notes">
+  <h2>How to read this</h2>
+  <p><b class="sb">Scope is Tasks only</b>, as briefed — 44 of the project's 111 issues. The other 67 (36 Bugs, 20 Subtasks) are excluded, so defect load does not appear here.</p>
+  <p><b class="sb">Two different notions of "done" are live in this project.</b> Migration Status reports <b class="sb">1</b> task Completed. Jira's own status categories, however, map the <code>Prod Forms Validation</code> column to the green <i>Done</i> category, so any stock Jira progress bar will read <b class="sb">23 of 44</b> complete. This dashboard follows Migration Status throughout, since that is the field the team maintains.</p>
+  <p><b class="sb">Migration Status is treated as ordered</b> — business requirements → data import → code fix → business validation → completed — so the palette runs pale to deep along that pipeline. Jira stores no rank between these options; the order is inferred from their names.</p>
+  <p><b class="sb">Latest comment is the newest comment carrying text.</b> Where the newest comment holds only screenshots or attachments, the most recent text comment is shown instead and marked <i>(after attachment)</i>. Mentions are flattened to plain names; images are dropped.</p>
+  <p><b class="sb">Two accounts appear for one person</b> — <code>Ananthakrishnan</code> and <code>Ananthakrishnan V</code> each hold one task. They are counted separately here because Jira treats them as separate users.</p>
+  <p><b class="sb">Every task carries Medium priority</b>, so priority is not charted — it separates nothing. The <i>Technical issue</i> field is empty on all 44 and is likewise omitted.</p>
+</div>
+
+</div>
+<div id="tip" role="status" aria-live="polite"></div>
+<script>
+const ROWS = __DATA__;
+const META = __META__;
+const TODAY = META.today;
+
+/* ── migration status as an ordered pipeline; palette is the validated ordinal ramp ── */
+const STAGES = [
+  {k:"In Progress - Waiting for Business Requirements", s:"Business requirements", c:"#3D7EC4"},
+  {k:"In Progress - Data Import",                       s:"Data import",          c:"#DE6B3A"},
+  {k:"In Progress - Waiting for Code Fix",              s:"Code fix",             c:"#2A9E76"},
+  {k:"In Progress - Waiting for Business Validation",   s:"Business validation",  c:"#C9931A"},
+  {k:"Completed",                                       s:"Completed",            c:"#D9799F"}
+];
+/* Workflow statuses get their own fixed hue each. The order is alphabetical and
+   global, never by count — so filtering a status out never repaints the rest. */
+const STATUS_ORDER = __STATUS_ORDER__;
+const SLOTS = ["#3D7EC4","#DE6B3A","#2A9E76","#C9931A","#D9799F","#2F7D2F","#5A4BA8","#CF4A49"];
+const STATUS_C = {};
+STATUS_ORDER.forEach((n,i)=>{ STATUS_C[n] = SLOTS[i % SLOTS.length]; });
+const SK = STAGES.map(s=>s.k), SC = {}, SS = {};
+STAGES.forEach(s=>{SC[s.k]=s.c; SS[s.k]=s.s;});
+const MAG="#4E9A94", INK="#1A1A2E", INK2="#4A4A5C", INK3="#7C7C90", LINE="#E6E6EE", LINE2="#D2D2DE", SURF="#FFFFFF";
+const NS="http://www.w3.org/2000/svg";
+
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const el = id => document.getElementById(id);
+const days = (a,b) => Math.round((new Date(b)-new Date(a))/864e5);
+const fmtDate = d => d ? new Date(d+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"}) : "—";
+
+/* ── shared tooltip ── */
+const tip = el("tip");
+function showTip(e, html){
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY - r.height - 10;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y < 8) y = e.clientY + 16;
+  tip.style.left = x+"px"; tip.style.top = y+"px";
+}
+const hideTip = () => { tip.style.opacity = 0; };
+function bindTip(node, html){
+  node.addEventListener("mousemove", e => showTip(e, html));
+  node.addEventListener("mouseleave", hideTip);
+}
+
+/* ── svg helpers ── */
+function svg(w,h){ const s=document.createElementNS(NS,"svg");
+  s.setAttribute("viewBox",`0 0 ${w} ${h}`); s.setAttribute("width",w); s.setAttribute("height",h);
+  s.setAttribute("role","img"); return s; }
+function mk(p,t,a){ const n=document.createElementNS(NS,t);
+  for(const k in a) n.setAttribute(k, a[k]); p.appendChild(n); return n; }
+function txt(p,x,y,s,cls,anchor){ const n=mk(p,"text",{x,y,class:cls||"axis"});
+  if(anchor) n.setAttribute("text-anchor",anchor); n.textContent=s; return n; }
+/* rounded on the data end only, square at the baseline */
+function hBarPath(x,y,w,h,r){
+  r = Math.max(0, Math.min(r, w, h/2));
+  if (w <= 0.5) return `M${x} ${y} h${Math.max(w,0.5)} v${h} h${-Math.max(w,0.5)} Z`;
+  return `M${x} ${y} h${w-r} a${r} ${r} 0 0 1 ${r} ${r} v${h-2*r} a${r} ${r} 0 0 1 ${-r} ${r} h${-(w-r)} Z`;
+}
+function colBarPath(x,y,w,h,r){
+  r = Math.max(0, Math.min(r, w/2, h));
+  if (h <= 0.5) return `M${x} ${y+h} h${w} v${-Math.max(h,0.5)} h${-w} Z`;
+  return `M${x} ${y+r} a${r} ${r} 0 0 1 ${r} ${-r} h${w-2*r} a${r} ${r} 0 0 1 ${r} ${r} v${h-r} h${-w} Z`;
+}
+
+/* ── row chart: single-series or stacked, laid out in HTML ──
+      Interior stacked segments carry no inline label by design (no free end to
+      label without clipping); the legend and tooltip carry them instead. ── */
+function rowChart(host, rows, opts={}){
+  host.innerHTML = "";
+  if(!rows.length){ host.innerHTML = '<p class="empty">No tasks match</p>'; return; }
+  const pct  = opts.scale === "p";
+  const max  = Math.max(1, ...rows.map(r=>r.total));
+  const wrap = document.createElement("div");
+  wrap.className = "rc";
+  wrap.style.setProperty("--lab", (opts.lab || 142) + "px");
+  if(opts.aria){ wrap.setAttribute("role","img"); wrap.setAttribute("aria-label",opts.aria); }
+
+  rows.forEach(r=>{
+    const row = document.createElement("div");
+    row.className = "rcrow";
+
+    const lab = document.createElement("div");
+    lab.className = "rclab"; lab.textContent = r.l; lab.title = r.l;
+
+    const track = document.createElement("div"); track.className = "rctrack";
+    const bar   = document.createElement("div"); bar.className = "rcbar";
+    bar.style.width = (pct ? 100 : (r.total / max) * 100) + "%";
+
+    const parts = r.parts.filter(p=>p.v > 0);
+    parts.forEach(p=>{
+      const seg = document.createElement("span");
+      seg.style.background = p.c;
+      seg.style.flex = p.v + " 1 0";
+      bar.appendChild(seg);
+      const solo = parts.length === 1;   // a single-series row would repeat its own name
+      bindTip(seg,
+        `<div class="tt">${esc(r.l)}</div>` +
+        (p.n && !solo ? `<div class="tr"><span><span class="tsw" style="background:${p.c}"></span>${esc(p.n)}</span>`+
+               `<span>${p.v} · ${Math.round(p.v/r.total*100)}%</span></div>` : "") +
+        `<div class="tr"><span>${solo?"Tasks":"Group total"}</span><span>${r.total}</span></div>` +
+        (opts.total ? `<div class="tr"><span>Share of ${opts.total} in view</span><span>${Math.round(r.total/opts.total*100)}%</span></div>` : ""));
+    });
+    track.appendChild(bar);
+
+    const val = document.createElement("div");
+    val.className = "rcval";
+    val.textContent = pct ? "100%" : r.total;
+
+    row.append(lab, track, val);
+    wrap.appendChild(row);
+  });
+  host.appendChild(wrap);
+}
+
+/* ── cumulative runway: area + line, today marker, crosshair ── */
+function chartBurn(host, pts, totalN){
+  host.innerHTML="";
+  if(!pts.length){ host.innerHTML='<p class="empty">No dated tasks match</p>'; return; }
+  const w = 560, h = 232, L = 40, R = 54, T = 14, B = 42;
+  const iw = w-L-R, ih = h-T-B;
+  // the plan can start before today (a date slipped past), so bound the axis by
+  // the data as well as by today, or early ticks render off the left edge
+  const xs = [TODAY, ...pts.map(p=>p.d)].sort();
+  const t0 = new Date(xs[0]), t1 = new Date(xs[xs.length-1]);
+  const span = Math.max(1, (t1-t0));
+  const X = d => L + ((new Date(d)-t0)/span)*iw;
+  const Y = v => T + ih - (v/Math.max(1,totalN))*ih;
+  const s = svg(w,h); s.setAttribute("aria-label","cumulative planned completion");
+
+  [0,.25,.5,.75,1].forEach(f=>{
+    const y = T+ih-f*ih, v = Math.round(f*totalN);
+    mk(s,"line",{x1:L,x2:L+iw,y1:y,y2:y,class:"gridline"});
+    txt(s, L-8, y+3.5, v, "axis", "end");
+    txt(s, L+iw+8, y+3.5, Math.round(f*100)+"%", "axis");
+  });
+
+  const path = [`M${X(TODAY)} ${Y(0)}`];
+  pts.forEach(p=>{ path.push(`L${X(p.d)} ${Y(p.cumPrev)}`, `L${X(p.d)} ${Y(p.cum)}`); });
+  mk(s,"path",{d:path.join(" ")+` L${X(pts[pts.length-1].d)} ${Y(0)} Z`, fill:MAG, "fill-opacity":.10});
+  mk(s,"path",{d:path.join(" "), fill:"none", stroke:MAG, "stroke-width":2, "stroke-linejoin":"round", "stroke-linecap":"round"});
+  mk(s,"line",{x1:L,x2:L+iw,y1:T+ih,y2:T+ih,class:"baseline"});
+
+  // today marker
+  mk(s,"line",{x1:X(TODAY),x2:X(TODAY),y1:T,y2:T+ih,stroke:LINE2,"stroke-width":1});
+  txt(s, X(TODAY), T+ih+29, "today", "axis sb",
+    X(TODAY) < L+22 ? "start" : X(TODAY) > L+iw-22 ? "end" : "middle");
+
+  pts.forEach(p=>{
+    mk(s,"circle",{cx:X(p.d), cy:Y(p.cum), r:4.5, fill:MAG, stroke:SURF, "stroke-width":2});
+    const hit = mk(s,"rect",{x:X(p.d)-14, y:T, width:28, height:ih, class:"hit"});
+    bindTip(hit, `<div class="tt">${fmtDate(p.d)} · ${new Date(p.d).toLocaleDateString("en-GB",{weekday:"short"})}</div>`+
+      `<div class="tr"><span>Due that day</span><span>${p.add}</span></div>`+
+      `<div class="tr"><span>Cumulative</span><span>${p.cum} of ${totalN}</span></div>`+
+      `<div class="tr"><span>Share of scope</span><span>${Math.round(p.cum/totalN*100)}%</span></div>`+
+      `<div class="tr"><span>Days from today</span><span>${days(TODAY,p.d)}</span></div>`);
+  });
+  // label only the endpoint
+  const last = pts[pts.length-1];
+  txt(s, X(last.d)-6, Y(last.cum)-11, `${last.cum} of ${totalN}`, "vlab", "end");
+  // date ticks, thinned to avoid collisions
+  let lastX = -99;
+  pts.forEach(p=>{
+    const x = X(p.d);
+    if (x-lastX <= 46) return;
+    const anchor = x < L+22 ? "start" : x > L+iw-22 ? "end" : "middle";
+    txt(s, x, T+ih+16, fmtDate(p.d), "axis", anchor);
+    lastX = x;
+  });
+  host.appendChild(s);
+}
+
+/* ── columns: load per due date ── */
+function chartCols(host, items){
+  host.innerHTML=""; if(!items.length){ host.innerHTML='<p class="empty">No dated tasks match</p>'; return; }
+  const w = 420, h = 218, L = 32, R = 12, T = 16, B = 46;
+  const iw = w-L-R, ih = h-T-B, n = items.length;
+  const band = iw/n, bw = Math.min(24, band-10);
+  const max = Math.max(1, ...items.map(d=>d.v));
+  const s = svg(w,h); s.setAttribute("aria-label","tasks per planned date");
+  [0,.5,1].forEach(f=>{
+    const y = T+ih-f*ih; mk(s,"line",{x1:L,x2:L+iw,y1:y,y2:y,class:"gridline"});
+    txt(s, L-8, y+3.5, Math.round(f*max), "axis", "end");
+  });
+  items.forEach((d,i)=>{
+    const x = L + i*band + (band-bw)/2, bh = (d.v/max)*ih, y = T+ih-bh;
+    mk(s,"path",{d:colBarPath(x,y,bw,bh,4), fill:MAG, class:"bar"});
+    txt(s, x+bw/2, y-6, d.v, "vlab", "middle");
+    txt(s, x+bw/2, T+ih+16, d.l, "axis", "middle");
+    txt(s, x+bw/2, T+ih+29, d.l2, "axis", "middle");
+    const hit = mk(s,"rect",{x:L+i*band, y:T, width:band, height:ih, class:"hit"});
+    bindTip(hit, `<div class="tt">${esc(d.full)}</div><div class="tr"><span>Tasks due</span><span>${d.v}</span></div>`+
+      `<div class="tr"><span>Days from today</span><span>${d.dd}</span></div>`);
+  });
+  mk(s,"line",{x1:L,x2:L+iw,y1:T+ih,y2:T+ih,class:"baseline"});
+  host.appendChild(s);
+}
+
+function legend(host, counts){
+  host.innerHTML = STAGES.filter(s=>counts[s.k]>0).map(s=>
+    `<span class="lg"><span class="sw" style="background:${s.c}"></span>${esc(s.s)} <span class="lgn">${counts[s.k]}</span></span>`
+  ).join("");
+}
+</script>
+<script>
+/* ── filter state ── */
+const F = {cust:"", jur:"", fy:"", mig:"", st:"", as:"", q:""};
+const SCALE = {jur:"n", fy:"n", cust:"n", as:"n"};
+const SORT = {by:"key", dir:1};
+const OPEN = new Set();
+
+function uniq(f){ return [...new Set(ROWS.map(r=>r[f]).filter(v=>v!=null))]
+  .sort((a,b)=>String(a).localeCompare(String(b))); }
+
+function fillSelect(id, field, label){
+  const s = el(id);
+  s.innerHTML = `<option value="">All ${label}</option>` +
+    uniq(field).map(v=>`<option value="${esc(v)}">${esc(field==="migStatus"?SS[v]||v:v)}</option>`).join("");
+  s.addEventListener("change", ()=>{ F[id.slice(2)] = s.value; render(); });
+}
+
+function visible(){
+  return ROWS.filter(r=>
+    (!F.cust || r.customer===F.cust) &&
+    (!F.jur  || r.jurisdiction===F.jur) &&
+    (!F.fy   || r.fiscal===F.fy) &&
+    (!F.mig  || r.migStatus===F.mig) &&
+    (!F.st   || r.status===F.st) &&
+    (!F.as   || r.assignee===F.as) &&
+    (!F.q    || (r.key+" "+r.customer+" "+r.summary+" "+(r.assignee||"")+" "+r.status+" "+r.migStatus+" "+
+                 (r.lastComment?r.lastComment.text+" "+r.lastComment.author:"")).toLowerCase().includes(F.q))
+  );
+}
+
+const tally = (rs,f) => rs.reduce((a,r)=>(a[r[f]]=(a[r[f]]||0)+1,a),{});
+function groupsBy(rs, field, order){
+  const by = {};
+  rs.forEach(r=>{ (by[r[field]] = by[r[field]] || []).push(r); });
+  let keys = Object.keys(by);
+  keys.sort(order || ((a,b)=> by[b].length-by[a].length || a.localeCompare(b)));
+  return keys.map(k=>({
+    l:k, total:by[k].length,
+    parts: SK.map(s=>({k:s, v:by[k].filter(r=>r.migStatus===s).length, c:SC[s], n:SS[s]}))
+  }));
+}
+
+/* ── tiles ── */
+function tiles(rs){
+  const n = rs.length;
+  const done = rs.filter(r=>r.migStatus==="Completed").length;
+  const codefix = rs.filter(r=>r.migStatus==="In Progress - Waiting for Code Fix").length;
+  const bizval = rs.filter(r=>r.migStatus==="In Progress - Waiting for Business Validation").length;
+  const blocked = rs.filter(r=>r.bizBlock).length;
+  const dated = rs.filter(r=>r.planned).length;
+  // past its planned date AND not finished — a completed task that landed late
+  // is not an open risk, so it is reported separately
+  const overdue = rs.filter(r=>r.planned && r.planned < TODAY && r.migStatus!=="Completed").length;
+  const lateDone = rs.filter(r=>r.planned && r.planned < TODAY && r.migStatus==="Completed").length;
+  const next14 = rs.filter(r=>r.planned && r.daysToPlanned>=0 && r.daysToPlanned<=14).length;
+  const stale = rs.filter(r=>r.daysSinceComment!=null && r.daysSinceComment>14).length;
+  const silent = rs.filter(r=>!r.lastComment).length;
+  const custs = new Set(rs.map(r=>r.customer)).size;
+  const jurs = new Set(rs.map(r=>r.jurisdiction)).size;
+  const pc = n? Math.round(done/n*100):0;
+  const T = [
+    ["Tasks in scope", n, `${custs} customers · ${jurs} jurisdictions`, ""],
+    ["Completed", `${done}`, `${pc}% of scope · ${n-done} still in flight`, done?"acc-good":""],
+    ["Waiting on code fix", codefix, n?`${Math.round(codefix/n*100)}% of scope — largest single blocker`:"—", codefix?"acc-warn":""],
+    ["Waiting on business", bizval, "validation sign-off outstanding", ""],
+    ["Due next 14 days", next14, `${dated} of ${n} carry a planned date`, "acc-mag"],
+    ["Overdue", overdue, overdue?"past date, still open":(lateDone?`nothing open past its date · ${lateDone} closed late`:"nothing past its date yet"), overdue?"acc-crit":"acc-good"],
+    ["Business-blocked", blocked, "flagged as needing business input", blocked?"acc-crit":""],
+    ["Quiet 15+ days", stale, `${silent} have never been commented on`, stale?"acc-warn":""]
+  ];
+  el("tiles").innerHTML = T.map(([l,v,nn,c])=>
+    `<div class="tile ${c}"><span class="tl">${esc(l)}</span><span class="tv num">${esc(v)}</span><span class="tn">${esc(nn)}</span></div>`
+  ).join("");
+}
+
+/* ── flags panel ── */
+function risks(rs){
+  const link = k => `<a href="https://certainti.atlassian.net/browse/${k}" target="_blank" rel="noopener">${k}</a>`;
+  const items = [];
+  const push = (cls,ic,t,d,keys) => items.push(
+    `<div class="risk"><span class="chip c-${cls}"><span class="ic">${ic}</span>${esc(t)}</span>`+
+    `<div class="rb"><div class="rd">${d}</div>`+
+    (keys && keys.length?`<div class="rk">${keys.map(link).join(" · ")}</div>`:"")+`</div></div>`);
+
+  const blocked = rs.filter(r=>r.bizBlock);
+  const issues  = rs.filter(r=>r.status==="Data Issue"||r.status==="Issues");
+  const nodate  = rs.filter(r=>!r.planned);
+  const late    = rs.filter(r=>r.planned && r.planned < TODAY && r.migStatus!=="Completed");
+  const silent  = rs.filter(r=>!r.lastComment);
+  const stale   = rs.filter(r=>r.daysSinceComment!=null && r.daysSinceComment>14);
+  const codefix = rs.filter(r=>r.migStatus==="In Progress - Waiting for Code Fix");
+
+  if(late.length)    push("crit","●",`${late.length} past its planned date`,"Planned completion has passed and the task is still open.",late.map(r=>r.key));
+  if(blocked.length) push("crit","●",`${blocked.length} business-blocked`,"Flagged <i>Issue but business tools to proceed</i> — needs a business decision, not engineering.",blocked.map(r=>r.key));
+  if(issues.length)  push("crit","●",`${issues.length} in a fault column`,"Sitting in <i>Data Issue</i> or <i>Issues</i> on the board.",issues.map(r=>r.key));
+  if(codefix.length) push("sers","▲",`${codefix.length} awaiting a code fix`,"Blocked on engineering, not on data or the customer — the single largest queue.",codefix.length<=8?codefix.map(r=>r.key):null);
+  if(nodate.length)  push("warn","▲",`${nodate.length} with no planned date`,"Cannot be scheduled or forecast until a planned completion date is set.",nodate.map(r=>r.key));
+  if(silent.length)  push("warn","▲",`${silent.length} never commented on`,"No comment history at all, so there is no written trace of progress.",silent.map(r=>r.key));
+  if(stale.length)   push("neut","○",`${stale.length} quiet over 14 days`,"Last comment is more than a fortnight old.",null);
+  if(!items.length)  items.push('<div class="risk"><span class="chip c-good"><span class="ic">✓</span>Nothing flagged</span><div class="rb"><div class="rd">No open flags in the current filter.</div></div></div>');
+  el("risks").innerHTML = items.join("");
+}
+
+/* ── table ── */
+function table(rs){
+  const dir = SORT.dir, by = SORT.by;
+  const rank = r => by==="migStatus" ? SK.indexOf(r.migStatus) : (r[by]??"");
+  const sorted = [...rs].sort((a,a2)=>{
+    let x=rank(a), y=rank(a2);
+    if(by==="key"){ x=+a.key.split("-")[1]; y=+a2.key.split("-")[1]; }
+    if(by==="lastTouch"){ x=a.lastTouch||""; y=a2.lastTouch||""; }
+    if(by==="planned"){ x=a.planned||"9999"; y=a2.planned||"9999"; }
+    return (x>y?1:x<y?-1:0)*dir;
+  });
+  document.querySelectorAll("#tbl thead th").forEach(th=>{
+    if(th.dataset.s===by){ th.setAttribute("aria-sort", dir>0?"ascending":"descending");
+      th.querySelector(".ar").textContent = dir>0?"▴":"▾"; }
+    else { th.removeAttribute("aria-sort"); th.querySelector(".ar").textContent="▾"; }
+  });
+  if(!sorted.length){ el("tbody").innerHTML = '<tr><td colspan="9" class="empty">No tasks match the current filter</td></tr>'; return; }
+  el("tbody").innerHTML = sorted.map(r=>{
+    const c = r.lastComment;
+    const isOpen = OPEN.has(r.key);
+    const long = c && c.text.length > 150;
+    const age = r.daysSinceComment;
+    const ageChip = age==null ? '<span class="chip c-warn"><span class="ic">▲</span>none</span>'
+      : age<=7 ? `<span class="chip c-good"><span class="ic">✓</span>${age}d ago</span>`
+      : age<=14 ? `<span class="chip c-neut"><span class="ic">○</span>${age}d ago</span>`
+      : `<span class="chip c-warn"><span class="ic">▲</span>${age}d ago</span>`;
+    const dd = r.daysToPlanned;
+    const plannedCell = r.planned
+      ? `${fmtDate(r.planned)} <span style="color:var(--ink-3)">${dd<0?`${-dd}d late`:`in ${dd}d`}</span>`
+      : '<span class="none">not set</span>';
+    return `<tr>
+      <td class="k"><a href="https://certainti.atlassian.net/browse/${r.key}" target="_blank" rel="noopener">${r.key}</a></td>
+      <td class="cust">${esc(r.customer)}${r.bizBlock?' <span class="chip c-crit"><span class="ic">●</span>blocked</span>':''}</td>
+      <td>${esc(r.jurisdiction)}</td>
+      <td class="num">${esc(r.fiscal)}</td>
+      <td><span class="stagepip"><span class="pip" style="background:${STATUS_C[r.status]||MAG}"></span>${esc(r.status)}</span></td>
+      <td><span class="stagepip"><span class="pip" style="background:${SC[r.migStatus]}"></span>${esc(SS[r.migStatus]||r.migStatus)}</span></td>
+      <td class="num">${plannedCell}</td>
+      <td>${esc(r.assignee||"—")}</td>
+      <td class="cm">${ c ? `<div class="cmeta">${ageChip} ${esc(c.author)} · ${fmtDate(c.date)}${c.attachOnly?' · after attachment':''}</div>
+            <div class="cbody${long&&!isOpen?" clip":""}">${esc(c.text)}</div>
+            ${long?`<button data-k="${r.key}">${isOpen?"Show less":"Show more"}</button>`:""}`
+          : `<div class="cmeta">${ageChip}</div><div class="cbody none">No comments</div>` }</td>
+    </tr>`;
+  }).join("");
+  el("tbody").querySelectorAll("button[data-k]").forEach(b=>b.addEventListener("click",()=>{
+    const k=b.dataset.k; OPEN.has(k)?OPEN.delete(k):OPEN.add(k); table(visible());
+  }));
+}
+
+/* ── main render ── */
+function render(){
+  const rs = visible();
+  el("fcount").innerHTML = `<b>${rs.length}</b> of ${ROWS.length} tasks`;
+  const usCa = ROWS.filter(r=>r.jurisdiction==="USA"||r.jurisdiction==="Canada").length;
+  el("mcaveat").innerHTML = `<b>${usCa} of ${ROWS.length} tasks (${Math.round(usCa/ROWS.length*100)}%) sit in the two `+
+    `jurisdictions above</b> — USA ${ROWS.filter(r=>r.jurisdiction==="USA").length}, `+
+    `Canada ${ROWS.filter(r=>r.jurisdiction==="Canada").length} — and so are migrating without state-level forms by design. `+
+    `Every task carries Medium priority and the <i>Technical issue</i> field is empty on all ${ROWS.length}, so neither is charted.`;
+  tiles(rs);
+
+  const mig = tally(rs,"migStatus");
+  rowChart(el("ch-mig"), STAGES.filter(x=>mig[x.k]).map(x=>({
+    l:x.s, total:mig[x.k], parts:[{v:mig[x.k], c:x.c, n:x.s}]
+  })), {lab:150, total:rs.length, aria:"tasks by migration status"});
+  const codefix = mig["In Progress - Waiting for Code Fix"]||0;
+  el("ins-mig").innerHTML = rs.length
+    ? `<b>${codefix}</b> of ${rs.length} tasks (${Math.round(codefix/rs.length*100)}%) are held by engineering rather than by data or the customer. Completed stands at <b>${mig["Completed"]||0}</b>.`
+    : "No tasks in the current filter.";
+
+  const st = tally(rs,"status");
+  const stItems = Object.entries(st).sort((a,b)=>b[1]-a[1])
+    .map(([l,v])=>({l, total:v, parts:[{v, c:STATUS_C[l]||MAG, n:l}]}));
+  rowChart(el("ch-status"), stItems, {lab:186, total:rs.length, aria:"tasks by workflow status"});
+  const doneCat = rs.filter(r=>r.statusCat==="Done").length;
+  el("ins-status").innerHTML = `Jira files <b>${doneCat}</b> of these in its green <i>Done</i> category, because <i>Prod Forms Validation</i> is mapped there — while Migration Status counts <b>${mig["Completed"]||0}</b> completed. Trust the latter.`;
+
+  // schedule
+  const dated = rs.filter(r=>r.planned);
+  const byDate = {};
+  dated.forEach(r=>{ byDate[r.planned] = (byDate[r.planned]||0)+1; });
+  const dkeys = Object.keys(byDate).sort();
+  let cum = 0;
+  const pts = dkeys.map(d=>{ const add=byDate[d], cumPrev=cum; cum+=add; return {d, add, cum, cumPrev}; });
+  chartBurn(el("ch-burn"), pts, rs.length);
+  chartCols(el("ch-due"), dkeys.map(d=>({
+    l:fmtDate(d), l2:new Date(d).toLocaleDateString("en-GB",{weekday:"short"}), full:fmtDate(d)+" "+new Date(d).getFullYear(),
+    v:byDate[d], dd:days(TODAY,d)})));
+  const peak = dkeys.length ? dkeys.reduce((a,b)=>byDate[b]>byDate[a]?b:a) : null;
+  el("ins-due").innerHTML = peak
+    ? `Heaviest day is <b>${fmtDate(peak)}</b> with <b>${byDate[peak]}</b> tasks due at once. ${rs.length-dated.length} task${rs.length-dated.length===1?"":"s"} carry no date and sit outside this plan.`
+    : "No planned dates in the current filter.";
+
+  // coverage
+  const mk4 = (host,lg,field,ins,order) => {
+    const gs = groupsBy(rs, field, order);
+    legend(el(lg), tally(rs,"migStatus"));
+    rowChart(el(host), gs, {scale:SCALE[ins], lab:field==="fiscal"?70:150,
+      total:rs.length, aria:field+" by migration status"});
+    return gs;
+  };
+  mk4("ch-jur","lg-jur","jurisdiction","jur");
+  mk4("ch-fy","lg-fy","fiscal","fy",(a,b)=>a.localeCompare(b));
+  mk4("ch-cust","lg-cust","customer","cust");
+  mk4("ch-as","lg-as","assignee","as");
+
+  const jg = groupsBy(rs,"jurisdiction");
+  if(jg.length){
+    const worst = jg.map(g=>({l:g.l,t:g.total,cf:g.parts.find(p=>p.k==="In Progress - Waiting for Code Fix").v}))
+                    .filter(g=>g.t>=3).sort((a,b)=>b.cf/b.t-a.cf/a.t)[0];
+    el("ins-jur").innerHTML = worst
+      ? `<b>${esc(worst.l)}</b> is the most code-blocked jurisdiction — <b>${worst.cf}</b> of its ${worst.t} tasks (${Math.round(worst.cf/worst.t*100)}%) wait on a fix.`
+      : `${jg.length} jurisdiction${jg.length===1?"":"s"} in view.`;
+  } else el("ins-jur").textContent = "No tasks in the current filter.";
+
+  const fg = groupsBy(rs,"fiscal",(a,b)=>a.localeCompare(b));
+  el("ins-fy").innerHTML = fg.length
+    ? `${fg.map(g=>`<b>${esc(g.l)}</b> ${g.total}`).join(" · ")} — the migration is running all fiscal years in parallel rather than closing one before starting the next.`
+    : "No tasks in the current filter.";
+
+  const cg = groupsBy(rs,"customer");
+  el("ins-cust").innerHTML = cg.length
+    ? `<b>${esc(cg[0].l)}</b> is the largest engagement with <b>${cg[0].total}</b> tasks; ${cg.filter(g=>g.total===1).length} of ${cg.length} customers have just one.`
+    : "No tasks in the current filter.";
+
+  const ag = groupsBy(rs,"assignee");
+  const specialised = ag.filter(g=>g.total>=3 && g.parts.filter(p=>p.v>0).length===1);
+  el("ins-as").innerHTML = ag.length
+    ? (specialised.length
+      ? `Ownership is split by stage, not by customer: ${specialised.map(g=>`<b>${esc(g.l)}</b> holds all ${g.total} at <i>${esc(SS[g.parts.find(p=>p.v>0).k])}</i>`).join("; ")}. Work moves owner as it changes stage.`
+      : `${ag.length} owner${ag.length===1?"":"s"} across ${rs.length} tasks.`)
+    : "No tasks in the current filter.";
+
+  // recency
+  const b = {a:0,b:0,c:0,d:0};
+  rs.forEach(r=>{ const d=r.daysSinceComment;
+    if(d==null) b.d++; else if(d<=7) b.a++; else if(d<=14) b.b++; else b.c++; });
+  const N = rs.length||1;
+  rowChart(el("ch-stale"), [
+    {l:"✓  Within 7 days", v:b.a, c:"#4E9E58"},
+    {l:"○  8–14 days",     v:b.b, c:"#B8862C"},
+    {l:"▲  Over 14 days",  v:b.c, c:"#C97052"},
+    {l:"●  Never commented",v:b.d, c:"#B84F4F"}
+  ].filter(d=>d.v>0).map(d=>({l:d.l, total:d.v, parts:[{v:d.v, c:d.c, n:d.l}]})),
+    {lab:150, total:rs.length, aria:"tasks by comment recency"});
+  el("ins-stale").innerHTML = `<b>${b.c+b.d}</b> of ${rs.length} tasks have had no written update in over a fortnight. Comments are the only progress signal on these tasks — no worklogs are recorded anywhere in the project.`;
+
+  risks(rs);
+  table(rs);
+}
+
+/* ── wiring ── */
+fillSelect("f-cust","customer","customers");
+fillSelect("f-jur","jurisdiction","jurisdictions");
+fillSelect("f-fy","fiscal","years");
+fillSelect("f-mig","migStatus","stages");
+fillSelect("f-st","status","statuses");
+fillSelect("f-as","assignee","assignees");
+el("f-q").addEventListener("input", e=>{ F.q = e.target.value.trim().toLowerCase(); render(); });
+el("f-clear").addEventListener("click", ()=>{
+  Object.keys(F).forEach(k=>F[k]="");
+  ["f-cust","f-jur","f-fy","f-mig","f-st","f-as"].forEach(i=>el(i).value="");
+  el("f-q").value=""; OPEN.clear(); render();
+});
+document.querySelectorAll(".toggle button").forEach(b=>b.addEventListener("click",()=>{
+  const t=b.dataset.t; SCALE[t]=b.dataset.sc;
+  document.querySelectorAll(`.toggle button[data-t="${t}"]`).forEach(o=>o.setAttribute("aria-pressed", o===b));
+  render();
+}));
+document.querySelectorAll("#tbl thead th").forEach(th=>th.addEventListener("click",()=>{
+  const s=th.dataset.s;
+  if(SORT.by===s) SORT.dir*=-1; else { SORT.by=s; SORT.dir=1; }
+  table(visible());
+}));
+el("asof").textContent = META.readAtLabel;
+render();
+</script>
