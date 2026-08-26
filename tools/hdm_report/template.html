@@ -409,7 +409,7 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
   <p><b class="sb">Two different notions of "done" are live in this project.</b> Migration Status reports <b class="sb">1</b> task Completed. Jira's own status categories, however, map the <code>Prod Forms Validation</code> column to the green <i>Done</i> category, so any stock Jira progress bar will read <b class="sb">23 of 44</b> complete. This dashboard follows Migration Status throughout, since that is the field the team maintains.</p>
   <p><b class="sb">Migration Status is treated as ordered</b> — business requirements → data import → code fix → business validation → completed — so the palette runs pale to deep along that pipeline. Jira stores no rank between these options; the order is inferred from their names.</p>
   <p><b class="sb">Latest comment is the newest comment carrying text.</b> Where the newest comment holds only screenshots or attachments, the most recent text comment is shown instead and marked <i>(after attachment)</i>. Mentions are flattened to plain names; images are dropped.</p>
-  <p><b class="sb">Two accounts appear for one person</b> — <code>Ananthakrishnan</code> and <code>Ananthakrishnan V</code> each hold one task. They are counted separately here because Jira treats them as separate users.</p>
+  <p id="dupnote" class="hidden"></p>
   <p><b class="sb">Every task carries Medium priority</b>, so priority is not charted — it separates nothing. The <i>Technical issue</i> field is empty on all 44 and is likewise omitted.</p>
 </div>
 
@@ -613,6 +613,29 @@ function chartCols(host, items){
   host.appendChild(s);
 }
 
+/* Jira lets the same person hold two accounts, which silently splits their
+   workload across two rows. Flag it when it happens instead of hardcoding the
+   names of whoever is duplicated today. */
+function dupNote(){
+  const names = [...new Set(ROWS.map(r=>r.assignee).filter(Boolean))];
+  const norm  = n => n.toLowerCase().replace(/[^a-z]/g,"");
+  const pairs = [];
+  for(let i=0;i<names.length;i++)
+    for(let j=i+1;j<names.length;j++){
+      const a = norm(names[i]), b = norm(names[j]);
+      if(a && b && (a.startsWith(b) || b.startsWith(a))) pairs.push([names[i],names[j]]);
+    }
+  const node = el("dupnote");
+  if(!pairs.length){ node.classList.add("hidden"); return; }
+  node.classList.remove("hidden");
+  node.innerHTML = `<b class="sb">One person appears under two Jira accounts</b> — ` +
+    pairs.map(([a,b])=>{
+      const ca = ROWS.filter(r=>r.assignee===a).length, cb = ROWS.filter(r=>r.assignee===b).length;
+      return `<code>${esc(a)}</code> (${ca}) and <code>${esc(b)}</code> (${cb})`;
+    }).join("; ") +
+    `. Counted separately here, because Jira treats them as separate users — so this owner's real load is the sum.`;
+}
+
 function legend(host, counts){
   host.innerHTML = STAGES.filter(s=>counts[s.k]>0).map(s=>
     `<span class="lg"><span class="sw" style="background:${s.c}"></span>${esc(s.s)} <span class="lgn">${counts[s.k]}</span></span>`
@@ -776,6 +799,7 @@ function table(rs){
 function render(){
   const rs = visible();
   el("fcount").innerHTML = `<b>${rs.length}</b> of ${ROWS.length} tasks`;
+  dupNote();
   const usCa = ROWS.filter(r=>r.jurisdiction==="USA"||r.jurisdiction==="Canada").length;
   el("mcaveat").innerHTML = `<b>${usCa} of ${ROWS.length} tasks (${Math.round(usCa/ROWS.length*100)}%) sit in the two `+
     `jurisdictions above</b> — USA ${ROWS.filter(r=>r.jurisdiction==="USA").length}, `+
