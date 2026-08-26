@@ -295,6 +295,8 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
     <a href="#recapture" class="sub">The line 435 recapture</a>
     <a href="#fy2023" class="sub">What FY2023 implies</a>
     <a href="#open" class="sub">Open items</a>
+    <a href="#records"><span class="dot rose"></span>The client records</a>
+    <a href="#allocation" class="sub">The 15% finding</a>
     <a href="#options"><span class="dot amber"></span>Options &amp; scenarios</a>
   </div>
 
@@ -329,6 +331,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
     <span class="pill rose">Response deadline August 31, 2026 — five days</span>
     <span class="pill sage">Arithmetic verified: 20 of 20 checks pass</span>
     <span class="pill amber">Recovery ceiling <span class="num">$250,795</span></span>
+    <span class="pill rose">Records received Aug 26 — the split was never measured</span>
   </div>
   <div class="meta">
     <div><div class="k">Claimant</div><div class="v">Tech Mahindra Limited</div></div>
@@ -344,7 +347,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
   <div class="kpi rose"><div class="n num">$594,399</div><div class="l">Total credits proposed to zero — federal ITC <span class="num">$478,661</span> plus ORDTC <span class="num">$115,738</span></div></div>
   <div class="kpi amber"><div class="n num">$250,795</div><div class="l">The ceiling. Everything recoverable sits in the five projects never reviewed on merit</div></div>
   <div class="kpi sage"><div class="n num">20 / 20</div><div class="l">Reconciliation checks passing. There is no arithmetic error in the CRA package to attack</div></div>
-  <div class="kpi peri"><div class="n num">37.6%</div><div class="l">Of the FY2023 credit was allowed on reassessment — the prior year was partly allowed, not denied</div></div>
+  <div class="kpi rose"><div class="n num">15%</div><div class="l">Flat rate applied to every employee on six of seven projects. The SR&amp;ED split was assumed, not measured</div></div>
 </div>
 
 <!-- ============ 01 EXEC SUMMARY ============ -->
@@ -375,8 +378,8 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
     </div>
 
     <div class="callout sage">
-      <div class="ct">What changed this week</div>
-      <p>Two findings from the independent verification move the position. First, the recovery ceiling is <span class="num">$250,795</span> exactly — the <span class="num">$265,000</span> upper figure previously circulating is above what the arithmetic permits from these five projects, and should not appear in any client-facing document. Second, the revised line 435 implies CRA allowed roughly <span class="sb">37.6%</span> of the FY2023 credit. The prior year was <em>partly allowed</em>, not denied in full, which makes it a more useful precedent than a &ldquo;pattern of denial&rdquo; framing suggested.</p>
+      <div class="ct">What changed on August 25–26</div>
+      <p>Three findings move the position. The client records arrived on August 26 and are covered in <a href="#records">section 06</a> — they change what can honestly be claimed. On the arithmetic: the recovery ceiling is <span class="num">$250,795</span> exactly — the <span class="num">$265,000</span> upper figure previously circulating is above what the arithmetic permits from these five projects, and should not appear in any client-facing document. Second, the revised line 435 implies CRA allowed roughly <span class="sb">37.6%</span> of the FY2023 credit. The prior year was <em>partly allowed</em>, not denied in full, which makes it a more useful precedent than a &ldquo;pattern of denial&rdquo; framing suggested.</p>
     </div>
   </div>
 </section>
@@ -652,10 +655,140 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
   </div>
 </section>
 
+<!-- ============ RECORDS ============ -->
+<section id="records">
+  <div class="sechead">
+    <div class="eyebrow">Section 06</div>
+    <h2>The client records — received August 26</h2>
+    <p class="lede">The binary question is answered, and the answer has two halves. The records exist and are better than we hoped. They do not contain the thing CRA actually asked for.</p>
+  </div>
+  <div class="stack">
+
+    <div class="callout rose">
+      <div class="ct">Read this before any submission</div>
+      <p>We now hold <span class="sb num">846,994</span> rows of per-employee, per-day, per-project timesheet data from a PeopleSoft Time and Labour system, covering all twelve months of FY2024 with a manager approval workflow behind it. That is genuine contemporaneous record-keeping at finer granularity than CRA asked for. But the split between SR&amp;ED and non-SR&amp;ED work was never recorded. It was applied as a flat <span class="sb">15% of every employee's salary</span> on six of the seven projects, and a flat <span class="sb">50%</span> on the seventh. <span class="sb">Submitting the timesheets on their own would hand CRA the proof that the allocation was assumed rather than measured.</span></p>
+    </div>
+
+    <div>
+      <h3>What the timesheets cover</h3>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Project</th><th class="r">Hours</th><th class="r">Of which approved</th><th class="r">Employees</th><th class="r">Months</th></tr></thead>
+          <tbody>
+            <tr><td>P1 Rogers CBU Wireless</td><td class="r num">79,173.8</td><td class="r num">43,244.8</td><td class="r num">48</td><td class="r num">12</td></tr>
+            <tr><td><span class="sb">P2 CBT Scotia QA Managed Service</span></td><td class="r num" style="color:var(--rose)">0.0</td><td class="r num" style="color:var(--rose)">0.0</td><td class="r num" style="color:var(--rose)">0</td><td class="r num" style="color:var(--rose)">0</td></tr>
+            <tr><td>P3 Rogers QE Channels</td><td class="r num">90,832.0</td><td class="r num">71,404.0</td><td class="r num">49</td><td class="r num">12</td></tr>
+            <tr><td>P4 Rogers QE Media</td><td class="r num">13,696.0</td><td class="r num">8,167.0</td><td class="r num">10</td><td class="r num">12</td></tr>
+            <tr><td>P5 Rogers R4B 40633</td><td class="r num">7,921.0</td><td class="r num">3,900.0</td><td class="r num">6</td><td class="r num">12</td></tr>
+            <tr><td>P6 Rogers R4B Digital</td><td class="r num">4,332.0</td><td class="r num">3,412.0</td><td class="r num">3</td><td class="r num">12</td></tr>
+            <tr><td>P7 Legacy Ticketing 38370</td><td class="r num">8,182.6</td><td class="r num">6,700.6</td><td class="r num">4</td><td class="r num">12</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:12px">For P3 to P7 — the five projects denied purely for want of documentation — we can now produce exactly what the May 7 request asked for on the hours question: which employees worked on which project, month by month, from a system of record.</p>
+    </div>
+
+    <div id="allocation" style="scroll-margin-top:20px">
+      <h3 style="margin-top:8px">The 15% finding</h3>
+      <p>The R&amp;D assessment workbook that produced the claim applies a single rate to every employee on a project. <span class="num">376</span> of <span class="num">380</span> employee rows carry exactly 15%. The remaining four, all on P7, carry exactly 50%. There is no variation within any project, and the workbook labels the row <em>Net QRE %</em>.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Project</th><th class="r">Project payroll</th><th class="r">Rate</th><th class="r">Claimed</th><th class="r">Employee rows</th></tr></thead>
+          <tbody>
+            <tr><td>P1 · Y.IN2100170</td><td class="r num">4,088,153</td><td class="r num">15%</td><td class="r num">613,223</td><td class="r num">96</td></tr>
+            <tr><td>P2 · Y.IN2201961</td><td class="r num">3,658,196</td><td class="r num">15%</td><td class="r num">548,729</td><td class="r num">169</td></tr>
+            <tr><td>P3 · Y.IN2100171</td><td class="r num">3,162,194</td><td class="r num">15%</td><td class="r num">474,329</td><td class="r num">64</td></tr>
+            <tr><td>P4 · Y.IN2100190</td><td class="r num">722,292</td><td class="r num">15%</td><td class="r num">108,344</td><td class="r num">26</td></tr>
+            <tr><td>P5 · 40633</td><td class="r num">490,124</td><td class="r num">15%</td><td class="r num">73,519</td><td class="r num">15</td></tr>
+            <tr><td>P6 · Y.IN2301013</td><td class="r num">120,924</td><td class="r num">15%</td><td class="r num">18,139</td><td class="r num">6</td></tr>
+            <tr><td>P7 · 38370</td><td class="r num">279,708</td><td class="r" style="color:var(--rose)"><span class="num">50%</span></td><td class="r num">139,854</td><td class="r num">4</td></tr>
+            <tr class="total"><td>Total</td><td class="r num">12,521,592</td><td class="r"></td><td class="r num">1,976,137</td><td class="r num">380</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:12px">The contract claim works the same way: total subcontractor cost of <span class="num">$3,125,657</span> × 15% × a further <span class="num">0.65</span> factor the workbook calls <em>SubCon QRE Adjustment</em> and does not explain, giving exactly the <span class="num">$304,752</span> claimed. The SR&amp;ED hours in the workbook were then derived <em>from</em> the percentage — available hours × 15% — rather than the percentage being derived from measured hours. <span class="sb">The causality runs the wrong way for an audit.</span></p>
+      <div class="callout rose" style="margin-top:12px">
+        <div class="ct">CRA's finding is not merely defensible — it is correct</div>
+        <p>&ldquo;There is no distinction between regular work and SR&amp;ED work.&rdquo; On the current record that is exactly what happened. Any allocation we submit now is a present-day technical judgment applied to historic records. It must be labelled as that, supported by a defensible method, and never presented as a contemporaneous record.</p>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="margin-top:8px">The narratives quote real hours — and describe them as something they are not</h3>
+      <p>Five of the six filed narratives quote an hours figure in line 244. Every one reconciles exactly to the timesheet system.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Narrative</th><th class="r">Hours quoted</th><th class="r">System total</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td>P1 Rogers CBU Wireless</td><td class="r num">79,173.75</td><td class="r num">79,173.8</td><td><span class="tag sage">Matches</span></td></tr>
+            <tr><td>P3 Rogers QE Channels</td><td class="r num">90,831.98</td><td class="r num">90,832.0</td><td><span class="tag sage">Matches</span></td></tr>
+            <tr><td>P4 Rogers QE Media</td><td class="r num">13,696</td><td class="r num">13,696.0</td><td><span class="tag sage">Matches</span></td></tr>
+            <tr><td>P5 + P6 (one shared narrative)</td><td class="r num">12,253</td><td class="r num">12,253.0</td><td><span class="tag sage">Matches</span></td></tr>
+            <tr><td>P7 Legacy Ticketing</td><td class="r num">8,182.56</td><td class="r num">8,182.6</td><td><span class="tag sage">Matches</span></td></tr>
+            <tr><td>P2 CBT Scotia QA Managed Service</td><td class="r num">1,823</td><td class="r num">0.0</td><td><span class="tag rose">Code absent</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <div class="card tint-sage">
+          <h4 style="color:var(--sage)">In our favour</h4>
+          <p style="font-size:13px;color:var(--ink-soft)">The hours in the narratives are real, system-sourced figures, not invention. That is worth knowing before anyone concludes the narratives were fabricated. They were not.</p>
+        </div>
+        <div class="card tint-rose">
+          <h4 style="color:var(--rose)">Against us</h4>
+          <p style="font-size:13px;color:var(--ink-soft)">They are <em>total project hours</em>, presented as investigative effort. P3's narrative opens &ldquo;The team spent approximately 90831.98 engineering hours across three investigative tracks&rdquo; — while the claim itself asserts only 15% of that effort was SR&amp;ED. The narrative overstates investigative effort by about sevenfold against the company's own claim, on every project.</p>
+        </div>
+      </div>
+      <p style="margin-top:12px">If CRA runs this comparison — and the Financial Reviewer holds both documents — it reads as a claim that contradicts itself. Our representation should deal with it on our terms rather than wait for it to be found.</p>
+    </div>
+
+    <div>
+      <h3 style="margin-top:8px">Project 2 has no hours behind it at all</h3>
+      <p>Project code Y.IN2201961 does not appear anywhere in 846,994 rows of Canadian timesheet data. The claimant's own workbook records <em>Total Hours: 0</em> for it. Yet it carries 169 employee rows and <span class="num">$548,729</span> of claimed salary — the second-largest salary line in the claim — and its narrative quotes 1,823 hours whose source we cannot locate. This is consistent with CRA's reading: a roughly 500-person managed service delivered mainly from India and Mexico, with Toronto coordinating.</p>
+      <div class="callout rose" style="margin-top:10px">
+        <div class="ct">P2 moves from &ldquo;concede on eligibility&rdquo; to &ldquo;concede without qualification&rdquo;</div>
+        <p>It was already the weakest project on the technical findings. It is now also the weakest on substantiation, and it is the one project where a document request would produce nothing at all.</p>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="margin-top:8px">Contractors — better than we thought, aimed at the wrong projects</h3>
+      <p>Eight signed subcontractor agreements were provided, all with Canadian-incorporated suppliers: Vy Systems Canada, XpertVantage Canada, NextGen Consulting, Pragra, J &amp; M Group, TechDoQuest, SAPSOL Technologies Canada and TES Contract Services. Canadian incorporation goes directly to the taxable-supplier test we were most worried about, and the workbook names each subcontractor individual with their cost.</p>
+      <p style="margin-top:9px">The problem is coverage. All nineteen invoices are tagged to <span class="num">Y.IN2100170</span> (P1) or <span class="num">Y.IN2201961</span> (P2) — the two projects we intend to concede. <span class="sb">No invoice covers P3 through P6</span>, whose <span class="num">$166,574</span> of contract cost is the portion we intend to contest.</p>
+    </div>
+
+    <div>
+      <h3 style="margin-top:8px">Two open items now close</h3>
+      <div class="grid2">
+        <div class="card">
+          <h4>Line 429 — the <span class="num">$77,698</span></h4>
+          <p style="font-size:13px;color:var(--ink-soft)">The FY2023 ITC worksheet carries the annotation &ldquo;77698 — Used on line 429??&rdquo; beside the FY2023 ORDTC of <span class="num">$113,095</span>. The preparer applied the figure and flagged it with a double question mark. It is an unresolved preparer uncertainty, not a derivation we failed to find. Still do not raise it with CRA.</p>
+        </div>
+        <div class="card">
+          <h4>The FY2023 basis — confirmed</h4>
+          <p style="font-size:13px;color:var(--ink-soft)">The FY2023 worksheet confirms net eligible expenditures of <span class="num">$3,118,181.80</span> and a federal ITC of <span class="num">$467,727</span> at 15%. Our reverse-derivation of <span class="num">$3,118,180</span> was right to within two dollars, and the 15% assumption is confirmed. The <em>reassessed</em> <span class="num">$175,850</span> still needs the notice of reassessment — still the highest-value document outstanding.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>What this changes</h3>
+      <p style="margin-bottom:12px">The <span class="num">$250,795</span> ceiling is unchanged as arithmetic. What has changed is the work needed to reach any part of it, and the risk attached to trying.</p>
+      <div class="stack">
+        <div class="opt go"><div class="ol">WE CAN NOW ANSWER HALF THE MAY 7 REQUEST</div><p>Per-employee monthly hours per project for P3 to P7, from a system of record, reconciled to payroll. A real improvement on the position CRA saw.</p></div>
+        <div class="opt stop"><div class="ol">WE CANNOT PRODUCE A CONTEMPORANEOUS SR&amp;ED SPLIT</div><p>None was ever made. Anything we submit is a present-day judgment on historic records, and must be labelled as exactly that.</p></div>
+        <div class="opt stop"><div class="ol">THE 15% CANNOT BE DEFENDED AS A MEASUREMENT</div><p>If a re-derived allocation supports something near 15% it will be because the technical review says so. It may well come out lower.</p></div>
+        <div class="opt hold"><div class="ol">THE 50% ON P7 NEEDS ITS OWN JUSTIFICATION</div><p>P7 was our second-priority contest on the strength of being salary-only and outside the ruled-against Rogers pattern. Four employees at a flat 50% must be specifically supportable, or P7 becomes a liability rather than an asset.</p></div>
+        <div class="opt go"><div class="ol">SCOPE THE TECHNICAL REVIEW TO P3 AND P7 FIRST</div><p>Together they are 29.3% of the credits at stake and carry the cleanest fact patterns. Build a defensible allocation there before spending on P4 to P6.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ============ 06 PROJECTS ============ -->
 <section id="projects">
   <div class="sechead">
-    <div class="eyebrow">Section 06</div>
+    <div class="eyebrow">Section 07</div>
     <h2>Project-by-project analysis</h2>
     <p class="lede">Each project is graded on three dimensions. <span class="sb">Evidence</span> — do contemporaneous artefacts of experimentation exist on file? <span class="sb">Narrative</span> — did the written T661 description survive contact with the review? <span class="sb">Financial</span> — are the claimed costs substantiated and traceable? Grades run A strong, B adequate, C weak, D poor, F absent or failed, and ? not yet assessable. Select a project to open its full analysis.</p>
   </div>
@@ -961,7 +1094,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
 <!-- ============ 07 DOCUMENTS ============ -->
 <section id="documents">
   <div class="sechead">
-    <div class="eyebrow">Section 07</div>
+    <div class="eyebrow">Section 08</div>
     <h2>Documents on the file</h2>
     <p class="lede">Four documents are drafted and ready to move. Two go outside the engagement team, two do not — the distinction matters and is marked on each.</p>
   </div>
@@ -988,6 +1121,12 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
           <td><span class="tag sage">Ready</span></td>
         </tr>
         <tr>
+          <td><span class="sb">Client records findings memo</span></td>
+          <td><span class="tag lav">Internal</span></td>
+          <td>What the August 26 records show: the timesheets that exist, the flat-rate allocation that does not, P2's absent hours, and the five steps that follow. Reproducible from the engagement folder.</td>
+          <td><span class="tag sage">Complete</span></td>
+        </tr>
+        <tr>
           <td><span class="sb">Line 435 verification memo</span></td>
           <td><span class="tag lav">Internal</span></td>
           <td>The twenty checks, the recapture mechanic, the FY2023 implication, the cross-year interaction and the five open items. Reproducible from the engagement folder.</td>
@@ -1002,7 +1141,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
 <!-- ============ 08 LESSONS ============ -->
 <section id="lessons">
   <div class="sechead">
-    <div class="eyebrow">Section 08</div>
+    <div class="eyebrow">Section 09</div>
     <h2>Lessons learnt</h2>
     <p class="lede">Written for us, not for the client. Each one cost real money on this file.</p>
   </div>
@@ -1022,7 +1161,10 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
     <div class="card"><h3>5 · Managed-service claims carry structural risk</h3>
     <p>Large multi-shore service contracts — P2's 500-person model — invite exactly the reading CRA applied: coordination in Canada, execution elsewhere, engineering rather than experimentation. Claims built on such engagements need Canadian-performer identification and uncertainty framing settled at claim-preparation time, not at audit.</p></div>
 
-    <div class="card"><h3>6 · Verify the other side's arithmetic, and verify your own</h3>
+    <div class="card"><h3>6 · A percentage is not an allocation</h3>
+    <p>The whole salary claim was total project payroll times a flat 15%, and the contract claim was subcontractor cost times 15% times an unexplained 0.65. Nobody measured anything. The timesheets to do it properly existed the entire time, in a system with daily entries and an approval workflow — they were simply never used. The defect was not missing records. It was a method that never asked for them.</p></div>
+
+    <div class="card"><h3>7 · Verify the other side's arithmetic, and verify your own</h3>
     <p>Two things came out of re-deriving this package rather than reading it. CRA's figures are clean, which tells us where <em>not</em> to spend effort. And our own best-case figure was overstated by roughly <span class="num">$14,000</span> — a number that had been circulating internally without anyone recomputing it. Check both directions before a number reaches a client.</p></div>
   </div>
 </section>
@@ -1030,7 +1172,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
 <!-- ============ 09 GATES ============ -->
 <section id="gates">
   <div class="sechead">
-    <div class="eyebrow">Section 09</div>
+    <div class="eyebrow">Section 10</div>
     <h2>Process changes needed</h2>
     <p class="lede">Each change maps to a specific failure in this file, and each is encodable into the Think R&amp;D 365 assessment workflow rather than left as policy text.</p>
   </div>
@@ -1042,6 +1184,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
     <div class="gate"><span class="gnum">GATE 5</span><div class="gb"><strong>Review-meeting protocol.</strong> Mandatory SME prep session, attendance confirmation for named technical personnel, evidence walk-through rehearsal, and a rule that meetings proceed only with the people who did the work in the room.</div></div>
     <div class="gate"><span class="gnum">GATE 6</span><div class="gb"><strong>Portfolio audit of live claims.</strong> Immediate review of every unfiled and under-review claim across the practice for the same narrative-versus-evidence gap found here — same drafting process, same latent risk. Prioritise any claim using narrative templates shared with this file.</div></div>
     <div class="gate"><span class="gnum">GATE 7</span><div class="gb"><strong>Multi-year account watch.</strong> Accounts with any prior-year adjustment get a heightened-scrutiny flag in the platform: conservative claim scoping, senior review of narratives, and a pre-filing evidence audit by default.</div></div>
+    <div class="gate"><span class="gnum">GATE 9</span><div class="gb"><strong>No flat-rate allocations, ever.</strong> New, from this file. A claim may not be built by applying a uniform percentage to project payroll. The SR&amp;ED proportion must be derived per employee from what that person actually did, recorded during the year, and the platform should refuse to produce a claim where every employee on a project carries an identical rate.</div></div>
     <div class="gate"><span class="gnum">GATE 8</span><div class="gb"><strong>Independent recomputation of every figure that reaches a client.</strong> New, from this week. Any number in a client-facing document — recovery estimate, credit at stake, scenario range — must be re-derived from source and reproducible, not carried forward from an earlier draft. The overstated best case on this file was caught only because someone recomputed it.</div></div>
   </div>
 </section>
@@ -1049,7 +1192,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
 <!-- ============ 10 TIMELINE ============ -->
 <section id="timeline">
   <div class="sechead">
-    <div class="eyebrow">Section 10</div>
+    <div class="eyebrow">Section 11</div>
     <h2>Critical timeline</h2>
   </div>
   <div class="card">
@@ -1060,6 +1203,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
       <div class="tlrow done"><div class="td">JULY 30, 2026</div><div class="tx">Proposal letter issued. The full claim is proposed to zero.</div></div>
       <div class="tlrow done"><div class="td">AUGUST 25, 2026</div><div class="tx">Internal assessment completed. Path A adopted: contest P3–P7 substantiation, concede P1 and P2 absent artefacts.</div></div>
       <div class="tlrow now"><div class="td">TODAY · AUGUST 26, 2026</div><div class="tx">Arithmetic verified independently — 20 of 20 checks pass, recovery ceiling corrected to <span class="num">$250,795</span>, FY2023 found to be partly allowed. Extension letter, call script, client brief and verification memo drafted. <span class="sb">Outstanding today:</span> make the call to the Financial Reviewer, submit the letter the same day, and put the binary records question to Heena Shah's team.</div></div>
+      <div class="tlrow now"><div class="td">TODAY · AUGUST 26, 2026 — LATER</div><div class="tx">Client records received: filed T661 narratives, twelve months of PeopleSoft timesheets, the salary file, the R&amp;D assessment workbook, and the subcontractor agreements and invoices. The binary question is answered — see <a href="#records">section 06</a>. The records exist; the SR&amp;ED split does not.</div></div>
       <div class="tlrow"><div class="td">AUGUST 28, 2026</div><div class="tx">Answer due on the records question, and on the FY2023 reassessment and objection status. Both decide what happens next.</div></div>
       <div class="tlrow"><div class="td">AUGUST 31, 2026</div><div class="tx">Proposal response deadline. Representations or a confirmed extension must be on file. Silence means CRA proceeds to reassess.</div></div>
       <div class="tlrow"><div class="td">SEPTEMBER 30, 2026</div><div class="tx">Target date for the full submission if the extension is granted, with notice by September 12 of any item that cannot be produced.</div></div>

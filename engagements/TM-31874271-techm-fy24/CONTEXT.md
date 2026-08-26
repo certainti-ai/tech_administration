@@ -66,11 +66,31 @@ Two findings from the verification change the agreed position and are carried in
 - **The recovery ceiling is $250,795, not $250–265K.** That is the exact maximum from Projects 3–7 if every dollar is substantiated and then survives an eligibility review. $265,000 is above what the arithmetic permits. No client-facing document may exceed $250,795.
 - **FY2023 was partially allowed, not denied.** The revised line 435 of $175,850 implies roughly $1,172,333 of FY2023 qualified expenditure allowed against $3,118,180 filed — about 37.6%. This assumes the 15% rate and is unverified until the FY2023 notice of reassessment is in hand. It makes the prior year a more useful precedent than the "pattern of denial" framing in the deliverable report suggested.
 
+## Client records received Aug 26, 2026 — the binary question is answered
+
+Records arrived: filed T661 narratives (six documents covering the seven claimed projects — R4B and R4B Digital share one), twelve months of PeopleSoft timesheet exports, the FY2324 salary file, the R&D assessment workbook, the FY2023/FY2024 ITC computation, eight signed subcontractor agreements and nineteen invoices. Findings are in draft 05 and reproducible via `analyse_client_records.py`.
+
+**The answer has two halves.** 846,994 rows of per-employee, per-day, per-project timesheet data exist, covering all twelve months, with a manager approval workflow. But the SR&ED/non-SR&ED split was never recorded: the claim applied a flat **15% of every employee's salary** on six projects and a flat **50%** on P7. 376 of 380 employee rows carry exactly 15%; the other four carry exactly 50%. Contracts are cost x 15% x an unexplained 0.65 factor. CRA's finding — "no distinction between regular work and SR&ED work" — is correct on the current record.
+
+Rules that follow from this:
+
+- **Never submit the timesheet extracts alone.** Without an allocation method they demonstrate the very defect CRA identified.
+- **Never present a re-derived allocation as a contemporaneous record.** It is a present-day technical judgment on historic records and must be labelled as such.
+- **Do not defend the 15% as a measurement.** A re-derived figure may come out lower.
+- **P2 (Y.IN2201961) is now concede-without-qualification.** Zero hours in 846,994 rows; the claimant's own workbook records Total Hours: 0; yet 169 employee rows and $548,729 claimed.
+- **P7's flat 50% needs its own justification** before P7 can be treated as the second-priority contest.
+- **The narratives quote real system hours** (five of six reconcile exactly) but describe total project hours as investigative effort — roughly sevenfold overstatement against the company's own 15%. Address this on our terms before CRA finds it.
+- Subcontractor agreements are all with Canadian-incorporated suppliers (good for the taxable-supplier test), but all nineteen invoices cover P1 and P2 only — nothing for P3–P6's $166,574.
+
+Two open items closed: line 429's $77,698 is an unresolved preparer uncertainty annotated "Used on line 429??" in the client's own worksheet (still do not raise it with CRA); and the FY2023 basis is confirmed at $3,118,181.80 net eligible, $467,727 ITC at 15%.
+
 ## Still outstanding
 
 1. Make the call to Kitty Leung, fill the letter placeholders, and submit the same day. A verbal extension that is never confirmed in writing protects nobody.
 2. Obtain the **FY2023 notice of reassessment** and the objection status — the single highest-value document outstanding. Everything in draft 04 sections 4 and 5 is contingent on it.
-3. Answer the binary records question for P3–P7. If yes, run the evidence sprint against the template's Section D checklists (employee hours reconciliation, plus contractor files including the taxable-supplier status of ultimate performers — offshore performers fail the qualified-expenditure test). If genuinely no, recommend accepting FY2024 and investing in FY2025+.
+3. Put the flat-rate finding to the client. It changes what can honestly be claimed and is not Certainti's decision to take alone.
+4. Commission a technical review to build a defensible per-employee allocation, scoped to P3 and P7 first (together 29.3% of credits at stake, cleanest fact patterns).
+5. Retrieve subcontractor invoices for P3–P6, and establish what the 0.65 factor represents.
 4. P1/P2 artefact hunt before the contest/concede decision — the P1 CDR interval discovery and 6-second timing buffer, and the P2 Appium/Selenium sync code history, are the only candidates that might carry.
 5. Obtain the FY2024 notice of assessment and account statement, to settle whether the FY2024 credits were ever given effect (see draft 04, section 6, item 5).
 6. Feed the 7 process gates from the deliverable into Think R&D 365 evidence-readiness scoring.

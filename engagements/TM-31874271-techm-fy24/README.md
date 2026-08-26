@@ -16,6 +16,7 @@ and the rules this engagement works under.
 | `documents/*.docx` | House-formatted Word renderings of the drafts, for sending. Regenerate; do not hand-edit. |
 | `build_docs.py` | Renders `drafts/` to `documents/` in the house format. |
 | `verify_arithmetic.py` | Re-computes every figure in the CRA package. 20 checks, all passing. |
+| `analyse_client_records.py` | Analyses the client records received Aug 26: timesheet coverage per project, narrative hours against system hours, and the rate actually applied per employee. Source files stay in the engagement bundle. |
 | `TM_SRED_Audit_Defence_Report.html` | The full assessment as a shareable page — CRA position, verified arithmetic, options, project-by-project drill-down, lessons, process gates, timeline. Published as a private Artifact; sharing is a deliberate act from the page's share menu. |
 
 The CRA source documents (proposal letter, Project Eligibility Report, Audit
@@ -32,6 +33,7 @@ with their source named.
 | `02_Call_Script_Kitty_Leung_INTERNAL` | **Internal only.** Never send to the CRA or the client | Ready |
 | `03_Client_Brief_Heena_Shah` | **Client** — Tech Mahindra | Ready to send |
 | `04_Line435_Recapture_Verification_Memo` | **Internal** | Complete for what the package permits |
+| `05_Client_Records_Findings_Memo` | **Internal** | Complete — read before any submission |
 
 Placeholders still to fill in draft 01: the date of the telephone call, and the
 signatory's phone and email. Nothing else in that letter is provisional.
@@ -56,7 +58,12 @@ beyond the standard library.
 - The $175,850 at line 435 is imported from the 2023-03-31 reassessment and
   cannot be verified from this year's package. The FY2023 notice of reassessment
   is the single highest-value document still outstanding.
-- Working from that figure, the FY2023 reassessment appears to have allowed
+- **The records exist; the SR&ED split does not.** 846,994 rows of per-employee,
+  per-day timesheet data cover all twelve months. But the claim applied a flat
+  15% of salary on six projects and 50% on the seventh — the split was assumed,
+  not measured. Never submit the timesheets without an allocation method, and
+  never present a re-derived allocation as a contemporaneous record.
+- Working from the line 435 figure, the FY2023 reassessment appears to have allowed
   roughly **37.6%** of the credit as filed — so the prior year was partially
   allowed, not denied in full. This corrects the "pattern of denial" framing in
   the internal report. It rests on an assumed 15% rate and must be confirmed.
