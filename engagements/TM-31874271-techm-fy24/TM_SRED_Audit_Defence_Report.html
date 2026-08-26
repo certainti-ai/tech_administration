@@ -269,6 +269,12 @@ details.proj[open] .chev{transform:rotate(90deg)}
 .gate .gb{font-size:13.4px;color:var(--ink-soft);max-width:72ch}
 .gate .gb strong{color:var(--ink)}
 
+.subgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:900px){.subgrid{grid-template-columns:1fr}}
+.subcard{border:1px solid var(--line);border-radius:var(--radius-sm);padding:13px 15px;background:var(--card-2)}
+.subcard .sh{font-size:10.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--peri-deep);font-weight:600;margin-bottom:8px}
+.subcard ul.clean li::before{background:var(--peri);top:8px}
+.subcard ul.clean li{color:var(--ink-soft)}
 .footnote{font-size:12px;color:var(--ink-faint);max-width:80ch;line-height:1.6}
 hr.rule{border:0;border-top:1px solid var(--line);margin:0}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;scroll-behavior:auto!important}}
@@ -707,6 +713,10 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
           </tbody>
         </table>
       </div>
+      <div class="callout amber" style="margin-top:12px">
+        <div class="ct">And the percentage was applied to the wrong hours</div>
+        <p>The 15% was applied not to hours booked but to a larger &ldquo;FTE hours&rdquo; figure that exceeds booked time by 30–45% on six of the seven projects. The workbook then carries <span class="sb">two different SR&amp;ED-hour totals</span> that it never reconciles — 76,468 on one sheet, 84,877 on another. Against time actually recorded, the claim therefore asserts somewhere between <span class="sb">15% and 26%</span> depending on which figure is used, not the 15% the workbook states. On P7 it is 50% either way. Tech Mahindra's own August 24 revision computes the same ratios and lands in the same place, so this is not a disputed reading.</p>
+      </div>
       <p style="margin-top:12px">The contract claim works the same way: total subcontractor cost of <span class="num">$3,125,657</span> × 15% × a further <span class="num">0.65</span> factor the workbook calls <em>SubCon QRE Adjustment</em> and does not explain, giving exactly the <span class="num">$304,752</span> claimed. The SR&amp;ED hours in the workbook were then derived <em>from</em> the percentage — available hours × 15% — rather than the percentage being derived from measured hours. <span class="sb">The causality runs the wrong way for an audit.</span></p>
       <div class="callout rose" style="margin-top:12px">
         <div class="ct">CRA's finding is not merely defensible — it is correct</div>
@@ -741,6 +751,27 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
         </div>
       </div>
       <p style="margin-top:12px">If CRA runs this comparison — and the Financial Reviewer holds both documents — it reads as a claim that contradicts itself. Our representation should deal with it on our terms rather than wait for it to be found.</p>
+    </div>
+
+    <div>
+      <h3 style="margin-top:8px">What the May 7 request asked for, and what actually went back</h3>
+      <p>The revised workbook of August 24 contains the five requested items with Tech Mahindra's own status against each — their assessment, not ours.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Requested May 7, 2026</th><th>Status per Tech Mahindra, Aug 24</th><th>Our reading</th></tr></thead>
+          <tbody>
+            <tr><td>Breakdown of salaries and arm's-length contracts, with working papers and formulas, reconciling to the T661</td><td><span class="tag sage">Provided</span></td><td>The workbook does reconcile to the T661 — because both sides are the same flat percentage.</td></tr>
+            <tr><td>Hours by project, month and employee, with names, job titles, hourly wages, annual salaries, total hours, and the province the work was performed in</td><td><span class="tag rose">&ldquo;We provided the details from the timesheet &amp; summary of hours, but it didn't provide the complete details&rdquo;</span></td><td>The monthly columns were <span class="sb">#REF!</span> — 3,660 broken cells across 305 employee rows, in the file as sent. Hourly wages were never included. Employee lists covered P1 and P2 only.</td></tr>
+            <tr><td>Working papers showing salaries per project reconciled to the T661, identifying bonuses, taxable benefits and severance</td><td><span class="tag sage">Provided</span></td><td>Cost columns provided; the bonus and benefit identification is not visible in what we hold.</td></tr>
+            <tr><td>Working papers for arm's-length contracts per project, with statements of work and evidence the ultimate performers are taxable suppliers</td><td><span class="tag rose">&ldquo;We provided the names of the suppliers and amounts, but it didn't provide the complete details&rdquo;</span></td><td>Nine vendor-project rows for P1 and P2 only. No statement of work, no taxable-supplier evidence, nothing at all for P3 to P6.</td></tr>
+            <tr><td>Breakdown of provincial credit assistance and schedules</td><td><span class="tag sage">Provided</span></td><td>Provided and correct.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout rose" style="margin-top:12px">
+        <div class="ct">The single most consequential thing in the file</div>
+        <p>The item CRA cared most about — hours by project, month and employee — was answered with a spreadsheet whose twelve monthly columns contained <span class="sb">#REF!</span> errors for all 305 employees. The data to fill them existed the whole time. The August 24 revision, four days ago, still has not fixed them.</p>
+      </div>
     </div>
 
     <div>
@@ -810,7 +841,25 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
         <div class="grade"><div class="gh"><span class="gmark d">D</span><span class="gl">Financial</span></div><div class="gt">Downgraded from B. The salary breakdown was submitted and received, but we now know what was behind it: 96 employees at a flat 15%, applied to capacity hours rather than booked hours. Seven of the 96 are unnamed in the workbook.</div></div>
       </div></div>
 
-      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> 79,173.8 hours booked across 48 employees over all twelve months, of which 43,244.8 carry Approved status. <span class="sb">The claim:</span> 96 employees in the workbook at a flat 15% — more employees than booked time to the project — applied to 128,093 capacity hours rather than the 79,174 actually booked. The claimed 19,214 SR&amp;ED hours are therefore <span class="sb">24.3% of hours actually recorded</span>, not 15%. <span class="sb">Contractors:</span> the strongest documented position in the file — 26 named individuals, signed agreements with Canadian-incorporated suppliers, and invoices tagged to this project code.</p></div>
+      <div><h4>What the records show now</h4><p><span class="sb">Timesheets:</span> 79,173.8 hours booked across 48 employees over all twelve months, of which 43,244.8 carry Approved status. <span class="sb">The claim:</span> 96 employees in the workbook at a flat 15% — more employees than booked time to the project — applied to 128,093 capacity hours rather than the 79,174 actually booked. Against hours actually recorded the claim works out at <span class="sb">19.3% or 24.3%</span> — the workbook carries two different SR&amp;ED-hour figures for this project (15,272 and 19,214) and does not reconcile them. Neither is 15%. <span class="sb">Contractors:</span> the strongest documented position in the file — 26 named individuals, signed agreements with Canadian-incorporated suppliers, and invoices tagged to this project code.</p></div>
+
+      <div><h4>What was submitted to CRA</h4><div class="subgrid">
+<div class="subcard"><div class="sh">Technical</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">Wireless-Audit_CRA-Updated.pptx</span> — 22 slides, ~1,800 words. CDR validation background, an optimisation framework, a challenges-and-remedies table, RTRM end-to-end architecture, testing phases, Openet ECS standalone testing, on-premises Kafka producer system testing, and risk-based test scoping.</li>
+<li><span class="sb">Screenshot Proof-R&amp;D_Audit-Rogers.pptx</span> — 10 slides, 13 images. This is CRA's Reference 5: E2E architecture, SharePoint archive, test-plan approvals, and four slides of daily status reports. Slides 5–12 of the Wireless deck duplicate it.</li>
+<li><span class="sb">Project 1 Wireless - Evidence.pptx</span> (May 4) and <span class="sb">Tech M - SRED_Methodology 1.pdf</span> (June 4).</li>
+<li><span class="sb">T661 Part 2 narrative</span> — lines 242, 244, 246, prepared by an external consultant, three named key employees.</li>
+</ul></div>
+<div class="subcard"><div class="sh">Financial</div><ul class="clean" style="font-size:12.6px">
+<li>Project column in the June 4 workbook: total cost $5,396,895, FTE cost $4,088,153, subcon cost $1,308,742, Net QRE % 0.15.</li>
+<li><span class="sb">96 employee rows</span> on the Emp Cost sheet with cost, rate, FTE hours and QRE hours per person.</li>
+<li><span class="sb">26 subcontractor individuals</span> named with per-person cost on the Subcon sheet.</li>
+</ul></div>
+<div class="subcard"><div class="sh">Resources</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">78 employees</span> listed with employee id, name, designation, band, function, work location, project, contract type, customer, gross salary and total hours for the year — $4,088,153 in total.</li>
+<li><span class="sb">7 subcontractor vendors</span> with SAP vendor ids and amounts: NextGen Consulting $674,706; Vy Systems Canada $148,224; TechDoQuest $129,823; Pragra $113,170; SAPSOL Technologies Canada $106,944; J &amp; M Group $98,787; XpertVantage Canada $37,088.</li>
+<li><span class="sb">Not submitted:</span> monthly hour breakdown (the columns were #REF!), hourly wages, and any SR&amp;ED versus non-SR&amp;ED split.</li>
+</ul></div></div></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
@@ -845,7 +894,25 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
         <div class="grade"><div class="gh"><span class="gmark f">F</span><span class="gl">Financial</span></div><div class="gt">Downgraded from B. The project code appears nowhere in 846,994 rows of Canadian timesheet data, and the claimant's own workbook records Total Hours: 0 for it — while sheet 3 of the same workbook shows 252,897 hours. The workbook contradicts itself.</div></div>
       </div></div>
 
-      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> none. Y.IN2201961 does not appear in any of the six monthly exports. <span class="sb">The claim:</span> 169 employee rows — the largest headcount of any project — at a flat 15%, of which <span class="sb">46 are unnamed</span>, recorded only as &ldquo;Not in source&rdquo;. That is 27% of the claimed headcount that cannot currently be identified. <span class="sb">Contractors:</span> two individuals, $10,576; invoices exist for this code, which is more than P3 to P6 can say.</p></div>
+      <div><h4>What the records show now</h4><p><span class="sb">Timesheets:</span> none. Y.IN2201961 does not appear in any of the six monthly exports. <span class="sb">The claim:</span> 169 employee rows — the largest headcount of any project — at a flat 15%, of which <span class="sb">46 are unnamed</span>, recorded only as &ldquo;Not in source&rdquo;. That is 27% of the claimed headcount that cannot currently be identified. <span class="sb">Contractors:</span> two individuals, $10,576; invoices exist for this code, which is more than P3 to P6 can say.</p></div>
+
+      <div><h4>What was submitted to CRA</h4><div class="subgrid">
+<div class="subcard"><div class="sh">Technical</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">CRA Walkthrough.pptx</span> — 9 slides, ~570 words, <span class="sb">no images and no tables</span>: agenda, project overview, uncertainties, work performed, advancements, technology stack, a slide titled Supporting Evidence that describes evidence rather than being it, and a thank-you slide.</li>
+<li><span class="sb">Project 2 …_CRA.docx</span> — <span class="sb">253 words in total</span>, one image. It answers the three T661 questions in a few sentences each and then lists hardware, languages, frameworks and IDEs.</li>
+<li><span class="sb">Seven PNG screenshots</span> — CRA's References 10–16: automation coverage, an automation demo, a tools slide, info-share sessions, and three knowledge-management captures.</li>
+<li><span class="sb">Read the docx before defending this project.</span> It tells CRA the primary challenge was &ldquo;the limited availability of internal skill sets&rdquo; and that the response was onboarding specialised resources. That describes a staffing problem solved by hiring. CRA's conclusion follows directly from our own document.</li>
+</ul></div>
+<div class="subcard"><div class="sh">Financial</div><ul class="clean" style="font-size:12.6px">
+<li>Project column: total cost $3,766,670, FTE cost $3,658,196, subcon cost $108,474, Net QRE % 0.15.</li>
+<li><span class="sb">169 employee rows</span>, of which <span class="sb">46 carry no name</span> — recorded only as &ldquo;Not in source&rdquo;.</li>
+<li><span class="sb">Total Hours: 0</span> in the same workbook that claims $548,729.</li>
+</ul></div>
+<div class="subcard"><div class="sh">Resources</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">174 employees</span> listed with the same columns as P1 — $3,658,196 in total. The largest resource list submitted for any project.</li>
+<li><span class="sb">2 subcontractor vendors</span>: Vy Systems Canada $55,944 and TES Contract Services $52,530.</li>
+<li><span class="sb">Not submitted:</span> any hours at all. The employee list carries a total-hours column, but the project has no time booked to it in the source system.</li>
+</ul></div></div></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
@@ -880,7 +947,25 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
         <div class="grade"><div class="gh"><span class="gmark c">C</span><span class="gl">Financial</span></div><div class="gt">Upgraded from F. Hours are now fully traceable — 49 employees, twelve months, 71,404 of 90,832 hours Approved. The allocation is not: a flat 15% across all 64 workbook employees.</div></div>
       </div></div>
 
-      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> the strongest in the file — 90,832 hours across 49 employees over twelve months, 71,404 of them Approved. <span class="sb">The claim:</span> 64 workbook employees at a flat 15% applied to 115,390 capacity hours; the resulting 17,309 SR&amp;ED hours are <span class="sb">19.1% of hours actually booked</span>. Three employees are unnamed. <span class="sb">Contractors:</span> four individuals, $215,298 gross reduced to $20,992 claimed — and <span class="sb">no invoices</span> for this project code.</p></div>
+      <div><h4>What the records show now</h4><p><span class="sb">Timesheets:</span> the strongest in the file — 90,832 hours across 49 employees over twelve months, 71,404 of them Approved. <span class="sb">The claim:</span> 64 workbook employees at a flat 15% applied to 115,390 capacity hours; against hours actually booked that is <span class="sb">15.2% or 19.1%</span>, on the workbook's two unreconciled SR&amp;ED-hour figures (13,841 and 17,309). Three employees are unnamed. <span class="sb">Contractors:</span> four individuals, $215,298 gross reduced to $20,992 claimed — and <span class="sb">no invoices</span> for this project code.</p></div>
+
+      <div><h4>What was submitted to CRA</h4><div class="subgrid">
+<div class="subcard"><div class="sh">Technical</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">Nothing.</span> No deck, no document, no screenshot, no walkthrough. CRA's Appendix 1 lists sixteen documents received and not one relates to this project.</li>
+<li><span class="sb">T661 Part 2 narrative only</span> — the EKS-to-AKS migration description, filed with the return. It is the sole technical statement CRA holds about the largest recoverable project in the claim.</li>
+<li>Three key employees named on the narrative: Subha Venkatesh (Delivery Manager), Venkata Srinivas Rao K (Product Lead), Vinit Nandkishore Joshi (Senior Project Manager) — all management roles, each described only as &ldquo;10+ years of Software Experience&rdquo;.</li>
+</ul></div>
+<div class="subcard"><div class="sh">Financial</div><ul class="clean" style="font-size:12.6px">
+<li>Project column in the June 4 workbook: total cost $3,377,492, FTE cost $3,162,194, subcon cost $215,298, Net QRE % 0.15. This much CRA did receive.</li>
+<li><span class="sb">64 employee rows</span> with cost, rate and hours per person on the Emp Cost sheet.</li>
+<li><span class="sb">4 subcontractor individuals</span> named on the Subcon sheet.</li>
+</ul></div>
+<div class="subcard"><div class="sh">Resources</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">No employee list.</span> The list submitted covers Y.IN2100170 and Y.IN2201961 only.</li>
+<li><span class="sb">No vendor detail.</span> The subcontractor pivot submitted covers the same two projects only.</li>
+<li><span class="sb">No hours.</span> The monthly breakdown columns were #REF! for every employee on every project, this one included.</li>
+<li>So CRA received a cost column and a percentage, and nothing to test either against. Its finding is the only one available on that record.</li>
+</ul></div></div></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
@@ -916,7 +1001,23 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
         <div class="grade"><div class="gh"><span class="gmark c">C</span><span class="gl">Financial</span></div><div class="gt">Upgraded from F on hours — 10 employees, twelve months, fully traceable. The contractor half is the problem.</div></div>
       </div></div>
 
-      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> 13,696 hours across 10 employees over twelve months, 8,167 Approved. A small, clean population — ten people is a technical review that can actually be done properly. <span class="sb">The claim:</span> 26 workbook employees against 10 with booked time; flat 15% on 21,182 capacity hours, giving 3,177 SR&amp;ED hours or <span class="sb">23.2% of hours booked</span>. Two employees unnamed. <span class="sb">Contractors:</span> 15 individuals, $700,386 gross reduced to $68,288 claimed, no invoices, no residency evidence.</p></div>
+      <div><h4>What the records show now</h4><p><span class="sb">Timesheets:</span> 13,696 hours across 10 employees over twelve months, 8,167 Approved. A small, clean population — ten people is a technical review that can actually be done properly. <span class="sb">The claim:</span> 26 workbook employees against 10 with booked time; flat 15% on 21,182 capacity hours, giving <span class="sb">20.9% or 23.2% of hours booked</span> on the workbook's two figures (2,861 and 3,177). Two employees unnamed. <span class="sb">Contractors:</span> 15 individuals, $700,386 gross reduced to $68,288 claimed, no invoices, no residency evidence.</p></div>
+
+      <div><h4>What was submitted to CRA</h4><div class="subgrid">
+<div class="subcard"><div class="sh">Technical</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">Nothing.</span> No document relating to this project appears in CRA's Appendix 1.</li>
+<li><span class="sb">T661 Part 2 narrative only</span> — the frame-accurate video playback validation description. On our reading it is the most defensible narrative in the claim, and CRA has never been shown anything to support it.</li>
+<li>Three key employees named: Subhadeep Ghosh (Operations Manager), Milind Rajaram Joshi (Delivery Manager), Edmund Bulaclac (Associate Team Lead).</li>
+</ul></div>
+<div class="subcard"><div class="sh">Financial</div><ul class="clean" style="font-size:12.6px">
+<li>Project column: total cost $1,422,679, FTE cost $722,292, subcon cost $700,387, Net QRE % 0.15.</li>
+<li><span class="sb">26 employee rows</span>, against 10 people with time actually booked to the project.</li>
+<li><span class="sb">15 subcontractor individuals</span> named — subcontractors are 49% of this project's total cost, the highest ratio in the claim.</li>
+</ul></div>
+<div class="subcard"><div class="sh">Resources</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">No employee list, no vendor detail, no hours.</span> Same position as P3.</li>
+<li>The gap that matters most here is the contractor one: $68,288 claimed against $700,387 of gross subcontractor cost, with no statement of work, no invoice and no evidence going to the taxable-supplier status of the ultimate performers.</li>
+</ul></div></div></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
@@ -951,7 +1052,23 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
         <div class="grade"><div class="gh"><span class="gmark c">C</span><span class="gl">Financial</span></div><div class="gt">Upgraded from F on hours — 6 employees, twelve months. Contractors remain unsupported.</div></div>
       </div></div>
 
-      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> 7,921 hours across 6 employees over twelve months, but only 3,900 Approved — <span class="sb">the weakest approval ratio in the claim at 49%</span>. <span class="sb">The claim:</span> 15 workbook employees against 6 with booked time; flat 15% on 13,820 capacity hours giving 2,073 SR&amp;ED hours, or <span class="sb">26.2% of hours booked</span> — the highest ratio of the 15% projects. <span class="sb">Contractors:</span> 8 individuals, $550,958 gross reduced to $53,718, no invoices.</p></div>
+      <div><h4>What the records show now</h4><p><span class="sb">Timesheets:</span> 7,921 hours across 6 employees over twelve months, but only 3,900 Approved — <span class="sb">the weakest approval ratio in the claim at 49%</span>. <span class="sb">The claim:</span> 15 workbook employees against 6 with booked time; flat 15% on 13,820 capacity hours, giving <span class="sb">22.8% or 26.2% of hours booked</span> on the workbook's two figures (1,804 and 2,073) — the highest ratio of the 15% projects either way. <span class="sb">Contractors:</span> 8 individuals, $550,958 gross reduced to $53,718, no invoices.</p></div>
+
+      <div><h4>What was submitted to CRA</h4><div class="subgrid">
+<div class="subcard"><div class="sh">Technical</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">Nothing.</span> No document relating to this project appears in CRA's Appendix 1.</li>
+<li><span class="sb">A shared T661 narrative</span> — one Part 2 document covers this project and P6 together, describing the MuleSoft-to-Spring-Boot migration. Two separately claimed projects, one description.</li>
+<li>Three key employees named across the shared narrative: Nitin Ruhela and Mehul Dilipkumar Patel (Project Managers), Narendrakumar Gunnam (Project Lead).</li>
+</ul></div>
+<div class="subcard"><div class="sh">Financial</div><ul class="clean" style="font-size:12.6px">
+<li>Project column: total cost $1,041,082, FTE cost $490,124, subcon cost $550,958, Net QRE % 0.15.</li>
+<li><span class="sb">15 employee rows</span>, against 6 people with time booked.</li>
+<li><span class="sb">8 subcontractor individuals</span> named — subcontractors are 53% of project cost.</li>
+</ul></div>
+<div class="subcard"><div class="sh">Resources</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">No employee list, no vendor detail, no hours.</span></li>
+<li>Note the project code carries no Y.IN prefix — it is plain <span class="num">40633</span>, and appears zero-padded to fifteen digits in the time system. Any extract must normalise it or the project will look empty.</li>
+</ul></div></div></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
@@ -986,7 +1103,22 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
         <div class="grade"><div class="gh"><span class="gmark c">C</span><span class="gl">Financial</span></div><div class="gt">Upgraded from F on hours — 3 employees, twelve months. At this size the finding barely matters.</div></div>
       </div></div>
 
-      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> 4,332 hours across 3 employees over twelve months, 3,412 Approved — a good ratio on a tiny population. <span class="sb">The claim:</span> 6 workbook employees against 3 with booked time; flat 15% on 7,191 capacity hours giving 1,079 SR&amp;ED hours, or <span class="sb">24.9% of hours booked</span>. One of the six is unnamed. <span class="sb">Contractors:</span> 3 individuals, $241,799 gross reduced to $23,575, no invoices.</p></div>
+      <div><h4>What the records show now</h4><p><span class="sb">Timesheets:</span> 4,332 hours across 3 employees over twelve months, 3,412 Approved — a good ratio on a tiny population. <span class="sb">The claim:</span> 6 workbook employees against 3 with booked time; flat 15% on 7,191 capacity hours, giving <span class="sb">19.9% or 24.9% of hours booked</span> on the workbook's two figures (863 and 1,079). One of the six is unnamed. <span class="sb">Contractors:</span> 3 individuals, $241,799 gross reduced to $23,575, no invoices.</p></div>
+
+      <div><h4>What was submitted to CRA</h4><div class="subgrid">
+<div class="subcard"><div class="sh">Technical</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">Nothing.</span> No document relating to this project appears in CRA's Appendix 1.</li>
+<li><span class="sb">Half a shared narrative</span> — the same Part 2 document as P5. Nothing in it distinguishes the digital-channel work from the rest.</li>
+</ul></div>
+<div class="subcard"><div class="sh">Financial</div><ul class="clean" style="font-size:12.6px">
+<li>Project column: total cost $362,723, FTE cost $120,924, subcon cost $241,799, Net QRE % 0.15.</li>
+<li><span class="sb">6 employee rows</span>, one of them unnamed, against 3 people with time booked.</li>
+<li><span class="sb">3 subcontractor individuals</span> named — subcontractors are 67% of project cost, the highest proportion in the claim.</li>
+</ul></div>
+<div class="subcard"><div class="sh">Resources</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">No employee list, no vendor detail, no hours.</span></li>
+<li>The code the workbook submitted was <span class="num">Y.IN2301013</span>. CRA's schedules record <span class="num">Y.IN2031013</span>. One of the two is wrong and it has never been reconciled.</li>
+</ul></div></div></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
@@ -1020,7 +1152,24 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
         <div class="grade"><div class="gh"><span class="gmark c">C</span><span class="gl">Financial</span></div><div class="gt">Upgraded from F, and the cleanest financial structure in the claim: four named employees, no contractors, and hours that tie exactly. But the rate is now the issue, not the hours.</div></div>
       </div></div>
 
-      <div><h4>What the records show</h4><p><span class="sb">Timesheets:</span> 8,182.6 hours across 4 employees over twelve months, 6,700.6 Approved. Uniquely in this claim, the workbook's hours for P7 equal the hours actually booked — every other project used capacity hours instead. No employees unnamed. <span class="sb">The claim:</span> four employees at a flat <span class="sb">50%</span>, the only departure from 15% anywhere in the file, giving 4,091 SR&amp;ED hours — exactly half of all time booked to the project. <span class="sb">Contractors:</span> none.</p></div>
+      <div><h4>What the records show now</h4><p><span class="sb">Timesheets:</span> 8,182.6 hours across 4 employees over twelve months, 6,700.6 Approved. Uniquely in this claim, the workbook's hours for P7 equal the hours actually booked — every other project used capacity hours instead. No employees unnamed. <span class="sb">The claim:</span> four employees at a flat <span class="sb">50%</span>, the only departure from 15% anywhere in the file, giving 4,091 SR&amp;ED hours — exactly half of all time booked to the project. <span class="sb">Contractors:</span> none.</p></div>
+
+      <div><h4>What was submitted to CRA</h4><div class="subgrid">
+<div class="subcard"><div class="sh">Technical</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">Nothing.</span> No document relating to this project appears in CRA's Appendix 1.</li>
+<li><span class="sb">T661 Part 2 narrative only</span> — the WebSphere and DMaaP to stateless microservices description, including Spark on AKS and the DMaaP-to-Kafka migration.</li>
+<li>Three key employees named: Sandeep Kumar Senapati (Associate Tech Specialist Manager), Swadheen Kumar Jena (Technical Architect), Jyoti Prakash Acharya (Test Lead / Program Manager).</li>
+</ul></div>
+<div class="subcard"><div class="sh">Financial</div><ul class="clean" style="font-size:12.6px">
+<li>Project column: total cost $279,708, all of it FTE cost, no subcontractors, <span class="sb">Net QRE % 0.50</span> — the only project not at 0.15, and CRA received the figure without any explanation attached to it.</li>
+<li><span class="sb">4 employee rows</span>, all named, each at 50%: Vishal Singh, Jyoti Prakash Acharya, Swadheen Kumar Jena, Sandeep Kumar Senapati.</li>
+<li>Uniquely, the hours on the Emp Cost sheet tie exactly to hours booked — 8,182.56.</li>
+</ul></div>
+<div class="subcard"><div class="sh">Resources</div><ul class="clean" style="font-size:12.6px">
+<li><span class="sb">No employee list submitted</span> — though at four people this is the easiest gap in the claim to close, and three of the four are the same people named on the narrative.</li>
+<li><span class="sb">No contractors</span>, so nothing missing on that side.</li>
+<li><span class="sb">No hours breakdown</span> and, more pointedly, no basis for the 50%.</li>
+</ul></div></div></div>
 
       <div><h4>Financials</h4>
       <div class="figs">
@@ -1039,7 +1188,6 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:0}
     </div>
   </details>
 </section>
-
 
 <!-- ============ 08 PLAN ============ -->
 <section id="plan">
