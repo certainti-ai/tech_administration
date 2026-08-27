@@ -134,7 +134,14 @@ def normalise(nodes: list[dict], today: dt.date) -> list[dict]:
             key=lambda c: c["created"],
         )
         history = [
-            {"a": c["author"]["displayName"], "d": c["created"][:10], "t": clean(adf_text(c["body"]))}
+            {
+                "a": c["author"]["displayName"],
+                "d": c["created"][:10],
+                # full timestamp too: the "silent for 24 hours" metric needs an
+                # actual window, which day-granularity dates cannot express
+                "at": c["created"],
+                "t": clean(adf_text(c["body"])),
+            }
             for c in comments[-4:]
         ]
 
@@ -146,6 +153,7 @@ def normalise(nodes: list[dict], today: dt.date) -> list[dict]:
             last = {
                 "author": pick["a"],
                 "date": pick["d"],
+                "at": pick["at"],
                 "text": pick["t"],
                 "attachOnly": pick is not history[-1],
             }
@@ -153,6 +161,7 @@ def normalise(nodes: list[dict], today: dt.date) -> list[dict]:
             last = {
                 "author": history[-1]["a"],
                 "date": history[-1]["d"],
+                "at": history[-1]["at"],
                 "text": "(attachment only — no text)",
                 "attachOnly": True,
             }
@@ -177,6 +186,7 @@ def normalise(nodes: list[dict], today: dt.date) -> list[dict]:
             "lastComment": last,
             "lastTouch": last["date"] if last else None,
         }
+        row["lastActivityAt"] = comments[-1]["created"] if comments else None
         row["daysSinceComment"] = (
             (today - dt.date.fromisoformat(last["date"])).days if last else None
         )
@@ -192,7 +202,8 @@ def normalise(nodes: list[dict], today: dt.date) -> list[dict]:
 def build(rows: list[dict], template: Path, read_at: dt.datetime) -> str:
     keep = (
         "key customer jurisdiction fiscal status statusCat migStatus planned assignee "
-        "summary lastComment lastTouch daysSinceComment daysToPlanned bizBlock nComments"
+        "summary lastComment lastTouch lastActivityAt daysSinceComment daysToPlanned "
+        "bizBlock nComments"
     ).split()
     slim = [{k: r.get(k) for k in keep} for r in rows]
 
