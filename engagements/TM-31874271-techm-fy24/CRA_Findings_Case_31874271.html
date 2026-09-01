@@ -1,0 +1,269 @@
+<title>Case 31874271 Findings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F7F8F9; --sheet:#FFFFFF; --sunk:#F1F3F5;
+  --ink:#16191D; --ink-2:#5A6068; --ink-3:#878D95;
+  --rule:#DFE3E7; --rule-2:#C9CFD5;
+  --classification:#8C2A2A; --classification-bg:#F7ECEC;
+  --seal:#2E4A62; --seal-soft:#EAEFF4;
+  --measure:66ch;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111417; --sheet:#1A1E22; --sunk:#22272C;
+    --ink:#E4E7EA; --ink-2:#A2A9B1; --ink-3:#7C838B;
+    --rule:#2C3238; --rule-2:#3A424A;
+    --classification:#D98A8A; --classification-bg:#2A1D1D;
+    --seal:#8FB0C9; --seal-soft:#1E2A34;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111417; --sheet:#1A1E22; --sunk:#22272C;
+  --ink:#E4E7EA; --ink-2:#A2A9B1; --ink-3:#7C838B;
+  --rule:#2C3238; --rule-2:#3A424A;
+  --classification:#D98A8A; --classification-bg:#2A1D1D;
+  --seal:#8FB0C9; --seal-soft:#1E2A34;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Source Serif 4",Georgia,"Times New Roman",serif;
+  font-size:16.5px; line-height:1.62; -webkit-font-smoothing:antialiased;
+}
+code{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
+  background:var(--sunk);padding:1px 5px;border-radius:3px}
+:focus-visible{outline:2px solid var(--seal);outline-offset:3px;border-radius:2px}
+
+/* classification bands — the real document carries these */
+.band{
+  font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:10.5px; font-weight:600;
+  letter-spacing:.2em; text-transform:uppercase; text-align:center;
+  color:var(--classification); background:var(--classification-bg);
+  padding:8px 16px; border-block:1px solid var(--rule);
+}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;gap:52px;align-items:flex-start}
+@media(max-width:960px){.wrap{display:block;padding:0 18px}}
+
+/* contents rail — CRA's own numbering */
+nav{
+  position:sticky; top:0; width:236px; flex-shrink:0; padding:40px 0 40px;
+  max-height:100vh; overflow-y:auto;
+  font-family:"IBM Plex Sans",system-ui,sans-serif;
+}
+@media(max-width:960px){nav{position:static;width:auto;max-height:none;padding:26px 0 6px;border-bottom:1px solid var(--rule)}}
+nav .rail-label{font-size:9.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink-3);padding-bottom:12px;border-bottom:1px solid var(--rule);margin-bottom:12px}
+nav a{display:block;text-decoration:none;color:var(--ink-2)}
+nav a:hover{color:var(--ink)}
+.nav-h{font-size:12.5px;font-weight:600;color:var(--ink);margin:16px 0 6px;line-height:1.35}
+.nav-h:first-of-type{margin-top:0}
+.nav-s{display:flex;gap:9px;font-size:12.3px;padding:4px 0;line-height:1.4}
+.nav-num{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--seal);flex-shrink:0;padding-top:1px}
+
+main{flex:1;min-width:0;background:var(--sheet);border-inline:1px solid var(--rule);
+  padding:52px 56px 72px;margin-bottom:0}
+@media(max-width:960px){main{padding:34px 22px 52px;border-inline:0}}
+
+header.masthead{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:8px}
+.eyebrow{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:10px;font-weight:600;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--seal);margin:0 0 10px}
+h1{margin:0;font-size:31px;font-weight:600;line-height:1.18;letter-spacing:-.01em;text-wrap:balance}
+.subject{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13.5px;color:var(--ink-2);
+  margin:12px 0 0;max-width:var(--measure)}
+.facts{display:flex;flex-wrap:wrap;gap:10px 30px;margin-top:20px;
+  font-family:"IBM Plex Sans",system-ui,sans-serif}
+.facts div{display:flex;flex-direction:column;gap:2px}
+.facts .k{font-size:9.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.facts .v{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink)}
+
+.note{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:12.3px;line-height:1.6;
+  color:var(--ink-2);background:var(--sunk);border-left:2px solid var(--rule-2);
+  padding:13px 16px;margin:26px 0 0;max-width:var(--measure)}
+
+section.doc{margin-top:52px;padding-top:22px;border-top:1px solid var(--rule)}
+section.doc h2{margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+.prov{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:12px;color:var(--ink-2);
+  margin:7px 0 0;max-width:var(--measure)}
+
+section.finding{margin-top:34px;scroll-margin-top:16px}
+.fhead{display:flex;gap:13px;align-items:baseline;margin-bottom:13px}
+.fnum{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:500;color:var(--seal);
+  background:var(--seal-soft);padding:3px 8px;border-radius:3px;flex-shrink:0;white-space:nowrap}
+.fhead h3{margin:0;font-size:16px;font-weight:600;line-height:1.3;text-wrap:balance}
+
+blockquote{margin:0;padding-left:20px;border-left:1px solid var(--rule-2)}
+blockquote p{margin:0 0 14px;max-width:var(--measure)}
+blockquote p:last-child{margin-bottom:0}
+.sublabel{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:10px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:20px 0 8px !important}
+p.verdict{color:var(--classification);font-weight:600}
+
+.tablewrap{overflow-x:auto;margin:16px 0 18px;max-width:var(--measure)}
+table{border-collapse:collapse;width:100%;font-family:"IBM Plex Sans",system-ui,sans-serif;
+  font-size:12.8px;font-variant-numeric:tabular-nums;min-width:440px}
+th{text-align:right;font-size:9.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-3);padding:0 0 7px 16px;border-bottom:1px solid var(--rule-2)}
+th:first-child{text-align:left;padding-left:0}
+td{text-align:right;padding:7px 0 7px 16px;border-bottom:1px solid var(--rule);color:var(--ink)}
+td:first-child{text-align:left;padding-left:0;color:var(--ink-2)}
+tr:last-child td{border-bottom:0}
+footer{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:11.5px;color:var(--ink-3);
+  line-height:1.6;margin-top:52px;padding-top:20px;border-top:1px solid var(--rule);max-width:var(--measure)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="band">Protected B — Protégé B</div>
+
+<div class="wrap">
+<nav>
+  <div class="rail-label">Contents</div>
+  <a class="nav-h" href="#project-eligibility-report">Project Eligibility Report</a>
+<a class="nav-s" href="#5-1-3-eligibility-determination-project-1-rogers-cbu-wireless-y-in2100170"><span class="nav-num">5.1.3 Eligibility determination</span><span>Project 1: Rogers CBU Wireless Y.IN2100170</span></a>
+<a class="nav-s" href="#5-2-3-eligibility-determination-project-2-cbt-scotia-qa-managed-service-y-in2201961"><span class="nav-num">5.2.3 Eligibility determination</span><span>Project 2: CBT SCOTIA_QA Managed Service Y.IN2201961</span></a>
+<a class="nav-s" href="#section-6-recommendations-for-future-claims"><span class="nav-num">Section 6</span><span>Recommendations for future claims</span></a>
+<a class="nav-h" href="#audit-adjustments-working-paper-kitty-leung-22-july-2026">Audit Adjustments working paper — Kitty Leung, 22 July 2026</a>
+<a class="nav-s" href="#note-1-salaries-projects-1-and-2-and-contracts-projects-1-and-2"><span class="nav-num">Note 1</span><span>salaries, Projects 1 and 2, and contracts, Projects 1 and 2</span></a>
+<a class="nav-s" href="#note-2-non-specified-employee-salaries-projects-3-to-7"><span class="nav-num">Note 2</span><span>non-specified employee salaries, Projects 3 to 7</span></a>
+<a class="nav-s" href="#note-2-arm-s-length-contracts-projects-3-to-6"><span class="nav-num">Note 2</span><span>arm&#x27;s length contracts, Projects 3 to 6</span></a>
+<a class="nav-s" href="#note-3-arm-s-length-contracts-project-7"><span class="nav-num">Note 3</span><span>arm&#x27;s length contracts, Project 7</span></a>
+<a class="nav-h" href="#proposal-letter-kitty-leung-financial-reviewer-30-july-2026">Proposal letter — Kitty Leung, Financial Reviewer, 30 July 2026</a>
+<a class="nav-s" href="#on-the-right-to-respond"><span class="nav-num">On the right to respond</span><span>On the right to respond</span></a>
+</nav>
+
+<main>
+  <header class="masthead">
+    <p class="eyebrow">Canada Revenue Agency · verbatim record</p>
+    <h1>Findings on the FY2024 SR&amp;ED claim</h1>
+    <p class="subject">The Agency's own words, as written. Reproduced so the determinations can be
+    read and quoted without returning to the source PDFs.</p>
+    <div class="facts">
+      <div><span class="k">Claimant</span><span class="v">Tech Mahindra Limited</span></div>
+      <div><span class="k">Reference case</span><span class="v">31874271</span></div>
+      <div><span class="k">Account</span><span class="v">84935 7199 RC0002</span></div>
+      <div><span class="k">Tax year-end</span><span class="v">2024-03-31</span></div>
+      <div><span class="k">Package received</span><span class="v">2026-07-29</span></div>
+    </div>
+  </header>
+
+  <p class="note">Transcribed from the CRA package received 2026-07-29. Page headers, footers and the PROTECTED B markings are removed, and words or sentences split across a page or line break are rejoined. Nothing else is changed — spacing oddities such as `project ,` are the Agency&#x27;s own.</p>
+
+  <section id="project-eligibility-report" class="doc">
+<h2>Project Eligibility Report</h2>
+<p class="prov">Tony Brunner, Research and Technology Advisor · approved by Emmanuel Seitelbach, Research and Technology Manager · Northern Ontario TSO · 16 July 2026</p>
+<blockquote>
+<p>Prepared by Tony Brunner, Research and Technology Advisor. Approved by Emmanuel Seitelbach, Research and Technology Manager. Dated 16 July 2026.</p>
+</blockquote>
+</section>
+<section id="5-1-3-eligibility-determination-project-1-rogers-cbu-wireless-y-in2100170" class="finding">
+<div class="fhead"><span class="fnum">5.1.3 Eligibility determination</span><h3>Project 1: Rogers CBU Wireless Y.IN2100170</h3></div>
+<blockquote>
+<p>Based on the technical information gathered during this review, the work carried out by the Company does not meet the criteria for SR&amp;ED experimental development. No technological uncertainty was encountered.</p>
+<p>The activities described are primarily focused on system modernization, automation, and data pipeline implementation.</p>
+<p>The Company enhanced a legacy BSS to provide near real-time usage visibility by introducing cloud-based processing, file-based data ingestion (SFTP), and automated validation processes. While the reduction in processing time from several hours to minutes represents a significant operational improvement, it reflects performance optimization and system integration, rather than the resolution of a technological uncertainty through experimental investigation.</p>
+<p>The use of simulated CDR data was described as a testing and quality assurance mechanism, where a “golden dataset” was generated to verify that expected attributes (e.g., 72 fields) were correctly represented. This simulation activity was not presented as an effort to investigate unknown system behaviour, but rather as a means of confirming known requirements in a controlled environment. Similarly, issues encountered during the project , such as file parsing errors, newline misinterpretation, null field validation, and differences in CDR generation intervals, were addressed through script adjustments and incorporation of known business rules, not through hypothesis -driven experimentation.</p>
+<p>The challenges related to Kafka integration, SFTP data transfer delays, and voucher file decryption were also described as implementation constraints or access limitations, addressed through temporary scripts and workarounds. These efforts represent engineering solutions to integration and infrastructure limitations, rather than the advancement of technological knowledge.</p>
+<p>Overall, the work as described reflects engineering activities, including system configuration, data processing, validation scripting, and integration of existing technologies. There is no clear evidence of a systematic investigation aimed at resolving uncertainties in the underlying technology, nor of new knowledge being generated beyond the specific implementation context.</p>
+<p>Furthermore, several key elements described in section 244 of the project description - particularly those related to timestamp skew, message ordering behaviour, Kafka runtime uncertainty, and hypothesis -driven experimentation - were not explicitly addressed or demonstrated during the review. As a result, there is a notable gap between the detailed technical characterization of the work in the project description and the facts gathered during the review.</p>
+<p class="sublabel">Documentation</p>
+<p>Reference 5 contains 10 slides covering the E2E architecture, project SharePoint site, test plan approvals, daily status reports, and RTRM project status report. The document does not contain evidence of an experiment, experimental data or analysis of such data in an attempt to uncover new technological knowledge.</p>
+<p>Since there is no work to resolve scientific or technological uncertainty, it follows that the work claimed was not for the advancement of scientific knowledge nor for the purpose of achieving technological advancement .</p>
+<p class="verdict">The work claimed in the project does not meet the definition of SR&amp;ED in subsection 248(1) of the Income Tax Act.</p>
+</blockquote>
+</section>
+<section id="5-2-3-eligibility-determination-project-2-cbt-scotia-qa-managed-service-y-in2201961" class="finding">
+<div class="fhead"><span class="fnum">5.2.3 Eligibility determination</span><h3>Project 2: CBT SCOTIA_QA Managed Service Y.IN2201961</h3></div>
+<blockquote>
+<p>The claimed work did not attempt to resolve scientific or technological uncertainty.</p>
+<p>Based on the work as presented in the review meeting, a technological knowledge gap has not been clearly identified.</p>
+<p>The activities discussed relate to the application and integration of established quality assurance tools and practices, including Appium for mobile testing, Selenium for web testing, Postman for API validation, LeanFT/UFT for mainframe screen automation, and the orchestration of these tools to achieve end-to-end test coverage. While the environment is complex due to the number of applications, technologies, and integration points, the challenges described are consistent with known limitations of heterogeneous enterprise systems and legacy mainframe environments. The work described reflects engineering adaptation, configuration, and coordination of existing technologies rather than an attempt to advance technological knowledge or resolve an uncertainty that could not be addressed through standard software engineering practices.</p>
+<p>In addition, there is a material mismatch between the work described during the review meeting and the activities outlined in section 244 of the project description. The review discussion remained at a high-level and focused on overall testing scope, tool selection, authentication flows, batch timing considerations, and operational sequencing across mobile, web, API, and mainframe systems. In contrast, section 244 describes highly specific, failure-driven experimental activities, including schema-agnostic parsers, checkpoint markers, buffer delay handling, telemetry injection, anomaly clustering, and adaptive script logic. These detailed mechanisms and experimentation cycles were not evidenced or demonstrated in the review discussion, nor were concrete technical artifacts or implementation details presented to substantiate them. As a result, the review discussion does not support the level of technological experimentation or advancement implied in the project description.</p>
+<p class="sublabel">Documentation</p>
+<p>References 10-16 were provided as supporting documents. These documents cover a KPI Dashboard, a screen shot of the home page of an automation tool-stack demo, a slide showing a number of tools, an info share confluence page, and three screen shots of a web portals. The documents do not contain evidence of an experiment, experimental data or analysis of such data in an attempt to uncover new technological knowledge.</p>
+<p>Since there is no work to resolve scientific or technological uncertainty, it follows that the work claimed was not for the advancement of scientific knowledge nor for the purpose of achieving technological advancement.</p>
+<p class="verdict">The work claimed in the project does not meet the definition of SR&amp;ED in subsection 248(1) of the Income Tax Act .</p>
+</blockquote>
+</section>
+<section id="section-6-recommendations-for-future-claims" class="finding">
+<div class="fhead"><span class="fnum">Section 6</span><h3>Recommendations for future claims</h3></div>
+<blockquote>
+<p>The Company should be prepared to clearly explain the work described in the project description during technical reviews.</p>
+<p>The activities discussed in the review should align closely with the work outlined in the submitted documentation, including the technical challenges, approaches taken, and outcomes achieved. Consistency between the written project description and verbal explanations is essential to demonstrate that the claimed work accurately reflects the actual activities performed.</p>
+</blockquote>
+</section>
+<section id="audit-adjustments-working-paper-kitty-leung-22-july-2026" class="doc">
+<h2>Audit Adjustments working paper — Kitty Leung, 22 July 2026</h2>
+<p class="prov">Kitty Leung, Financial Reviewer · 22 July 2026</p>
+</section>
+<section id="note-1-salaries-projects-1-and-2-and-contracts-projects-1-and-2" class="finding">
+<div class="fhead"><span class="fnum">Note 1</span><h3>salaries, Projects 1 and 2, and contracts, Projects 1 and 2</h3></div>
+<blockquote>
+<p>Adjustments as per Project Eligibility Report.</p>
+</blockquote>
+</section>
+<section id="note-2-non-specified-employee-salaries-projects-3-to-7" class="finding">
+<div class="fhead"><span class="fnum">Note 2</span><h3>non-specified employee salaries, Projects 3 to 7</h3></div>
+<blockquote>
+<p>A request was made for salary breakdown of all projects in the request for additional information letter dated May 7, 2026. Documentation was submitted for</p>
+<p>Project 1 and Project 2, but no documentation was provided by the claimant for the salary breakdowns for Project 3 to Project 7. The hours and salaries claimed for SR&amp;ED in Project 3 to Project 7 are unsubstantiated since breakdown of hours or support by activity was not provided. There is no distinction between regular work and SR&amp;ED work. No information was provided to verify which employees were involved in each project.</p>
+<p>For future claims, the categorization of amounts claimed per project in the T661 must match the data that is provided by the documentation provided. There needs to be a breakdown of monthly hours for each employee claimed indicating SR&amp;ED and non-SR&amp;ED activities for each project.</p>
+</blockquote>
+</section>
+<section id="note-2-arm-s-length-contracts-projects-3-to-6" class="finding">
+<div class="fhead"><span class="fnum">Note 2</span><h3>arm&#x27;s length contracts, Projects 3 to 6</h3></div>
+<blockquote>
+<p>A request for additional information letter dated May 7, 2026 was sent requesting documentation to substantiate the arm&#x27;s length contract claimed. No documentation was submitted and contracts claimed were not supported. Extent of hours claimed per contractor cannot be verified. There was no distinction between SR&amp;ED and R&amp;D activities. No documentation provided to verify the taxable status of ultimate performers.</p>
+</blockquote>
+</section>
+<section id="note-3-arm-s-length-contracts-project-7" class="finding">
+<div class="fhead"><span class="fnum">Note 3</span><h3>arm&#x27;s length contracts, Project 7</h3></div>
+<blockquote>
+<p class="verdict">No contracts claimed.</p>
+</blockquote>
+</section>
+<section id="proposal-letter-kitty-leung-financial-reviewer-30-july-2026" class="doc">
+<h2>Proposal letter — Kitty Leung, Financial Reviewer, 30 July 2026</h2>
+<p class="prov">Kitty Leung, Financial Reviewer · Business Tax Incentive Programs · 30 July 2026</p>
+<blockquote>
+<p>We have completed the review of your SR&amp;ED claim. Based on the information provided during our review, we have determined that not all of the work claimed meets the requirements of the Income Tax Act. Please see the attached</p>
+<p>Project Eligibility Report for a detailed explanation of our evaluation of the work claimed.</p>
+<p>We are proposing to make adjustments to the SR&amp;ED expenditures and investment tax credit(s) (ITC) claimed as follows:</p>
+<p>Tax year-end: 2024-03-31</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Line item</th><th>Filed</th><th>Revised by CRA</th><th>Difference</th></tr></thead><tbody>
+<tr><td>Total allowable SR&amp;ED expenditures (A-32)</td><td>$2,280,889</td><td>$0</td><td>$2,280,889</td></tr>
+<tr><td>Qualified SR&amp;ED expenditures (A-32)</td><td>$3,191,076</td><td>$0</td><td>$3,191,076</td></tr>
+<tr><td>Federal investment tax credits (ITC) earned (A-31)</td><td>$478,661</td><td>$0</td><td>$478,661</td></tr>
+<tr><td>Provincial/territorial tax credit (ORDTC) (A-508)</td><td>$115,738</td><td>$0</td><td>$115,738</td></tr>
+<tr><td>Net Income (loss) for tax purposes (A-1)</td><td>$21,777,058</td><td>$21,407,483</td><td>$369,575</td></tr>
+<tr><td>Taxable income (A-1)</td><td>$21,777,058</td><td>$21,407,483</td><td>$369,575</td></tr>
+</tbody></table></div>
+<p>The amount on line 435 in the T661 (A-32) was adjusted from Filed $467,727 to Revised by CRA $175,850.The revised amount is based on the adjusted amount of ITCs reassessed in the 2023-03-31 taxation year. This recapture of SR&amp;ED expenditures from the T661 has adjusted your Net Income for Tax Purposes and Taxable Income.</p>
+<p>The proposed adjustments are explained the attached Summary of adjustments.</p>
+<p>Details of the proposed adjustments and the associated financial and tax implications are provided in the additional attached documents.</p>
+<p>We will delay processing these proposed adjustments until August 31, 2026, in order to give you an opportunity to accept the proposed adjustments or to provide written representations and additional information that you would like us to consider.</p>
+</blockquote>
+</section>
+<section id="on-the-right-to-respond" class="finding">
+<div class="fhead"><span class="fnum">On the right to respond</span></div>
+<blockquote>
+<p>If you would like us to process the claim prior to August 31, 2026, please sign and return the attached Summary of adjustments. If you do not respond by this date, we will proceed with the proposed adjustments explained above and in the Summary of adjustments and an assessment will follow in due course.</p>
+<p>If you feel that your concerns have not been satisfactorily addressed after discussions with the research and technology advisor or the financial reviewer and their respective managers, you can request an Administrative Review. You will find information about the Administrative Review at Guidelines for resolving claimants’ SR&amp;ED concerns - Canada.ca.</p>
+</blockquote>
+</section>
+
+  <footer>
+    Everything above is the Canada Revenue Agency's text, not Certainti's assessment of it.
+    Our analysis of these findings is a separate document.
+    <br><br>
+    <strong>Protected B — client material.</strong> Do not distribute outside the
+    Certainti.AI engagement team.
+  </footer>
+</main>
+</div>
+
+<div class="band">Protected B — Protégé B</div>

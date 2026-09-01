@@ -17,6 +17,8 @@ and the rules this engagement works under.
 | `build_docs.py` | Renders `drafts/` to `documents/` in the house format. |
 | `verify_arithmetic.py` | Re-computes every figure in the CRA package. 20 checks, all passing. |
 | `analyse_client_records.py` | Analyses the client records received Aug 26: timesheet coverage per project, narrative hours against system hours, and the rate actually applied per employee. Source files stay in the engagement bundle. |
+| `CRA_findings_verbatim.md` | The Agency's determinations, adjustment notes and proposal letter, transcribed verbatim. Quote from here rather than the PDFs. |
+| `CRA_Findings_Case_31874271.html` | The same text as a standalone reference page, generated from the markdown by `build_cra_findings_page.py`. |
 | `TM_SRED_Audit_Defence_Report.html` | The full assessment as a shareable page — CRA position, verified arithmetic, options, project-by-project drill-down, lessons, process gates, timeline. Published as a private Artifact; sharing is a deliberate act from the page's share menu. |
 
 The CRA source documents (proposal letter, Project Eligibility Report, Audit
