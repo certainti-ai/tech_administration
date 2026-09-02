@@ -51,6 +51,36 @@ FIELDS = {
     "bizBlock": "customfield_10458",
 }
 
+# Canonical hue order for workflow statuses, in rough pipeline order.
+#
+# Hues MUST NOT be assigned from the statuses present in a given read. Jira
+# columns come and go between refreshes (``Prod Financial working verification``
+# vanished for a week and came back), and deriving the order from what happens
+# to be present shifts every later status's colour when one is inserted — so the
+# same column changes colour twice a day for no reason.
+#
+# There are more statuses here than palette slots, so the order matters: it is
+# arranged so statuses that co-occur in practice land on different slots. A
+# status not listed here is appended, and past the slot count hues repeat —
+# acceptable because every bar carries its name and count, and the detail table
+# carries the values. Add new statuses to this list rather than relying on the
+# fallback.
+STATUS_HUE_ORDER = [
+    "To Do",
+    "In Progress",
+    "PreProd Data Imported",
+    "PreProd Fiancial working Verified",  # the typo is Jira's; matching it is required
+    "Claude Data Validated",
+    "Validated By business team",
+    "Data Import in Production",
+    "Prod Financial working verification",
+    "Prod Forms Validation",
+    "Done",
+    "Data Issue",
+    "Issues",
+    "ON Hold",
+]
+
 IST = zoneinfo.ZoneInfo("Asia/Kolkata")
 
 # Zero-width and bidi controls that Jira comments pick up from pasted content.
@@ -207,9 +237,11 @@ def build(rows: list[dict], template: Path, read_at: dt.datetime) -> str:
     ).split()
     slim = [{k: r.get(k) for k in keep} for r in rows]
 
-    # Fixed, count-independent hue assignment: a status keeps its colour when
-    # another status is filtered away.
-    status_order = sorted({r["status"] for r in rows})
+    # Fixed hue assignment, independent of both counts and presence: a status
+    # keeps its colour when another is filtered away *and* across refreshes.
+    present = {r["status"] for r in rows}
+    unknown = sorted(present - set(STATUS_HUE_ORDER))
+    status_order = STATUS_HUE_ORDER + unknown
 
     meta = {
         "today": read_at.date().isoformat(),
@@ -264,6 +296,10 @@ def main() -> None:
             key=lambda kv: -kv[1])))
     if missing:
         print(f"  WARNING: no Migration Status on {len(missing)}: {', '.join(missing)}")
+    new_statuses = sorted({r["status"] for r in rows} - set(STATUS_HUE_ORDER))
+    if new_statuses:
+        print("  NOTE: workflow status not in STATUS_HUE_ORDER, hue may repeat: "
+              + ", ".join(new_statuses))
 
 
 if __name__ == "__main__":

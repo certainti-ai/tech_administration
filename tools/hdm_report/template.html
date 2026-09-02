@@ -483,8 +483,17 @@ const STAGES = [
    global, never by count — so filtering a status out never repaints the rest. */
 const STATUS_ORDER = __STATUS_ORDER__;
 const SLOTS = ["#3D7EC4","#DE6B3A","#2A9E76","#C9931A","#D9799F","#2F7D2F","#5A4BA8","#CF4A49"];
-const STATUS_C = {};
-STATUS_ORDER.forEach((n,i)=>{ STATUS_C[n] = SLOTS[i % SLOTS.length]; });
+/* More statuses exist than palette slots, so hues repeat past the eighth. The
+   repeat carries a diagonal stripe, which keeps a status distinguishable from
+   its hue twin when both are on screen (an earlier read had ten statuses at
+   once, with In Progress and Done sharing a hue). */
+const STATUS_C = {}, STATUS_STRIPE = {};
+STATUS_ORDER.forEach((n,i)=>{
+  STATUS_C[n] = SLOTS[i % SLOTS.length];
+  STATUS_STRIPE[n] = Math.floor(i / SLOTS.length) > 0;
+});
+const stripeCss = c =>
+  `repeating-linear-gradient(45deg, ${c} 0 7px, rgba(255,255,255,.26) 7px 10px)`;
 const SK = STAGES.map(s=>s.k), SC = {}, SS = {};
 STAGES.forEach(s=>{SC[s.k]=s.c; SS[s.k]=s.s;});
 const MAG="#4E9A94", INK="#1A1A2E", INK2="#4A4A5C", INK3="#7C7C90", LINE="#E6E6EE", LINE2="#D2D2DE", SURF="#FFFFFF";
@@ -558,7 +567,7 @@ function rowChart(host, rows, opts={}){
     const parts = r.parts.filter(p=>p.v > 0);
     parts.forEach(p=>{
       const seg = document.createElement("span");
-      seg.style.background = p.c;
+      seg.style.background = p.striped ? stripeCss(p.c) : p.c;
       seg.style.flex = p.v + " 1 0";
       bar.appendChild(seg);
       const solo = parts.length === 1;   // a single-series row would repeat its own name
@@ -835,7 +844,7 @@ function table(rs){
       <td class="cust">${esc(r.customer)}${r.bizBlock?' <span class="chip c-crit"><span class="ic">●</span>blocked</span>':''}</td>
       <td>${esc(r.jurisdiction)}</td>
       <td class="num">${esc(r.fiscal)}</td>
-      <td><span class="stagepip"><span class="pip" style="background:${STATUS_C[r.status]||MAG}"></span>${esc(r.status)}</span></td>
+      <td><span class="stagepip"><span class="pip" style="background:${STATUS_STRIPE[r.status]?stripeCss(STATUS_C[r.status]):(STATUS_C[r.status]||MAG)}"></span>${esc(r.status)}</span></td>
       <td><span class="stagepip"><span class="pip" style="background:${SC[r.migStatus]}"></span>${esc(SS[r.migStatus]||r.migStatus)}</span></td>
       <td class="num">${plannedCell}</td>
       <td>${esc(r.assignee||"—")}</td>
@@ -873,7 +882,7 @@ function render(){
 
   const st = tally(rs,"status");
   const stItems = Object.entries(st).sort((a,b)=>b[1]-a[1])
-    .map(([l,v])=>({l, total:v, parts:[{v, c:STATUS_C[l]||MAG, n:l}]}));
+    .map(([l,v])=>({l, total:v, parts:[{v, c:STATUS_C[l]||MAG, striped:STATUS_STRIPE[l], n:l}]}));
   rowChart(el("ch-status"), stItems, {lab:186, total:rs.length, aria:"tasks by workflow status"});
   const doneCat = rs.filter(r=>r.statusCat==="Done").length;
   el("ins-status").innerHTML = `Jira files <b>${doneCat}</b> of these in its green <i>Done</i> category, because <i>Prod Forms Validation</i> is mapped there — while Migration Status counts <b>${mig["Completed"]||0}</b> completed. Trust the latter.`;
