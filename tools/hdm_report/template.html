@@ -143,6 +143,18 @@ svg{display:block;max-width:100%;overflow:visible}
 .mnote{font-size:11.5px;color:var(--ink-3);margin:14px 0 0;line-height:1.55;max-width:92ch}
 .mnote b{color:var(--ink-2);font-weight:600}
 
+.method .mh{justify-content:flex-start}
+.disclose{
+  margin-left:auto;font:inherit;font-size:12px;font-weight:600;color:var(--ink-2);
+  background:var(--sunk);border:1px solid var(--line-2);border-radius:7px;
+  padding:5px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px
+}
+.disclose:hover{background:var(--neut-bg);color:var(--ink)}
+.disclose .chev{font-size:9px;line-height:1;transition:transform .18s ease}
+.disclose[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+@media (prefers-reduced-motion:reduce){.disclose .chev{transition:none}}
+.mshort{margin:8px 0 0;font-size:12.5px;color:var(--ink-2);line-height:1.6;max-width:92ch}
+
 /* ── silent-24h card ── */
 .s24grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:22px;align-items:start}
 @media (max-width:900px){.s24grid{grid-template-columns:minmax(0,1fr)}}
@@ -266,7 +278,18 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
 </header>
 
 <section class="method">
-  <div class="mh"><h2>Methodology &amp; scope</h2></div>
+  <div class="mh">
+    <h2>Methodology &amp; scope</h2>
+    <button class="disclose" id="mtoggle" aria-expanded="true" aria-controls="mbody">
+      <span id="mtoggletext">Hide</span><span class="chev" aria-hidden="true">▾</span>
+    </button>
+  </div>
+  <p class="mshort" id="mshort" hidden>
+    Tasks only · <b class="sb">no state-level forms for US or Canada historical submissions</b>
+    · Canada keeps its original calculation logic · progress follows Migration Status, not Jira's
+    <i>Done</i> category · refreshed twice daily.
+  </p>
+  <div id="mbody">
   <p class="mlead">
     This report tracks the migration of historical R&amp;D tax-credit submissions onto the platform.
     One task per <b class="sb">customer / jurisdiction / fiscal year</b> combination. Read the scope
@@ -313,6 +336,7 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
   </div>
 
   <p class="mnote" id="mcaveat"></p>
+  </div>
 </section>
 
 <div class="filters">
@@ -1045,6 +1069,23 @@ fillSelect("f-fy","fiscal","years");
 fillSelect("f-mig","migStatus","stages");
 fillSelect("f-st","status","statuses");
 fillSelect("f-as","assignee","assignees");
+/* Methodology disclosure. Defaults open — the US/Canada exclusions change how
+   every number reads — and remembers the reader's choice. When collapsed, a
+   one-line summary keeps those exclusions on screen rather than hiding them. */
+const M_KEY = "hdm.methodology.open";
+function setMethodOpen(open){
+  el("mbody").hidden = !open;
+  el("mshort").hidden = open;
+  el("mtoggle").setAttribute("aria-expanded", open);
+  el("mtoggletext").textContent = open ? "Hide" : "Show";
+  try { localStorage.setItem(M_KEY, open ? "1" : "0"); } catch (e) { /* private mode */ }
+}
+el("mtoggle").addEventListener("click", () =>
+  setMethodOpen(el("mtoggle").getAttribute("aria-expanded") !== "true"));
+let mOpen = true;
+try { mOpen = localStorage.getItem(M_KEY) !== "0"; } catch (e) { /* unreadable, stay open */ }
+setMethodOpen(mOpen);
+
 el("f-q").addEventListener("input", e=>{ F.q = e.target.value.trim().toLowerCase(); render(); });
 el("f-clear").addEventListener("click", ()=>{
   Object.keys(F).forEach(k=>F[k]="");
