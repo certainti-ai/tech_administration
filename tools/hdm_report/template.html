@@ -290,7 +290,7 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
     <div class="mcell">
       <h3>What counts as progress</h3>
       <p><b class="sb">Migration Status</b> is the field of record and drives every number here.</p>
-      <p>Jira's own status categories disagree: the <code>Prod Forms Validation</code> column is mapped to Jira's green <i>Done</i> category, so a stock Jira progress bar reads far more complete than the team's own tracking does. Where the two differ, this report follows Migration Status.</p>
+      <p id="mdonegap">Jira's own status categories can disagree with it: a column mapped to Jira's green <i>Done</i> category counts as done in any stock Jira progress bar even while the migration is still open. Where the two differ, this report follows Migration Status.</p>
     </div>
 
     <div class="mcell">
@@ -878,6 +878,13 @@ function render(){
   const rs = visible();
   el("fcount").innerHTML = `<b>${rs.length}</b> of ${ROWS.length} tasks`;
   dupNote();
+  const dc = ROWS.filter(r=>r.statusCat==="Done").length, dcComp = ROWS.filter(r=>r.migStatus==="Completed").length;
+  el("mdonegap").innerHTML = `Jira's own status categories can disagree with it: a column mapped to Jira's green `
+    + `<i>Done</i> category counts as done in any stock Jira progress bar even while the migration is still open. `
+    + (dc===dcComp
+        ? `Right now the two agree at <b class="sb">${dcComp}</b>.`
+        : `Right now Jira would read <b class="sb">${dc} of ${ROWS.length}</b> against Migration Status's <b class="sb">${dcComp}</b>.`)
+    + ` Where they differ, this report follows Migration Status.`;
   const usCa = ROWS.filter(r=>r.jurisdiction==="USA"||r.jurisdiction==="Canada").length;
   el("mcaveat").innerHTML = `<b>${usCa} of ${ROWS.length} tasks (${Math.round(usCa/ROWS.length*100)}%) sit in the two `+
     `jurisdictions above</b> — USA ${ROWS.filter(r=>r.jurisdiction==="USA").length}, `+
@@ -898,8 +905,33 @@ function render(){
   const stItems = Object.entries(st).sort((a,b)=>b[1]-a[1])
     .map(([l,v])=>({l, total:v, parts:[{v, c:STATUS_C[l]||MAG, striped:STATUS_STRIPE[l], n:l}]}));
   rowChart(el("ch-status"), stItems, {lab:186, total:rs.length, aria:"tasks by workflow status"});
-  const doneCat = rs.filter(r=>r.statusCat==="Done").length;
-  el("ins-status").innerHTML = `Jira files <b>${doneCat}</b> of these in its green <i>Done</i> category, because <i>Prod Forms Validation</i> is mapped there — while Migration Status counts <b>${mig["Completed"]||0}</b> completed. Trust the latter.`;
+  // Which columns Jira files as "Done" changes as the workflow is edited, and the
+  // gap against Migration Status opens and closes — so name the columns actually
+  // responsible in this read, and only claim a discrepancy when there is one.
+  const doneCatRows = rs.filter(r=>r.statusCat==="Done");
+  const doneCat = doneCatRows.length;
+  const comp = mig["Completed"]||0;
+  const overstating = [...new Set(doneCatRows.filter(r=>r.migStatus!=="Completed").map(r=>r.status))];
+  // Equal totals do not mean the same tasks: a column filed as Done while open can
+  // be offset by a Completed task sitting in an open column. Say which it is.
+  const openInDone = doneCatRows.filter(r=>r.migStatus!=="Completed");
+  const doneNotInCol = rs.filter(r=>r.migStatus==="Completed" && r.statusCat!=="Done");
+  const colNames = [...new Set(openInDone.map(r=>r.status))];
+  const cols = colNames.map(x=>`<i>${esc(x)}</i>`).join(" and ");
+  el("ins-status").innerHTML = !rs.length
+    ? "No tasks in the current filter."
+    : doneCat !== comp
+      ? `Jira files <b>${doneCat}</b> of these in its green <i>Done</i> category against Migration Status's `
+        + `<b>${comp}</b> completed`
+        + (openInDone.length ? `, because ${cols} ${colNames.length===1?"is":"are"} mapped there while still open` : "")
+        + `. Trust Migration Status.`
+      : openInDone.length
+        ? `Both read <b>${comp}</b>, but not the same <b>${comp}</b>: `
+          + `${openInDone.length} ${openInDone.length===1?"sits":"sit"} in ${cols} while still open `
+          + `(${openInDone.map(r=>r.key).join(", ")}), `
+          + `offset by ${doneNotInCol.length} complete outside a done column (${doneNotInCol.map(r=>r.key).join(", ")}). `
+          + `Trust Migration Status.`
+        : `Jira's <i>Done</i> category and Migration Status agree at <b>${comp}</b>, on the same tasks.`;
 
   // schedule
   const dated = rs.filter(r=>r.planned);
