@@ -948,7 +948,13 @@ function render(){
     : doneCat !== comp
       ? `Jira files <b>${doneCat}</b> of these in its green <i>Done</i> category against Migration Status's `
         + `<b>${comp}</b> completed`
-        + (openInDone.length ? `, because ${cols} ${colNames.length===1?"is":"are"} mapped there while still open` : "")
+        + (openInDone.length
+            ? `, because ${cols} ${colNames.length===1?"is":"are"} mapped there while still open`
+            : doneNotInCol.length
+              ? `, because ${doneNotInCol.length} complete task${doneNotInCol.length===1?"":"s"} `
+                + `${doneNotInCol.length===1?"sits":"sit"} outside a done column `
+                + `(${doneNotInCol.map(r=>r.key).join(", ")})`
+              : "")
         + `. Trust Migration Status.`
       : openInDone.length
         ? `Both read <b>${comp}</b>, but not the same <b>${comp}</b>: `
