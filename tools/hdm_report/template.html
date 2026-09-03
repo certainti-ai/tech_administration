@@ -413,7 +413,7 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
   <div class="card">
     <div class="chead"><div class="ct"><h2>Assignee workload</h2></div>
       <div class="toggle" role="group" aria-label="Scale"><button data-sc="n" data-t="as" aria-pressed="true">Count</button><button data-sc="p" data-t="as" aria-pressed="false">Share</button></div></div>
-    <p class="csub">Open tasks per owner, split by migration status.</p>
+    <p class="csub">Who is holding open work right now, split by migration status. Completed tasks are excluded — they are nobody's load.</p>
     <div class="legend" id="lg-as"></div><div id="ch-as"></div>
     <div class="insight" id="ins-as"></div>
   </div>
@@ -497,6 +497,7 @@ ROWS.forEach(r=>{
   r.customer     = r.customer     || NOT_SET;
   r.jurisdiction = r.jurisdiction || NOT_SET;
   r.fiscal       = r.fiscal       || NOT_SET;
+  r.assignee     = r.assignee     || "Unassigned";
   r.hoursSilent  = r.lastActivityAt
     ? (READ_AT - new Date(r.lastActivityAt)) / 36e5
     : Infinity;
@@ -577,7 +578,7 @@ function colBarPath(x,y,w,h,r){
       label without clipping); the legend and tooltip carry them instead. ── */
 function rowChart(host, rows, opts={}){
   host.innerHTML = "";
-  if(!rows.length){ host.innerHTML = '<p class="empty">No tasks match</p>'; return; }
+  if(!rows.length){ host.innerHTML = `<p class="empty">${esc(opts.empty || "No tasks match")}</p>`; return; }
   const pct  = opts.scale === "p";
   const max  = Math.max(1, ...rows.map(r=>r.total));
   const wrap = document.createElement("div");
@@ -974,17 +975,21 @@ function render(){
     : "No planned dates in the current filter.";
 
   // coverage
-  const mk4 = (host,lg,field,ins,order) => {
-    const gs = groupsBy(rs, field, order);
-    legend(el(lg), tally(rs,"migStatus"));
+  // Completed work is excluded from the assignee chart: it answers "who is holding
+  // what right now", and a finished task is nobody's load.
+  const openRows = rs.filter(r=>r.migStatus!=="Completed");
+  const mk4 = (host,lg,field,ins,order,src,empty) => {
+    const rows = src || rs;
+    const gs = groupsBy(rows, field, order);
+    legend(el(lg), tally(rows,"migStatus"));
     rowChart(el(host), gs, {scale:SCALE[ins], lab:field==="fiscal"?70:150,
-      total:rs.length, aria:field+" by migration status"});
+      total:rows.length, empty, aria:field+" by migration status"});
     return gs;
   };
   mk4("ch-jur","lg-jur","jurisdiction","jur");
   mk4("ch-fy","lg-fy","fiscal","fy",(a,b)=>a.localeCompare(b));
   mk4("ch-cust","lg-cust","customer","cust");
-  mk4("ch-as","lg-as","assignee","as");
+  mk4("ch-as","lg-as","assignee","as",null,openRows,"No open work in this filter");
 
   const jg = groupsBy(rs,"jurisdiction");
   if(jg.length){
@@ -1005,13 +1010,15 @@ function render(){
     ? `<b>${esc(cg[0].l)}</b> is the largest engagement with <b>${cg[0].total}</b> tasks; ${cg.filter(g=>g.total===1).length} of ${cg.length} customers have just one.`
     : "No tasks in the current filter.";
 
-  const ag = groupsBy(rs,"assignee");
+  const ag = groupsBy(openRows,"assignee");
   const specialised = ag.filter(g=>g.total>=3 && g.parts.filter(p=>p.v>0).length===1);
-  el("ins-as").innerHTML = ag.length
-    ? (specialised.length
+  el("ins-as").innerHTML = !ag.length
+    ? (rs.length ? `Every task in this filter is complete — no open work is assigned.`
+                 : "No tasks in the current filter.")
+    : (specialised.length
       ? `Ownership is split by stage, not by customer: ${specialised.map(g=>`<b>${esc(g.l)}</b> holds all ${g.total} at <i>${esc(SS[g.parts.find(p=>p.v>0).k])}</i>`).join("; ")}. Work moves owner as it changes stage.`
-      : `${ag.length} owner${ag.length===1?"":"s"} across ${rs.length} tasks.`)
-    : "No tasks in the current filter.";
+      : `<b>${openRows.length}</b> open task${openRows.length===1?"":"s"} across ${ag.length} owner${ag.length===1?"":"s"}`
+        + `; heaviest is <b>${esc(ag[0].l)}</b> with ${ag[0].total}. ${rs.length-openRows.length} completed task${rs.length-openRows.length===1?"":"s"} excluded.`);
 
   // recency
   const b = {a:0,b:0,c:0,d:0};
