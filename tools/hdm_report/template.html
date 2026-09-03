@@ -75,14 +75,22 @@ input[type=search]::placeholder{color:var(--ink-3)}
 .clear:hover{background:var(--neut-bg)}
 
 /* ── stat tiles ── */
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:1px;background:var(--line);
-  border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:22px 0 26px}
-.tile{background:var(--card);padding:15px 16px 14px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:1px;
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  overflow:hidden;margin:22px 0 26px}
+.tile{background:var(--card);padding:15px 16px 14px;display:flex;flex-direction:column;gap:3px;
+  min-width:0;box-shadow:0 0 0 1px var(--line)}
 .tile .tl{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
 .tile .tv{font-size:29px;font-weight:600;line-height:1.05;letter-spacing:-.03em}
 .tile .tn{font-size:11.5px;color:var(--ink-2);line-height:1.35}
+.tile .meter{display:block;height:5px;border-radius:3px;background:var(--sunk);
+  overflow:hidden;margin:5px 0 4px}
+.tile .meterfill{display:block;height:100%;border-radius:3px;background:var(--good);
+  min-width:2px;transition:width .25s ease}
+@media (prefers-reduced-motion:reduce){.tile .meterfill{transition:none}}
 .tile.acc-crit .tv{color:var(--crit-fg)} .tile.acc-warn .tv{color:var(--warn-fg)}
 .tile.acc-good .tv{color:var(--good-fg)} .tile.acc-mag .tv{color:var(--mag)}
+.tile:has(.meter) .tv{color:var(--good-fg)}
 
 /* ── cards & grid ── */
 .grid{display:grid;gap:18px;margin-bottom:18px}
@@ -765,7 +773,8 @@ function tiles(rs){
   const pc = n? Math.round(done/n*100):0;
   const T = [
     ["Tasks in scope", n, `${custs} customers · ${jurs} jurisdictions`, ""],
-    ["Completed", `${done}`, `${pc}% of scope · ${n-done} still in flight`, done?"acc-good":""],
+    ["Complete", `${pc}%`, `${done} of ${n} migrations signed off`, pc>=100?"acc-good":"", n?done/n:0],
+    ["Still in flight", n-done, `${done} signed off · ${n} in scope`, ""],
     ["Waiting on code fix", codefix, n?`${Math.round(codefix/n*100)}% of scope — largest single blocker`:"—", codefix?"acc-warn":""],
     ["Waiting on business", bizval, "validation sign-off outstanding", ""],
     ["Due next 14 days", next14, `${dated} of ${n} carry a planned date`, "acc-mag"],
@@ -774,8 +783,13 @@ function tiles(rs){
     ["Quiet 15+ days", stale, `${silent} have never been commented on`, stale?"acc-warn":""],
     ["Silent 24h", s24, n?`${Math.round(s24/n*100)}% had no comment since the last working day`:"—", s24?"acc-warn":"acc-good"]
   ];
-  el("tiles").innerHTML = T.map(([l,v,nn,c])=>
-    `<div class="tile ${c}"><span class="tl">${esc(l)}</span><span class="tv num">${esc(v)}</span><span class="tn">${esc(nn)}</span></div>`
+  el("tiles").innerHTML = T.map(([l,v,nn,c,meter])=>
+    `<div class="tile ${c}"><span class="tl">${esc(l)}</span><span class="tv num">${esc(v)}</span>`
+    + (meter!==undefined
+        ? `<span class="meter" role="img" aria-label="${Math.round(meter*100)} percent complete">`
+          + `<span class="meterfill" style="width:${(meter*100).toFixed(1)}%"></span></span>`
+        : "")
+    + `<span class="tn">${esc(nn)}</span></div>`
   ).join("");
 }
 
