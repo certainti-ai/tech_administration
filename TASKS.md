@@ -7,11 +7,12 @@ app and are deliberately not committed here — this repository is visible to th
 The app's "Copy Markdown" button, used while presenting to the team, produces this list.
 
 - [ ] ONroute Rollout Strategy — due 2026-08-31
-- [ ] Infosys Infosec Document — due 2026-08-31
 - [ ] GTM Action Items — due 2026-09-04
 - [ ] Build Mailbox Migration Script — due 2026-09-04
 - [ ] Set up AWS S3 for ONroute integration — due 2026-09-04
 - [ ] Team Laptop Procurement — no due date
 - [ ] Executive Dashboard — no due date
 - [ ] Send Certainti.AI Screenshots — no due date
+- [ ] Investigate Tech M Canada audit-related projects in Web — no due date
+- [x] Infosys Infosec Document — due 2026-08-31
 - [x] Fix LTTS mailbox rejection between resdev and certainti — no due date
