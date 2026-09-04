@@ -226,39 +226,75 @@ def _b64(raw: bytes) -> str:
 
 
 def _unb64(value: str) -> bytes:
+    """
+    Decode, or raise :class:`ValueError`.
+
+    ``base64`` raises ``binascii.Error`` for a string it cannot decode, and every
+    caller here is handling a cookie an attacker chooses. Unhandled, that is a 500
+    from a one-byte request. ``binascii.Error`` subclasses ``ValueError``, so the
+    callers catch the one thing.
+    """
     return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
 
 
-def sign(payload: dict[str, Any], secret: str) -> str:
+#: Marks what a signed token is for. Both tokens here are signed with the same
+#: secret, and without this the two are one type: a session cookie presented as
+#: the in-flight flow cookie is a payload the callback then reads fields off that
+#: are not there. Stamping the purpose and checking it on the way back in makes
+#: each token usable only where it was issued for.
+PURPOSE_FLOW = "flow"
+PURPOSE_SESSION = "session"
+
+
+def sign(payload: dict[str, Any], secret: str, *, purpose: str | None = None) -> str:
     """
     A signed, unencrypted token: ``<base64 payload>.<base64 hmac>``.
 
     Deliberately not a JWT. Nothing here needs the algorithm to be negotiable, and
     an algorithm field an attacker can set is the single most common way JWT
     verification is got wrong. One algorithm, chosen here, not stated in the token.
+
+    ``purpose`` is stamped into the payload as ``typ`` and checked by
+    :func:`unsign`. It is signed along with everything else, so it cannot be
+    changed without the secret.
     """
     import hmac
 
+    if purpose is not None:
+        payload = {**payload, "typ": purpose}
     body = _b64(json.dumps(payload, separators=(",", ":"), sort_keys=True).encode())
     mac = hmac.new(secret.encode(), body.encode(), hashlib.sha256).digest()
     return f"{body}.{_b64(mac)}"
 
 
-def unsign(token: str, secret: str) -> dict[str, Any] | None:
-    """The payload if the signature holds and it has not expired, else ``None``."""
+def unsign(token: str, secret: str, *, purpose: str | None = None) -> dict[str, Any] | None:
+    """
+    The payload if the signature holds, the purpose matches and it has not
+    expired, else ``None``.
+
+    Every branch returns ``None`` rather than raising. The argument is a cookie,
+    which is to say a string an unauthenticated caller chose: a malformed one has
+    to be an anonymous request, not a stack trace.
+    """
     import hmac
 
     body, _, provided = token.partition(".")
     if not body or not provided:
         return None
     expected = hmac.new(secret.encode(), body.encode(), hashlib.sha256).digest()
-    if not hmac.compare_digest(_unb64(provided), expected):
+    try:
+        signature = _unb64(provided)
+    except ValueError:
+        return None
+    if not hmac.compare_digest(signature, expected):
         return None
     try:
         payload = json.loads(_unb64(body))
     except (ValueError, json.JSONDecodeError):
         return None
     if not isinstance(payload, dict):
+        return None
+    if purpose is not None and payload.get("typ") != purpose:
         return None
     if payload.get("exp", 0) < time.time():
         return None
@@ -319,6 +355,7 @@ def start(config: EntraConfig, *, return_to: str = "/") -> Started:
             "exp": int(time.time()) + FLOW_SECONDS,
         },
         config.session_secret,
+        purpose=PURPOSE_FLOW,
     )
     return Started(url=f"{config.authorize_endpoint}?{query}", flow_cookie=flow)
 
@@ -499,6 +536,7 @@ def session_for(principal: Principal, config: EntraConfig, *, now: float | None 
             "exp": issued + SESSION_SECONDS,
         },
         config.session_secret,
+        purpose=PURPOSE_SESSION,
     )
 
 
@@ -506,7 +544,7 @@ def principal_from_session(cookie: str | None, config: EntraConfig) -> Principal
     """The signed-in person a session cookie names, or ``None``."""
     if not cookie:
         return None
-    payload = unsign(cookie, config.session_secret)
+    payload = unsign(cookie, config.session_secret, purpose=PURPOSE_SESSION)
     if payload is None or not payload.get("sub"):
         return None
     roles = frozenset(

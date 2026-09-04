@@ -43,21 +43,45 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
+      # `ref` is a dispatch input, and it used to be interpolated straight into
+      # the shell below — twice: once into the runner's shell by `${{ }}`, and
+      # once into a command string that `az vm run-command` executes on the VM.
+      # A ref of `main'; curl … | sh; '` therefore ran on both. Neither is a
+      # place to discover that a branch name is arbitrary text, so the name is
+      # checked against what a git ref may contain before it is used, and is
+      # passed through the environment rather than pasted into the script.
+      - name: Check the ref is a ref
+        env:
+          REF: ${{ inputs.ref }}
+        run: |
+          case "$REF" in
+            *[!A-Za-z0-9./_-]* | "" | -* | */ | *..*)
+              echo "::error::'$REF' is not a plain branch or tag name."
+              exit 1 ;;
+          esac
+          echo "REF=$REF" >> "$GITHUB_ENV"
+
       - name: Deploy
         if: ${{ !inputs.verify_only }}
+        env:
+          RESOURCE_GROUP: ${{ vars.MAINTENANCE_RESOURCE_GROUP }}
+          VM_NAME: ${{ vars.MAINTENANCE_VM_NAME }}
         run: |
           az vm run-command invoke \
-            --resource-group "${{ vars.MAINTENANCE_RESOURCE_GROUP }}" \
-            --name "${{ vars.MAINTENANCE_VM_NAME }}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$VM_NAME" \
             --command-id RunShellScript \
-            --scripts "sudo -u trd365 TRD365_BRANCH='${{ inputs.ref }}' /opt/trd365/deploy.sh" \
+            --scripts "sudo -u trd365 TRD365_BRANCH='$REF' /opt/trd365/deploy.sh" \
             --query "value[0].message" -o tsv
 
       - name: Verify
+        env:
+          RESOURCE_GROUP: ${{ vars.MAINTENANCE_RESOURCE_GROUP }}
+          VM_NAME: ${{ vars.MAINTENANCE_VM_NAME }}
         run: |
           az vm run-command invoke \
-            --resource-group "${{ vars.MAINTENANCE_RESOURCE_GROUP }}" \
-            --name "${{ vars.MAINTENANCE_VM_NAME }}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$VM_NAME" \
             --command-id RunShellScript \
             --scripts "sudo /opt/trd365/verify.sh" \
             --query "value[0].message" -o tsv

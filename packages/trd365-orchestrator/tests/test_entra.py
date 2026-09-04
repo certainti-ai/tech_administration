@@ -390,8 +390,10 @@ class TestSessions:
         cookie = entra.session_for(Principal("p", "P", frozenset({Role.VIEWER})), config)
         payload = json.loads(entra._unb64(cookie.partition(".")[0]))
         # Nothing here calls Graph, so no access or refresh token is kept. A token
-        # not held is a token that cannot leak.
-        assert set(payload) == {"sub", "name", "roles", "iat", "exp"}
+        # not held is a token that cannot leak. `typ` says what this token is for
+        # and is checked on the way back in; it carries no authority of its own.
+        assert set(payload) == {"sub", "name", "roles", "iat", "exp", "typ"}
+        assert payload["typ"] == entra.PURPOSE_SESSION
 
     def test_the_signature_does_not_state_its_own_algorithm(self, config):
         # Deliberately not a JWT: an algorithm field the attacker can set is the
@@ -593,3 +595,44 @@ class TestWhoGetsIn:
         assert can_approve(operator, "someone-else") is False
         assert can_approve(both, "o") is False, "self-approval must stay refused"
         assert can_approve(other, "o") is True
+
+
+class TestMalformedTokens:
+    """
+    A cookie is a string an unauthenticated caller chose.
+
+    Every one of these used to be a 500 or a token accepted where it did not
+    belong. None of them may be either: the only correct answer to a cookie that
+    does not verify is the anonymous one.
+    """
+
+    def test_a_cookie_that_is_not_base64_is_refused_not_fatal(self, config):
+        # `_unb64` raises binascii.Error — a ValueError — on input it cannot
+        # decode. Unhandled, one malformed byte was a 500 from an anonymous
+        # request.
+        for cookie in ("a.!!!", "!!!.a", "....", "a.b", "\x00.\x00"):
+            assert entra.unsign(cookie, SECRET) is None
+            assert entra.principal_from_session(cookie, config) is None
+
+    def test_a_flow_cookie_is_not_a_session(self, config):
+        # Both are signed with the same secret, so without a purpose the two are
+        # one type and each is accepted where the other belongs.
+        flow = entra.start(config).flow_cookie
+        assert entra.unsign(flow, SECRET, purpose=entra.PURPOSE_SESSION) is None
+        assert entra.principal_from_session(flow, config) is None
+
+    def test_a_session_is_not_a_flow_cookie(self, config):
+        from trd365_orchestrator.security import Principal
+
+        session = entra.session_for(Principal("p", "P", frozenset({Role.VIEWER})), config)
+        assert entra.unsign(session, SECRET, purpose=entra.PURPOSE_FLOW) is None
+
+    def test_the_purpose_is_signed_and_cannot_be_changed(self, config):
+        # Rewriting `typ` in the payload invalidates the signature, so the token
+        # is refused rather than repurposed.
+        token = entra.sign({"exp": 2 ** 31, "sub": "p"}, SECRET, purpose=entra.PURPOSE_FLOW)
+        body, _, mac = token.partition(".")
+        payload = json.loads(entra._unb64(body))
+        payload["typ"] = entra.PURPOSE_SESSION
+        forged = entra._b64(json.dumps(payload, separators=(",", ":"), sort_keys=True).encode())
+        assert entra.unsign(f"{forged}.{mac}", SECRET, purpose=entra.PURPOSE_SESSION) is None

@@ -93,8 +93,12 @@ def _add_sign_in_routes(app: FastAPI, config) -> None:
 
     @app.get("/auth/callback", include_in_schema=False)
     def callback(request: Request):
-        flow = entra.unsign(request.cookies.get(entra.FLOW_COOKIE, ""), config.session_secret)
-        if flow is None:
+        flow = entra.unsign(
+            request.cookies.get(entra.FLOW_COOKIE, ""),
+            config.session_secret,
+            purpose=entra.PURPOSE_FLOW,
+        )
+        if flow is None or not all(flow.get(k) for k in ("state", "nonce", "verifier")):
             return _sign_in_error(
                 "This sign-in has expired or did not start here. Try again from the start."
             )
@@ -106,7 +110,7 @@ def _add_sign_in_routes(app: FastAPI, config) -> None:
             )
 
         # Compared before anything else is done with the reply.
-        if not secrets_compare(request.query_params.get("state", ""), flow["state"]):
+        if not secrets_compare(request.query_params.get("state", ""), str(flow["state"])):
             return _sign_in_error("The sign-in reply did not match the request that started it.")
 
         code = request.query_params.get("code")

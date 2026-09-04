@@ -79,7 +79,15 @@ def main() -> int:
             print("\nDRY RUN — connection verified, nothing executed. Add --apply to run.")
             return 0
 
-        environment = dict(os.environ, PGPASSWORD=settings.password)
+        # PGSSLMODE as well as the password. psql does not read our settings, and
+        # its own default is `prefer` — which silently accepts an unencrypted
+        # connection. For a tool that runs arbitrary SQL against production, the
+        # transport has to be the one the environment declares, not psql's guess.
+        environment = dict(
+            os.environ,
+            PGPASSWORD=settings.password,
+            PGSSLMODE=settings.sslmode,
+        )
         command = [
             "psql",
             "--host", str(host),

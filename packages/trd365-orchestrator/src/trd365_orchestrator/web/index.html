@@ -716,7 +716,7 @@ function runPanel() {
       </button>
     </div>
     <div id="run-result"></div>
-    ${state.preview ? `<pre class="cmd">${esc(state.preview.command.join(" "))}</pre>` : ""}
+    ${state.preview ? `<pre class="cmd">${esc(state.preview.command)}</pre>` : ""}
   </div>`;
 }
 
