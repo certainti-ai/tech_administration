@@ -1,0 +1,343 @@
+<title>Authorities for the P1 and P2 Position</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F2F3F7; --sheet:#FFFFFF; --sunk:#F7F8FB; --inset:#ECEEF4;
+  --ink:#14161F; --ink-2:#525869; --ink-3:#828899;
+  --rule:#DFE2EB; --rule-2:#C6CAD8;
+  --navy:#2A3566; --navy-soft:#EAECF6; --navy-line:#C4CAE4;
+  --support:#1D6B45; --support-soft:#E6F2EB; --support-line:#BEDCC9;
+  --adverse:#993030; --adverse-soft:#FAEBEB; --adverse-line:#E7C9C9;
+  --verify:#8A5A0B; --verify-soft:#FBF2E1; --verify-line:#EAD9B5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#101219; --sheet:#181B24; --sunk:#1E222C; --inset:#242935;
+    --ink:#E4E6ED; --ink-2:#A2A8B8; --ink-3:#7A8091;
+    --rule:#2A2F3C; --rule-2:#3A4152;
+    --navy:#93A0D8; --navy-soft:#1A1F35; --navy-line:#333B5C;
+    --support:#6EBE93; --support-soft:#152619; --support-line:#2B4A34;
+    --adverse:#DE8E8E; --adverse-soft:#291818; --adverse-line:#4C2E2E;
+    --verify:#D9A959; --verify-soft:#2A2214; --verify-line:#4D3E20;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#101219; --sheet:#181B24; --sunk:#1E222C; --inset:#242935;
+  --ink:#E4E6ED; --ink-2:#A2A8B8; --ink-3:#7A8091;
+  --rule:#2A2F3C; --rule-2:#3A4152;
+  --navy:#93A0D8; --navy-soft:#1A1F35; --navy-line:#333B5C;
+  --support:#6EBE93; --support-soft:#152619; --support-line:#2B4A34;
+  --adverse:#DE8E8E; --adverse-soft:#291818; --adverse-line:#4C2E2E;
+  --verify:#D9A959; --verify-soft:#2A2214; --verify-line:#4D3E20;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:Lora,Georgia,serif;font-size:15.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.ui{font-family:Archivo,system-ui,-apple-system,sans-serif}
+.cite,code{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-variant-numeric:tabular-nums;font-size:.86em}
+code{background:var(--inset);padding:1px 5px;border-radius:3px}
+h1,h2,h3,h4{margin:0;text-wrap:balance}
+p{margin:0}
+a{color:var(--navy)}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px;border-radius:3px}
+
+.wrap{max-width:1120px;margin:0 auto;padding:0 26px 70px}
+@media(max-width:760px){.wrap{padding:0 17px 50px}}
+
+.mast{background:var(--sheet);border:1px solid var(--rule);border-top:3px solid var(--navy);
+  padding:30px 34px;margin-top:30px}
+.eyebrow{font-family:Archivo,sans-serif;font-size:9.5px;font-weight:600;letter-spacing:.19em;
+  text-transform:uppercase;color:var(--navy);margin-bottom:10px}
+h1{font-size:28px;font-weight:600;line-height:1.2;letter-spacing:-.01em}
+.lede{font-size:15px;color:var(--ink-2);margin-top:12px;max-width:70ch}
+.meta{display:flex;flex-wrap:wrap;gap:10px 30px;margin-top:20px;padding-top:17px;border-top:1px solid var(--rule);
+  font-family:Archivo,sans-serif}
+.meta div{display:flex;flex-direction:column;gap:1px}
+.meta .k{font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.meta .v{font-size:12.5px}
+
+section{margin-top:34px}
+.shead{display:flex;gap:12px;align-items:baseline;margin-bottom:7px}
+.snum{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--navy);border:1px solid var(--navy-line);
+  background:var(--navy-soft);padding:2px 7px;flex-shrink:0}
+h2{font-size:19.5px;font-weight:600;letter-spacing:-.012em}
+.sub{font-size:14.5px;color:var(--ink-2);margin:8px 0 16px;max-width:72ch}
+.stack{display:flex;flex-direction:column;gap:13px}
+
+.panel{background:var(--sheet);border:1px solid var(--rule);padding:18px 22px}
+.panel.warn{background:var(--verify-soft);border-color:var(--verify-line);border-left:3px solid var(--verify)}
+.panel.stop{background:var(--adverse-soft);border-color:var(--adverse-line);border-left:3px solid var(--adverse)}
+.panel.go{background:var(--support-soft);border-color:var(--support-line);border-left:3px solid var(--support)}
+.panel .pt{font-family:Archivo,sans-serif;font-size:12px;font-weight:600;margin-bottom:7px}
+.panel.warn .pt{color:var(--verify)}.panel.stop .pt{color:var(--adverse)}.panel.go .pt{color:var(--support)}
+.panel p{font-size:14.4px;color:var(--ink-2);max-width:72ch}
+.panel p+p{margin-top:9px}
+.panel strong{color:var(--ink);font-weight:600}
+
+/* matrix */
+.tw{overflow-x:auto;border:1px solid var(--rule);background:var(--sheet)}
+table{border-collapse:collapse;width:100%;font-family:Archivo,sans-serif;font-size:12.8px;min-width:600px}
+th{text-align:left;font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);
+  padding:11px 13px;background:var(--sunk);border-bottom:1px solid var(--rule);white-space:nowrap;vertical-align:bottom}
+td{padding:10px 13px;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--ink-2)}
+td:first-child{color:var(--ink);white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+.tick{font-family:"JetBrains Mono",monospace;font-weight:500}
+.tick.s{color:var(--support)} .tick.a{color:var(--adverse)} .tick.n{color:var(--ink-3)}
+
+/* authority entry */
+.auth{background:var(--sheet);border:1px solid var(--rule)}
+.auth>header{padding:16px 22px;border-bottom:1px solid var(--rule);background:var(--sunk);
+  display:flex;gap:13px;align-items:flex-start;flex-wrap:wrap}
+.auth .ref{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-2);
+  border:1px solid var(--rule-2);background:var(--sheet);padding:3px 8px;flex-shrink:0}
+.auth h3{font-size:16px;font-weight:600;line-height:1.3;flex:1;min-width:220px}
+.auth h3 .full{display:block;font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:400;
+  color:var(--ink-3);margin-top:4px;letter-spacing:-.01em}
+.wt{font-family:Archivo,sans-serif;font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 9px;border:1px solid;white-space:nowrap;flex-shrink:0}
+.wt.bind{color:var(--navy);background:var(--navy-soft);border-color:var(--navy-line)}
+.wt.sup{color:var(--support);background:var(--support-soft);border-color:var(--support-line)}
+.wt.adv{color:var(--adverse);background:var(--adverse-soft);border-color:var(--adverse-line)}
+.wt.ver{color:var(--verify);background:var(--verify-soft);border-color:var(--verify-line)}
+.r{display:grid;grid-template-columns:126px 1fr;border-bottom:1px solid var(--rule)}
+.r:last-child{border-bottom:0}
+@media(max-width:720px){.r{grid-template-columns:1fr}}
+.r .l{font-family:Archivo,sans-serif;font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);padding:14px 0 14px 22px;background:var(--sunk);border-right:1px solid var(--rule)}
+@media(max-width:720px){.r .l{padding:11px 22px 0;border-right:0;background:var(--sheet)}}
+.r .v{padding:14px 22px}
+.r .v p{max-width:70ch;font-size:14.4px}
+.r .v p+p{margin-top:8px}
+blockquote{margin:0;padding-left:15px;border-left:2px solid var(--navy-line);font-style:italic;color:var(--ink)}
+.r.against .l{color:var(--adverse)}
+.r.against .v{background:var(--adverse-soft)}
+ul.t{margin:0;padding-left:17px;display:flex;flex-direction:column;gap:6px}
+ul.t li{font-size:14.2px;color:var(--ink-2);max-width:70ch}
+ul.t li strong{color:var(--ink);font-weight:600}
+.serves{display:flex;flex-wrap:wrap;gap:6px}
+.pill{font-family:"JetBrains Mono",monospace;font-size:10.5px;padding:2px 8px;border:1px solid var(--rule-2);
+  color:var(--ink-2);background:var(--inset)}
+
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-family:Archivo,sans-serif;
+  font-size:11.8px;color:var(--ink-3);line-height:1.6;max-width:80ch}
+footer strong{color:var(--ink-2)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+<div class="mast">
+  <div class="eyebrow">Protected B · Authorities memorandum · Internal</div>
+  <h1>Authorities for the Project 1 and Project 2 position</h1>
+  <p class="lede">Eight authorities, each paired with the candidate experiment it supports and the counter-argument
+  it invites. Ordered by what will actually move the Research and Technology Advisor, which is not the same as
+  what a court would find most persuasive.</p>
+  <div class="meta">
+    <div><span class="k">Claimant</span><span class="v">Tech Mahindra Limited</span></div>
+    <div><span class="k">Case</span><span class="v cite">31874271</span></div>
+    <div><span class="k">Projects</span><span class="v cite">Y.IN2100170 · Y.IN2201961</span></div>
+    <div><span class="k">Prepared</span><span class="v cite">2026-09-08</span></div>
+  </div>
+</div>
+
+<section>
+  <div class="shead"><span class="snum">01</span><h2>Read this before using any citation below</h2></div>
+  <div class="stack">
+    <div class="panel stop">
+      <div class="pt">The Agency cannot show you an approved claim, and neither can we</div>
+      <p>Taxpayer information is confidential under <span class="cite">s.241</span> of the Income Tax Act.
+      <strong>No public registry of approved SR&amp;ED claims exists</strong> — there is no way to produce
+      &ldquo;this company's test-automation project qualified for this amount.&rdquo; If the Advisor offered to
+      consider evidence that comparable work has qualified, the only things that can actually be put in front
+      of him are court decisions, CRA's own published policy, and foreign authority.</p>
+      <p>Say this to him plainly rather than arriving empty-handed against an expectation nobody could meet.
+      Then produce the second category, because <strong>he is bound by his own program's policy and he is not
+      bound by the Tax Court</strong>.</p>
+    </div>
+    <div class="panel warn">
+      <div class="pt">Verification status — none of these has been read against a primary source</div>
+      <p>CanLII, the Tax Court's decision database and canada.ca are all blocked by this environment's network
+      policy. Every citation below is triangulated from secondary commentary and from CRA policy text quoted in
+      that commentary. <strong>The propositions are reliable; the citation particulars are not yet verified.</strong></p>
+      <p>Before any of this reaches the Agency, someone with CanLII access must confirm each neutral citation,
+      docket, judge and procedure type, and pull the CRA policy wording from canada.ca directly. One
+      misdescribed authority costs more credibility than all eight gain — and on this file credibility is
+      already the live issue.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">02</span><h2>Which authority serves which argument</h2></div>
+  <p class="sub">Candidate experiments are those in the experimentation framework. A dash means the authority is
+  silent, not that it helps.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Authority</th><th>Weight</th><th>P1-A<br>interval</th><th>P1-B<br>completion</th><th>P2-A<br>handoff</th><th>P2-B<br>framework</th><th>Substantiation</th></tr></thead>
+      <tbody>
+        <tr><td>A · CRA system uncertainty</td><td>Binding on RTA</td><td class="tick s">supports</td><td class="tick s">supports</td><td class="tick s">core</td><td class="tick s">core</td><td class="tick n">—</td></tr>
+        <tr><td>B · CRA quality control exclusion</td><td>Binding · adverse</td><td class="tick a">threat</td><td class="tick a">threat</td><td class="tick a">threat</td><td class="tick a">threat</td><td class="tick n">—</td></tr>
+        <tr><td>C · CRA support work, para (d)</td><td>Binding on RTA</td><td class="tick s">supports</td><td class="tick s">supports</td><td class="tick s">supports</td><td class="tick s">supports</td><td class="tick n">—</td></tr>
+        <tr><td>D · Northwest Hydraulic</td><td>Foundational</td><td class="tick s">supports</td><td class="tick s">core</td><td class="tick s">core</td><td class="tick n">—</td><td class="tick n">—</td></tr>
+        <tr><td>E · DAZZM 2024</td><td>Recent · verify</td><td class="tick s">supports</td><td class="tick n">—</td><td class="tick s">supports</td><td class="tick s">core</td><td class="tick s">core</td></tr>
+        <tr><td>F · Clevor Technologies 2019</td><td>Adverse</td><td class="tick a">fatal if…</td><td class="tick a">fatal if…</td><td class="tick a">fatal if…</td><td class="tick n">—</td><td class="tick a">threat</td></tr>
+        <tr><td>G · Vortex Energy 2025</td><td>Adverse · recent</td><td class="tick a">threat</td><td class="tick a">threat</td><td class="tick a">threat</td><td class="tick a">threat</td><td class="tick n">—</td></tr>
+        <tr><td>H · IC 97-1 software guidelines</td><td>Obsolete</td><td class="tick n">history only</td><td class="tick n">history only</td><td class="tick n">history only</td><td class="tick n">history only</td><td class="tick n">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">03</span><h2>The authorities</h2></div>
+  <p class="sub">Lead with A and C. They are the Advisor's own program policy, and he has to engage with them.
+  Everything after D belongs at objection stage.</p>
+  <div class="stack">
+
+  <div class="auth">
+    <header><span class="ref">A</span><h3>System uncertainty<span class="full">CRA, SR&amp;ED Glossary · Eligibility of Work for SR&amp;ED Investment Tax Credits Policy (2015) · Guidelines on the eligibility of work (2021)</span></h3><span class="wt bind">Binding on the RTA</span></header>
+    <div class="r"><div class="l">Proposition</div><div class="v"><blockquote>a form of technological uncertainty that can arise from or during the integration of technologies, the components of which are generally well known … due to unpredictable interactions between the individual components or sub-systems.</blockquote>
+      <p style="margin-top:9px">CRA adds that it may be impossible to predict how the integrated system will perform because of unforeseeable adverse interactions, and that the uncertainty lies not in the individual components but in their behaviour as an integrated system.</p></div></div>
+    <div class="r"><div class="l">Why it matters</div><div class="v"><p>This is the direct answer to the finding that both projects were the &ldquo;application and integration of established … tools&rdquo; and &ldquo;integration of existing technologies&rdquo;. CRA's own policy says integration of well-known components <em>can</em> generate technological uncertainty. The Advisor's finding is not wrong as a general proposition, but it is incomplete as stated, and this is the policy that completes it.</p></div></div>
+    <div class="r against"><div class="l">The gate</div><div class="v"><p><strong>Read the next sentence of the policy before relying on this.</strong> CRA requires that the specifications of the integrated system be such that the underlying technologies of the sub-systems <em>cannot achieve them</em>, so that some or all of those underlying technologies had to be changed. The policy also directs the reader to distinguish work that advances a sub-system's underlying technology from work that does not.</p>
+      <p><strong>Wiring tools together does not clear this.</strong> For P2 you must show Appium and Selenium were incapable of the handoff as shipped and what you had to alter. If the answer is a polling loop built on documented APIs, this authority defeats you rather than assists you.</p></div></div>
+    <div class="r"><div class="l">Serves</div><div class="v"><div class="serves"><span class="pill">P2-A core</span><span class="pill">P2-B core</span><span class="pill">P1-A</span><span class="pill">P1-B</span></div></div></div>
+  </div>
+
+  <div class="auth">
+    <header><span class="ref">B</span><h3>Quality control and routine testing are excluded<span class="full">Income Tax Act, s.248(1) SR&amp;ED definition, para (f) · CRA guidance on quality control and routine testing</span></h3><span class="wt adv">Binding · adverse</span></header>
+    <div class="r"><div class="l">Proposition</div><div class="v"><p>The definition excludes quality control and routine testing. CRA treats <strong>quality control</strong> as work sustaining the quality of a product or service to satisfy <em>given</em> requirements, and <strong>routine testing</strong> as procedures to observe, measure or verify attributes during normal business operations. The stated rationale is that such work does not result in technological advancement.</p></div></div>
+    <div class="r against"><div class="l">Why it is the deepest problem</div><div class="v"><p>Both projects are testing engagements on their face — P1 validates call detail records against known expected attributes, P2 is a quality engineering managed service by contract. The first submission described faster validation, a &ldquo;golden dataset&rdquo; verifying that expected fields were correctly represented, and automation coverage. <strong>Every one of those is a description of quality control</strong>, and the Advisor's determination reads as though he applied this paragraph without needing to name it.</p></div></div>
+    <div class="r"><div class="l">The only way past</div><div class="v"><p>The instrument distinction. Executing tests against given requirements is excluded; <strong>developing a means of measurement that did not exist, where it was uncertain whether the measurement could be made at all</strong>, is experimental development, and the testing is its application. Every argument advanced must be framed that way or it walks into this paragraph.</p></div></div>
+    <div class="r"><div class="l">Serves</div><div class="v"><div class="serves"><span class="pill">threat to all candidates</span></div></div></div>
+  </div>
+
+  <div class="auth">
+    <header><span class="ref">C</span><h3>Support work attaches to eligible work<span class="full">Income Tax Act, s.248(1) SR&amp;ED definition, para (d)</span></h3><span class="wt bind">Binding on the RTA</span></header>
+    <div class="r"><div class="l">Proposition</div><div class="v"><p>Engineering, design, operations research, mathematical analysis, computer programming, data collection and <em>testing</em> are within the definition when commensurate with the needs of, and directly in support of, eligible work under paragraphs (a) to (c).</p></div></div>
+    <div class="r"><div class="l">Why it matters</div><div class="v"><p>It is the answer to &ldquo;this is just scripting&rdquo;. Automation development does not have to be experimental development in itself — it qualifies as support work <strong>provided an eligible core exists for it to support</strong>. That reframes a large share of the claimed effort, and it is how the smaller candidates (P1-D in particular) get claimed at all.</p></div></div>
+    <div class="r against"><div class="l">The gate</div><div class="v"><p>Support work is parasitic. Without an identified, eligible core activity there is nothing for it to attach to, and the whole claim collapses to excluded testing. <strong>The representation must name the core explicitly</strong> rather than leaving the Advisor to infer it — which is precisely what the first submission failed to do.</p></div></div>
+    <div class="r"><div class="l">Serves</div><div class="v"><div class="serves"><span class="pill">all candidates</span><span class="pill">P1-D only via this route</span></div></div></div>
+  </div>
+
+  <div class="auth">
+    <header><span class="ref">D</span><h3>Northwest Hydraulic Consultants Ltd. v. The Queen<span class="full">98 DTC 1839 (TCC) · Bowman J · taxpayer successful · citation to be verified</span></h3><span class="wt sup">Foundational · supports</span></header>
+    <div class="r"><div class="l">Proposition</div><div class="v"><p>The source of the five questions the Advisor is applying. Bowman J set out the framework for technological uncertainty, advancement and systematic investigation that CRA subsequently adopted into policy, and courts continue to apply it notwithstanding CRA's 2021 restatement in &ldquo;how and why&rdquo; terms.</p></div></div>
+    <div class="r"><div class="l">Why it matters here</div><div class="v"><ul class="t">
+      <li>The taxpayer <strong>won</strong>, and was an <strong>engineering consulting services firm</strong> doing modelling work for clients — a closer structural analogue to Tech Mahindra than a product company. Services delivery is not a bar.</li>
+      <li>If the Advisor frames his test in the newer &ldquo;how and why&rdquo; language, this establishes that the five questions remain the operative standard and that a services firm can satisfy them.</li>
+    </ul></div></div>
+    <div class="r"><div class="l">Serves</div><div class="v"><div class="serves"><span class="pill">P1-B core</span><span class="pill">P2-A core</span><span class="pill">P1-A</span></div></div></div>
+  </div>
+
+  <div class="auth">
+    <header><span class="ref">E</span><h3>DAZZM Inc. v. The King<span class="full">2024 CCI 129 · Gagnon J · heard Montréal 27–28 March 2024 · judgment 8 October 2024 · docket 2021-3161(IT)G</span></h3><span class="wt ver">Recent · verify first</span></header>
+    <div class="r"><div class="l">Facts</div><div class="v"><p>Development of version 5 of an IT management platform using React, Redux, styled components and higher-order components. CRA had partly denied the 2018 claim, disallowing one of two projects under <span class="cite">s.248(1)</span>.</p></div></div>
+    <div class="r"><div class="l">Holdings</div><div class="v"><ul class="t">
+      <li><strong>Combining known components can itself create technological uncertainty</strong> where the interactions between them are unpredictable — judicial endorsement of what authority A says as policy.</li>
+      <li><strong>Uncertainty is assessed at project level, not task level.</strong> Useful against a determination that dismisses activities one at a time, which is close to how the PER reads.</li>
+      <li><strong>Performance metrics and time estimates were accepted in place of daily timesheets.</strong> This reaches the substantiation problem, not just eligibility — and on this file that may be worth more than the eligibility holdings.</li>
+    </ul></div></div>
+    <div class="r against"><div class="l">Before you cite it</div><div class="v"><p>Commentary describes the hearing as informal and therefore not precedent-setting. <strong>The docket recorded is <span class="cite">2021-3161(IT)G</span>, where the &ldquo;G&rdquo; denotes General Procedure.</strong> Those cannot both be correct and we could not reach the judgment to resolve it. If it is General Procedure it carries real weight; if informal it is persuasive only and must be described as such. Settle this before the memo leaves the building.</p></div></div>
+    <div class="r"><div class="l">Serves</div><div class="v"><div class="serves"><span class="pill">P2-B core</span><span class="pill">substantiation core</span><span class="pill">P1-A</span><span class="pill">P2-A</span></div></div></div>
+  </div>
+
+  <div class="auth">
+    <header><span class="ref">F</span><h3>Clevor Technologies Inc. v. The Queen<span class="full">TCC · Russell J · judgment 14 August 2019 · software · taxpayer unsuccessful · citation to be verified</span></h3><span class="wt adv">Adverse — know it first</span></header>
+    <div class="r"><div class="l">Holding</div><div class="v"><p>The claim failed on three grounds: no technological uncertainty was identified; the approach taken was <strong>trial and error</strong>, described as a technique known to professionals competent in the field and not accepted as a valid SR&amp;ED methodology; and there was no evidence of testing results.</p></div></div>
+    <div class="r against"><div class="l">The exposure</div><div class="v"><p>This is the case that decides P1-B and P2-A if the artefacts come back the wrong way. <strong>If the timing buffer was adjusted until the failures stopped, that is trial and error and Clevor is the answer to it.</strong> Same for a synchronisation mechanism arrived at by successive guesses.</p>
+      <p>The distinction that survives is between iteration and systematic investigation: a sequence of attempts each of which tested a stated prediction and produced a conclusion that shaped the next is not trial and error. A sequence of adjustments until symptoms disappeared is. <strong>The commit history decides which one happened, and it will not be flattered by advocacy.</strong></p></div></div>
+    <div class="r"><div class="l">Serves</div><div class="v"><div class="serves"><span class="pill">must distinguish for P1-B</span><span class="pill">must distinguish for P2-A</span></div></div></div>
+  </div>
+
+  <div class="auth">
+    <header><span class="ref">G</span><h3>Vortex Energy Services Ltd. v. The King<span class="full">TCC · dockets 2019-894(IT)G and 2021-147(IT)G · judgment 2 May 2025 · taxpayer unsuccessful · citation to be verified</span></h3><span class="wt adv">Adverse · recent</span></header>
+    <div class="r"><div class="l">Holding</div><div class="v"><p>Reported as characterising the claimed work as <strong>routine engineering conducted by trial and error</strong>.</p></div></div>
+    <div class="r against"><div class="l">Why it belongs here</div><div class="v"><p>Included not because it helps but because it shows the trial-and-error line is <strong>live and recent</strong>, decided four months before this file's proposal letter. Anyone advising that Clevor is an outlier should read this first. The two together make the point that the courts have hardened rather than softened on the distinction between iteration and investigation.</p></div></div>
+    <div class="r"><div class="l">Serves</div><div class="v"><div class="serves"><span class="pill">calibration — do not overreach</span></div></div></div>
+  </div>
+
+  <div class="auth">
+    <header><span class="ref">H</span><h3>Administrative Guidelines for Software Development<span class="full">CRA Information Circular 97-1 · February 1997 · obsolete</span></h3><span class="wt ver">History only</span></header>
+    <div class="r"><div class="l">Status</div><div class="v"><p>CRA's original software-specific administrative guidance, long superseded — by the 2012 Eligibility of Work policy and again by the 2021 guidelines. <strong>Cite for the history of CRA's approach to software only.</strong> Advancing an obsolete circular as authority invites the Advisor to conclude we are reaching, which is not a position to occupy on this file.</p></div></div>
+    <div class="r"><div class="l">Serves</div><div class="v"><div class="serves"><span class="pill">background only</span></div></div></div>
+  </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">04</span><h2>How to deploy these, and where</h2></div>
+  <p class="sub">The same authority carries different weight depending on who is reading it. Getting this wrong
+  wastes the strongest material at the stage where it counts least.</p>
+  <div class="stack">
+    <div class="panel go">
+      <div class="pt">With the Research and Technology Advisor — policy only</div>
+      <p>Lead with <strong>A</strong> and <strong>C</strong>, and frame everything through the instrument
+      distinction so <strong>B</strong> never gets a clean run. An Advisor applies the Income Tax Act and his
+      own program's policy; he is not bound by the Tax Court and will not be argued out of a technical
+      determination by citation. What can move him is being shown that his own guidance recognises the category
+      of uncertainty we are describing — and then being given the artefacts.</p>
+      <p><strong>Do not put case law in front of him as the main argument.</strong> Advocacy at the technical
+      stage reads as a claimant who has run out of facts, and this file cannot afford that impression twice.</p>
+    </div>
+    <div class="panel">
+      <div class="pt">At Notice of Objection or Appeals — the case law earns its keep</div>
+      <p>Appeals officers weigh authority properly. <strong>D</strong> establishes the framework and that a
+      services firm can satisfy it; <strong>E</strong>, if it survives verification as General Procedure, is
+      the closest recent authority on both integration-based uncertainty and on accepting substitutes for daily
+      timesheets. That second holding may matter more than the first, given where this file's real weakness is.</p>
+      <p>The objection right arises only on reassessment and runs 90 days from it. Nothing here needs to be
+      spent before then.</p>
+    </div>
+    <div class="panel stop">
+      <div class="pt">Three things not to argue</div>
+      <p><strong>Do not argue that other companies get credits for test automation.</strong> It is unprovable,
+      it invites the answer that each claim turns on its own facts, and it concedes that we are arguing from
+      comparison rather than from evidence.</p>
+      <p><strong>Do not cite foreign authority as though it carried weight.</strong> UK and US regimes apply
+      different statutory tests — the US four-part test under IRC §41 and its process-of-experimentation
+      requirement are not the Canadian test. Mentioning them signals weakness in the domestic position.</p>
+      <p><strong>Do not restate the section 244 mechanisms under cover of a citation.</strong> No authority
+      substitutes for the artefact. The Advisor's finding was that the mechanisms were not demonstrated, and
+      that finding is answered with records or not at all.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">05</span><h2>What has to be true for any of this to work</h2></div>
+  <div class="stack">
+    <div class="panel warn">
+      <div class="pt">Authority A is the whole strategy, and it has a condition</div>
+      <p>Every argument in this memo routes through system uncertainty, and CRA's own policy conditions it on
+      the sub-system technologies being <em>unable</em> to meet the integrated specification, such that they had
+      to be changed. So the question the artefact hunt actually has to answer is narrower than
+      &ldquo;did we do something clever&rdquo;:</p>
+      <p><strong>What could Appium, Selenium, LeanFT — or the CDR ingestion path — not do as shipped, and what
+      did we change about them?</strong> If the answer is that we composed them as designed and handled the
+      seams, this memo does not save the claim, and the honest course remains the one already on the file.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <strong>Status.</strong> Every citation here is triangulated from secondary commentary and from CRA policy
+  text quoted within it. None has been read against a primary source, because CanLII, the Tax Court database
+  and canada.ca were unreachable from the environment in which this was prepared. Neutral citations, dockets,
+  judges and procedure types must be confirmed before use, and the CRA policy wording pulled directly from
+  canada.ca.
+  <br><br>
+  <strong>Scope.</strong> This memorandum identifies authority. It does not establish that the work described in
+  Projects 1 and 2 meets the tests those authorities set out — that remains a question of fact turning on the
+  artefacts identified in the experimentation framework.
+  <br><br>
+  This is not legal or tax advice. Any representation drawing on this should be settled by a Canadian SR&amp;ED
+  practitioner or tax counsel before filing.
+  <br><br>
+  <strong>Protected B — client material.</strong> Do not distribute outside the Certainti.AI engagement team.
+</footer>
+</div>
