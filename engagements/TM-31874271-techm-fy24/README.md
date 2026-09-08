@@ -19,6 +19,7 @@ and the rules this engagement works under.
 | `analyse_client_records.py` | Analyses the client records received Aug 26: timesheet coverage per project, narrative hours against system hours, and the rate actually applied per employee. Source files stay in the engagement bundle. |
 | `CRA_findings_verbatim.md` | The Agency's determinations, adjustment notes and proposal letter, transcribed verbatim. Quote from here rather than the PDFs. |
 | `CRA_Findings_Case_31874271.html` | The same text as a standalone reference page, generated from the markdown by `build_cra_findings_page.py`. |
+| `P1_P2_Experimentation_Case.html` | Eight candidate experiments for P1 and P2, each with the dated artefact that must exist for it to be argued. A working instrument, **not a submission** — see its section 00. |
 | `TM_SRED_Audit_Defence_Report.html` | The full assessment as a shareable page — CRA position, verified arithmetic, options, project-by-project drill-down, lessons, process gates, timeline. Published as a private Artifact; sharing is a deliberate act from the page's share menu. |
 
 The CRA source documents (proposal letter, Project Eligibility Report, Audit

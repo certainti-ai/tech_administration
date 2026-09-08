@@ -1,0 +1,595 @@
+<title>Experimentation Case for P1 and P2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --sheet:#FFFFFF; --sunk:#F4F6F8; --inset:#E9EDF1;
+  --ink:#141A1F; --ink-2:#4F5860; --ink-3:#7C858E;
+  --rule:#DBE1E6; --rule-2:#C2CAD1;
+  --accent:#0E6A6A; --accent-soft:#E2F0EF; --accent-line:#B9DCDA;
+  --need:#9A6206; --need-soft:#FBF1E0; --need-line:#EBD8B4;
+  --strike:#9E2F2F; --strike-soft:#FAEAEA; --strike-line:#E9CBCB;
+  --have:#1B6E44; --have-soft:#E5F2EA; --have-line:#BFDECB;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1418; --sheet:#171D22; --sunk:#1E252B; --inset:#232B32;
+    --ink:#E3E8EC; --ink-2:#A0AAB3; --ink-3:#79848D;
+    --rule:#2A333A; --rule-2:#3A454E;
+    --accent:#5FBDB8; --accent-soft:#132A2A; --accent-line:#28504E;
+    --need:#D9A45A; --need-soft:#2A2216; --need-line:#4E3F22;
+    --strike:#DE8C8C; --strike-soft:#2A1919; --strike-line:#4E2E2E;
+    --have:#6CBE8E; --have-soft:#16281E; --have-line:#2B4A37;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1418; --sheet:#171D22; --sunk:#1E252B; --inset:#232B32;
+  --ink:#E3E8EC; --ink-2:#A0AAB3; --ink-3:#79848D;
+  --rule:#2A333A; --rule-2:#3A454E;
+  --accent:#5FBDB8; --accent-soft:#132A2A; --accent-line:#28504E;
+  --need:#D9A45A; --need-soft:#2A2216; --need-line:#4E3F22;
+  --strike:#DE8C8C; --strike-soft:#2A1919; --strike-line:#4E2E2E;
+  --have:#6CBE8E; --have-soft:#16281E; --have-line:#2B4A37;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  font-size:14.5px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.serif{font-family:"IBM Plex Serif",Georgia,serif}
+.mono,code{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-variant-numeric:tabular-nums}
+code{font-size:.88em;background:var(--inset);padding:1px 5px;border-radius:3px;color:var(--ink)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+h1,h2,h3,h4{margin:0;text-wrap:balance}
+p{margin:0}
+
+.wrap{max-width:1240px;margin:0 auto;padding:0 26px 72px;display:flex;gap:44px;align-items:flex-start}
+@media(max-width:1000px){.wrap{display:block;padding:0 18px 56px}}
+
+nav{position:sticky;top:0;width:216px;flex-shrink:0;padding:34px 0;max-height:100vh;overflow-y:auto}
+@media(max-width:1000px){nav{position:static;width:auto;max-height:none;padding:22px 0 4px;border-bottom:1px solid var(--rule)}}
+.rail-t{font-size:9.5px;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--ink-3);
+  padding-bottom:10px;border-bottom:1px solid var(--rule);margin-bottom:10px}
+nav a{display:flex;gap:8px;text-decoration:none;color:var(--ink-2);font-size:12.4px;padding:4px 0;line-height:1.4}
+nav a:hover{color:var(--ink)}
+nav a .n{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--accent);flex-shrink:0;padding-top:1px}
+nav .grp{font-size:11px;font-weight:600;color:var(--ink);margin:15px 0 4px;letter-spacing:.02em}
+nav .grp:first-of-type{margin-top:0}
+
+main{flex:1;min-width:0;padding:34px 0 0}
+
+/* masthead */
+.mast{background:var(--sheet);border:1px solid var(--rule);border-radius:3px;padding:30px 32px}
+.eyebrow{font-size:9.5px;font-weight:600;letter-spacing:.19em;text-transform:uppercase;color:var(--accent);margin-bottom:9px}
+h1{font-size:27px;font-weight:600;line-height:1.22;letter-spacing:-.015em}
+.lede{font-size:14.5px;color:var(--ink-2);margin-top:11px;max-width:70ch}
+.meta{display:flex;flex-wrap:wrap;gap:11px 28px;margin-top:20px;padding-top:17px;border-top:1px solid var(--rule)}
+.meta div{display:flex;flex-direction:column;gap:1px}
+.meta .k{font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.meta .v{font-size:12.5px}
+
+/* callouts */
+.note{border:1px solid var(--rule);border-left:3px solid var(--accent);background:var(--sheet);
+  border-radius:0 3px 3px 0;padding:17px 20px}
+.note.warn{border-left-color:var(--need);background:var(--need-soft);border-color:var(--need-line)}
+.note.stop{border-left-color:var(--strike);background:var(--strike-soft);border-color:var(--strike-line)}
+.note .ct{font-size:12px;font-weight:600;letter-spacing:.02em;margin-bottom:6px}
+.note.warn .ct{color:var(--need)} .note.stop .ct{color:var(--strike)} .note .ct{color:var(--accent)}
+.note p{font-size:13.6px;color:var(--ink-2);max-width:74ch}
+.note p+p{margin-top:9px}
+.note p strong,.note strong{color:var(--ink);font-weight:600}
+
+section{margin-top:40px;scroll-margin-top:14px}
+.shead{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.snum{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--accent);
+  border:1px solid var(--accent-line);background:var(--accent-soft);padding:2px 7px;border-radius:3px;flex-shrink:0}
+h2{font-size:19px;font-weight:600;letter-spacing:-.012em}
+.sub{font-size:13.6px;color:var(--ink-2);margin:8px 0 18px;max-width:74ch}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+/* the five questions */
+.qgrid{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.q{background:var(--sheet);padding:14px 17px;display:flex;gap:13px}
+.q .qn{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--accent);flex-shrink:0;padding-top:2px}
+.q .qt{font-size:13.5px}
+.q .qt b{font-weight:600}
+.q .qt span{display:block;color:var(--ink-2);margin-top:3px;font-size:13px}
+
+/* experiment worksheet */
+.exp{background:var(--sheet);border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.exp>header{display:flex;gap:13px;align-items:flex-start;padding:16px 20px;border-bottom:1px solid var(--rule);
+  background:var(--sunk)}
+.exp .code{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:500;color:var(--ink-2);
+  border:1px solid var(--rule-2);background:var(--sheet);padding:3px 8px;border-radius:3px;flex-shrink:0;white-space:nowrap}
+.exp h3{font-size:15px;font-weight:600;line-height:1.3;flex:1;min-width:0}
+.badge{font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;
+  border-radius:99px;border:1px solid;white-space:nowrap;flex-shrink:0}
+.badge.strong{color:var(--have);background:var(--have-soft);border-color:var(--have-line)}
+.badge.mid{color:var(--need);background:var(--need-soft);border-color:var(--need-line)}
+.badge.weak{color:var(--strike);background:var(--strike-soft);border-color:var(--strike-line)}
+.row{display:grid;grid-template-columns:132px 1fr;gap:0;border-bottom:1px solid var(--rule)}
+.row:last-child{border-bottom:0}
+@media(max-width:720px){.row{grid-template-columns:1fr}}
+.row .lab{font-size:9.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);
+  padding:15px 0 15px 20px;background:var(--sunk);border-right:1px solid var(--rule)}
+@media(max-width:720px){.row .lab{padding:11px 20px 0;border-right:0;background:var(--sheet)}}
+.row .val{padding:15px 20px}
+.row .val p{max-width:70ch}
+.row.claim .val{font-family:"IBM Plex Serif",Georgia,serif;font-size:14.5px;line-height:1.62}
+.row.need .lab{color:var(--need)}
+.row.need .val{background:var(--need-soft)}
+.row.need .val p{color:var(--ink)}
+ul.tight{margin:0;padding-left:17px;display:flex;flex-direction:column;gap:6px}
+ul.tight li{font-size:13.4px;color:var(--ink-2);max-width:70ch}
+ul.tight li strong{color:var(--ink);font-weight:600}
+.verdict{display:flex;gap:9px;flex-wrap:wrap;align-items:center;font-size:12.6px;color:var(--ink-2)}
+.chip{font-family:"IBM Plex Mono",monospace;font-size:10.5px;padding:3px 9px;border-radius:3px;border:1px dashed var(--rule-2);color:var(--ink-3)}
+
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:520px}
+.tw{overflow-x:auto;border:1px solid var(--rule);border-radius:3px;background:var(--sheet)}
+th{text-align:left;font-size:9.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);
+  padding:11px 14px;background:var(--sunk);border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--ink-2)}
+td:first-child{color:var(--ink)}
+tbody tr:last-child td{border-bottom:0}
+
+footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--rule);font-size:11.8px;color:var(--ink-3);
+  line-height:1.6;max-width:78ch}
+footer strong{color:var(--ink-2)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+<nav>
+  <div class="rail-t">Contents</div>
+  <div class="grp">Framework</div>
+  <a href="#use"><span class="n">00</span><span>How to use this</span></a>
+  <a href="#test"><span class="n">01</span><span>The test we must satisfy</span></a>
+  <a href="#reframe"><span class="n">02</span><span>The reframe that decides both</span></a>
+  <div class="grp">Project 1 — Rogers CBU Wireless</div>
+  <a href="#p1a"><span class="n">P1-A</span><span>CDR aggregation interval</span></a>
+  <a href="#p1b"><span class="n">P1-B</span><span>Completion without a signal</span></a>
+  <a href="#p1c"><span class="n">P1-C</span><span>EDR derivation from Kafka</span></a>
+  <a href="#p1d"><span class="n">P1-D</span><span>Conditional field validity</span></a>
+  <a href="#p1e"><span class="n">P1-E</span><span>Voucher state reconstruction</span></a>
+  <div class="grp">Project 2 — Scotia QA</div>
+  <a href="#p2a"><span class="n">P2-A</span><span>Cross-runtime handoff</span></a>
+  <a href="#p2b"><span class="n">P2-B</span><span>Quantum as an abstraction</span></a>
+  <a href="#p2c"><span class="n">P2-C</span><span>Forced temporal advance</span></a>
+  <div class="grp">Execution</div>
+  <a href="#hunt"><span class="n">03</span><span>The artefact hunt</span></a>
+  <a href="#room"><span class="n">04</span><span>Surviving the room</span></a>
+  <a href="#outcomes"><span class="n">05</span><span>Three honest outcomes</span></a>
+</nav>
+
+<main>
+<div class="mast">
+  <div class="eyebrow">Protected B · Internal working instrument · Not a submission</div>
+  <h1>Rebuilding the experimentation case for Projects 1 and 2</h1>
+  <p class="lede">A structured interrogation of the eight candidate experiments in the interview record, each stated
+  as CRA's Research and Technology Advisor will test it, and each paired with the specific dated artefact that
+  must exist for it to be argued. Where the artefact does not exist, the candidate is struck. Nothing here is a
+  narrative to be filed as written.</p>
+  <div class="meta">
+    <div><span class="k">Claimant</span><span class="v">Tech Mahindra Limited</span></div>
+    <div><span class="k">Reference case</span><span class="v mono">31874271</span></div>
+    <div><span class="k">Projects</span><span class="v mono">Y.IN2100170 · Y.IN2201961</span></div>
+    <div><span class="k">At stake</span><span class="v mono">$343,604</span></div>
+    <div><span class="k">Prepared</span><span class="v mono">2026-09-08</span></div>
+  </div>
+</div>
+
+<section id="use">
+  <div class="shead"><span class="snum">00</span><h2>How to use this</h2></div>
+  <div class="stack">
+    <div class="note stop">
+      <div class="ct">This is the opposite of what failed the first time</div>
+      <p>CRA's finding on both projects was not merely that the work looked like engineering. It was that the
+      T661 section 244 narratives described mechanisms — timestamp skew, message ordering, Kafka runtime
+      uncertainty, schema-agnostic parsers, checkpoint markers, telemetry injection, anomaly clustering,
+      adaptive script logic — that <strong>were not demonstrated in the review and were not present in the
+      documents</strong>. Writing a more detailed version of the same unevidenced narrative would confirm the
+      Agency's concern rather than answer it, and on a second pass it invites a look at whether the original
+      description was accurate.</p>
+      <p>So this document does not assert that these experiments happened. <strong>It states what each
+      experiment would have to have been, and what record would have to exist, for the claim to be
+      arguable.</strong> An engineer who was there fills the verdict row from real artefacts. Anything left
+      unfilled is struck before we write a word to CRA.</p>
+    </div>
+    <div class="note">
+      <div class="ct">How each worksheet is built</div>
+      <p>Every candidate carries the same six rows. <strong>Uncertainty</strong> and <strong>hypothesis</strong>
+      are drafted in the register that would reach CRA — set in serif — but they are conditional on the facts
+      being true. <strong>Experiment</strong> is what the systematic investigation would have consisted of.
+      <strong>Record required</strong> is the specific dated artefact, named by system. <strong>Where to
+      look</strong> gives the repository, tracker or log and a date range. <strong>Verdict</strong> is empty
+      and stays empty until someone checks.</p>
+    </div>
+  </div>
+</section>
+
+<section id="test">
+  <div class="shead"><span class="snum">01</span><h2>The test we must satisfy</h2></div>
+  <p class="sub">The Advisor works from the five questions in CRA's eligibility policy. Every candidate below is
+  written to answer all five, because failing any one of them ends the argument.</p>
+  <div class="qgrid">
+    <div class="q"><span class="qn">Q1</span><span class="qt"><b>Was there a scientific or technological uncertainty?</b>
+      <span>Not a business constraint, not a lack of access, not a skills gap. Something about the technology
+      itself whose outcome could not be known in advance by a competent professional applying standard practice.</span></span></div>
+    <div class="q"><span class="qn">Q2</span><span class="qt"><b>Did the effort involve formulating hypotheses aimed at reducing or eliminating that uncertainty?</b>
+      <span>A specific, stated proposition about cause and effect that could be shown false.</span></span></div>
+    <div class="q"><span class="qn">Q3</span><span class="qt"><b>Was the approach consistent with a systematic investigation — formulating and testing hypotheses by experiment or analysis?</b>
+      <span>Iteration alone is not systematic investigation. Trying things until one works is debugging.
+      The sequence must show design, prediction, measurement, and a conclusion that fed the next attempt.</span></span></div>
+    <div class="q"><span class="qn">Q4</span><span class="qt"><b>Was it undertaken to achieve a scientific or technological advancement?</b>
+      <span>An advance in the underlying technology base or in knowledge not publicly available and not
+      deducible by a competent professional. Faster validation is a business outcome, not an advancement.</span></span></div>
+    <div class="q"><span class="qn">Q5</span><span class="qt"><b>Was a record of the hypotheses tested and the results kept as the work progressed?</b>
+      <span>Contemporaneous. This is the question that decided the first review, and it is the one this
+      document exists to answer.</span></span></div>
+  </div>
+  <div class="stack" style="margin-top:14px">
+    <div class="note warn">
+      <div class="ct">Two provisions in subsection 248(1) decide these two projects</div>
+      <p><strong>Paragraph (f) excludes quality control and routine testing.</strong> Both projects are, on
+      their face, testing engagements. P1 validates call detail records; P2 is a quality engineering managed
+      service. Read plainly, the testing activity itself is outside the definition — and that, not the absence
+      of sophistication, is the deepest problem in the file.</p>
+      <p><strong>Paragraph (d) admits support work only when it attaches to eligible work.</strong> Computer
+      programming, data collection and testing qualify when they are commensurate with, and directly in
+      support of, experimental development under paragraph (c). Automation scripting does not stand on its
+      own. It needs an eligible core to hang from, and the claim must identify that core explicitly.</p>
+    </div>
+  </div>
+</section>
+
+<section id="reframe">
+  <div class="shead"><span class="snum">02</span><h2>The reframe that decides both projects</h2></div>
+  <p class="sub">If there is a viable position anywhere in P1 and P2, it rests on one distinction, and everything
+  else in this document is built on it.</p>
+  <div class="stack">
+    <div class="note">
+      <div class="ct">The eligible work is not the testing. It is building an instrument that made testing possible.</div>
+      <p>Executing tests against a system is quality control. Developing a <em>method of measurement</em> where
+      no known method existed — where it was genuinely unknown whether the measurement could be made at all —
+      is experimental development, and the tests then run are its application.</p>
+      <p>The first submission argued the wrong half. It described faster validation, a golden dataset, and
+      broad automation coverage — all outcomes of testing. The Advisor read exactly that and applied
+      paragraph (f). <strong>Every candidate below is therefore framed as instrument development, never as
+      test execution</strong>, and any candidate that cannot be framed that way is marked weak on its face.</p>
+    </div>
+    <div class="note">
+      <div class="ct">And there is one genuine technological problem running through both projects</div>
+      <p>Strip the tooling away and P1's timing buffer and P2's mobile authentication handoff are the same
+      problem: <strong>deciding when an asynchronous process has finished, when that process runs inside a
+      system you cannot instrument, observe, or ask.</strong> No completion signal, no callback, no queryable
+      state — and a fixed wait is either wrong or wasteful because the distribution of completion times is
+      unknown and non-stationary.</p>
+      <p>That is a real problem in distributed systems, and it is not solved by standard practice in the
+      general case. Whether Tech Mahindra <em>solved</em> it — or merely padded a sleep until the failures
+      stopped — is a question of fact that only the code history answers. If the record shows the former,
+      it is the strongest single argument available across the whole claim, and it spans both projects.
+      If it shows the latter, both candidates fall and very little remains.</p>
+    </div>
+  </div>
+</section>
+
+<section id="p1a">
+  <div class="shead"><span class="snum">P1</span><h2>Project 1 — Rogers CBU Wireless <span class="mono" style="font-size:13px;color:var(--ink-3)">Y.IN2100170</span></h2></div>
+  <p class="sub">Five candidates from the interview record, strongest first. The Advisor has already characterised
+  this work as modernisation, integration and workarounds, so each candidate has to defeat that reading on its
+  own facts, not by assertion.</p>
+  <div class="stack">
+
+  <div class="exp">
+    <header><span class="code">P1-A</span><h3>Deriving aggregation behaviour of an inaccessible rating system at runtime</h3><span class="badge mid">Conditional</span></header>
+    <div class="row claim"><div class="lab">Uncertainty</div><div class="val"><p>The rating platform was operated by a third party and could not be inspected, instrumented or queried. Its aggregation behaviour — how many raw records it emits for a call of a given duration — was undocumented, and changed during the year without notice. It was not known whether a validation method could be built that stayed correct across such a change, or whether any method must be re-specified by hand each time the vendor altered behaviour that we could not see.</p></div></div>
+    <div class="row claim"><div class="lab">Hypothesis</div><div class="val"><p>That the emission interval can be inferred at runtime from the record stream itself — from the relationship between a known generated usage event and the set of records it produces — rather than supplied as a configured constant.</p></div></div>
+    <div class="row"><div class="lab">Experiment</div><div class="val"><ul class="tight">
+      <li>Generate usage of precisely known duration in the network lab, so the expected record count is determined by the hypothesis rather than observed after the fact.</li>
+      <li>Capture the emitted set and compare count and boundaries against prediction.</li>
+      <li><strong>The falsifying observation on record:</strong> two records emitted across a two-minute window where the configured assumption predicted one.</li>
+      <li>Re-specify the derivation, re-predict, re-run across durations spanning the boundary conditions.</li>
+    </ul></div></div>
+    <div class="row need"><div class="lab">Record required</div><div class="val"><ul class="tight">
+      <li>The <strong>dated defect or ticket</strong> raised when validation began failing, with its description of the mismatch — this is the moment the uncertainty was recognised.</li>
+      <li>The <strong>log excerpt</strong> showing two records where one was expected, with its timestamp.</li>
+      <li>The <strong>commit that changed the handling</strong>. This one artefact decides the candidate.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Where to look</div><div class="val"><ul class="tight">
+      <li>Defect tracker for the RTRM workstream, <code>2023-04</code> to <code>2024-03</code>, searching on interval, aggregation, CDR count, duplicate.</li>
+      <li>Repository history for the validation scripts across the same window.</li>
+      <li>The RTRM daily status reports already in the SharePoint archive — they may date the discovery even where the ticket is gone.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Verdict</div><div class="val">
+      <p style="font-size:13.4px;color:var(--ink-2);margin-bottom:9px"><strong>This candidate turns entirely on what the commit shows.</strong> If the change substituted one constant for another, this is debugging against undocumented behaviour and it is struck — a competent professional finds it and fixes it, which is standard practice. If it introduced runtime derivation so that the validator no longer depended on knowing the interval, that is a method that did not previously exist and the uncertainty above is real.</p>
+      <div class="verdict"><span class="chip">artefact found ▢</span><span class="chip">constant swap ▢</span><span class="chip">runtime derivation ▢</span><span class="chip">checked by ______</span></div>
+    </div></div>
+  </div>
+
+  <div class="exp" id="p1b">
+    <header><span class="code">P1-B</span><h3>Determining completion of an asynchronous emission with no completion signal</h3><span class="badge strong">Best available</span></header>
+    <div class="row claim"><div class="lab">Uncertainty</div><div class="val"><p>Records for a single usage event arrive from upstream network elements over an interval that varies with network conditions, and the emitting systems provide no completion signal, no terminal marker and no queryable state. Validating a complete set therefore requires knowing when the set <em>is</em> complete. It was unknown whether completion could be determined at all from the observable stream, or whether any approach must fall back on a fixed wait — which is either unsafe, because the tail is unbounded, or uneconomic, because it must be sized for the worst case.</p></div></div>
+    <div class="row claim"><div class="lab">Hypothesis</div><div class="val"><p>That completion can be inferred from the arrival pattern — that inter-arrival behaviour after the final record is statistically distinguishable from a gap between records — and that a decision rule on that signal is more reliable than any fixed delay.</p></div></div>
+    <div class="row"><div class="lab">Experiment</div><div class="val"><ul class="tight">
+      <li>Instrument arrival timestamps per usage event and characterise the delay distribution, rather than assuming one.</li>
+      <li>Test fixed waits across a range, measuring the false-completion rate at each — establishing that the failure is a property of the approach, not of the parameter.</li>
+      <li>Implement and test the inference rule against the same corpus; compare error rates.</li>
+      <li>Re-test under degraded network conditions, where the distribution shifts, to establish whether the rule holds.</li>
+    </ul></div></div>
+    <div class="row need"><div class="lab">Record required</div><div class="val"><ul class="tight">
+      <li><strong>Measured arrival-delay data.</strong> Any file, chart or log that shows the distribution was characterised rather than guessed. This is the single most valuable artefact in the entire claim.</li>
+      <li>Evidence of <strong>more than one wait value tried</strong> with recorded outcomes.</li>
+      <li>Commit history showing how the delay was arrived at — a value that appears once, fully formed, argues against experimentation as strongly as a series of adjustments argues for it.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Where to look</div><div class="val"><ul class="tight">
+      <li>Repository history filtered to the wait, sleep, buffer or delay constant. The <strong>commit sequence is the experimental record</strong>, whether or not anyone intended it as one.</li>
+      <li>Test result archives for runs that failed on incomplete record sets.</li>
+      <li>Any spreadsheet or notebook where someone worked out the timing — informal analysis still counts under Q5 if it is dated.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Verdict</div><div class="val">
+      <p style="font-size:13.4px;color:var(--ink-2);margin-bottom:9px">Framed as instrument development this survives paragraph (f) cleanly: the eligible work is establishing a method for determining completion, and the CDR validation is its application. It is also the candidate that pairs with <a href="#p2a">P2-A</a> to show the same technological problem attacked in two independent environments — which is materially harder for the Advisor to dismiss than either alone.</p>
+      <div class="verdict"><span class="chip">delay data exists ▢</span><span class="chip">multiple values tried ▢</span><span class="chip">inference rule built ▢</span><span class="chip">checked by ______</span></div>
+    </div></div>
+  </div>
+
+  <div class="exp" id="p1c">
+    <header><span class="code">P1-C</span><h3>Reconstructing event records from a log stream during partial integration</h3><span class="badge weak">Weak on its face</span></header>
+    <div class="row claim"><div class="lab">Uncertainty</div><div class="val"><p>With the notification path not integrated end to end, the event records it would have produced did not exist. It was unknown whether records of sufficient fidelity to validate downstream behaviour could be reconstructed from log output alone, given that logs are lossy with respect to ordering and carry no delivery semantics.</p></div></div>
+    <div class="row claim"><div class="lab">Hypothesis</div><div class="val"><p>That a reconstruction from log entries preserves the properties downstream validation depends on, and that any loss is bounded and characterisable.</p></div></div>
+    <div class="row"><div class="lab">Experiment</div><div class="val"><ul class="tight">
+      <li>Reconstruct against a case where the true record set is independently known, and measure divergence.</li>
+      <li>Establish which properties survive reconstruction and which do not.</li>
+    </ul></div></div>
+    <div class="row need"><div class="lab">Record required</div><div class="val"><ul class="tight">
+      <li>Any <strong>fidelity comparison</strong> between reconstructed and true records. Without it there is no experiment, only a workaround.</li>
+      <li>A design note stating what the reconstruction was known not to preserve.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Where to look</div><div class="val"><ul class="tight">
+      <li>Repository history for the log-parsing scripts; design pages in the project space.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Verdict</div><div class="val">
+      <p style="font-size:13.4px;color:var(--ink-2);margin-bottom:9px"><strong>Do not lead with this.</strong> The team itself described these scripts to the Advisor as temporary workarounds pending integration, and he recorded that characterisation. Reopening it without a fidelity analysis in hand invites him to repeat his own finding back to us. Include only if the comparison exists.</p>
+      <div class="verdict"><span class="chip">fidelity analysis exists ▢</span><span class="chip">checked by ______</span></div>
+    </div></div>
+  </div>
+
+  <div class="exp" id="p1d">
+    <header><span class="code">P1-D</span><h3>Validating records whose field validity is conditional and unspecified</h3><span class="badge weak">Weak on its face</span></header>
+    <div class="row claim"><div class="lab">Uncertainty</div><div class="val"><p>Of roughly seventy-two attributes, the subset that carries meaning depends on the usage type, and the mapping was not documented by the vendor. It was unknown whether the conditional validity rules could be established by observation rather than specification.</p></div></div>
+    <div class="row"><div class="lab">Experiment</div><div class="val"><ul class="tight">
+      <li>Systematic generation across usage types, recording which attributes populate under which conditions, to build the mapping empirically.</li>
+    </ul></div></div>
+    <div class="row need"><div class="lab">Record required</div><div class="val"><ul class="tight">
+      <li>The <strong>derived mapping itself</strong>, dated — a matrix of attribute against usage type. If this exists as a document produced during the work, it is a genuine artefact of empirical investigation.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Where to look</div><div class="val"><ul class="tight">
+      <li>Test design documents and the SharePoint archive; the validation scripts themselves, where the mapping may be encoded in the assertions.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Verdict</div><div class="val">
+      <p style="font-size:13.4px;color:var(--ink-2);margin-bottom:9px">Determining an undocumented interface by observation is close to the line and often reads as requirements discovery rather than technological uncertainty. Argue only as <strong>support work under paragraph (d)</strong> attached to P1-A or P1-B, never standing alone.</p>
+      <div class="verdict"><span class="chip">mapping document exists ▢</span><span class="chip">checked by ______</span></div>
+    </div></div>
+  </div>
+
+  <div class="exp" id="p1e">
+    <header><span class="code">P1-E</span><h3>Voucher state reconstruction from encrypted extracts</h3><span class="badge weak">Recommend striking</span></header>
+    <div class="row claim"><div class="lab">Uncertainty</div><div class="val"><p>Voucher state lived in a downstream database that was not accessible; state had to be established from encrypted files instead.</p></div></div>
+    <div class="row need"><div class="lab">Record required</div><div class="val"><ul class="tight">
+      <li>Evidence that anything beyond decrypting a file with a supplied key and comparing sixteen attributes was involved.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Verdict</div><div class="val">
+      <p style="font-size:13.4px;color:var(--ink-2);margin-bottom:9px"><strong>Strike unless something unexpected surfaces.</strong> Decryption with a provided private key, certificate handshakes and load-balancer traffic are access and infrastructure work. The Advisor said so explicitly and he is right. Carrying a losing point weakens the two that can be won.</p>
+      <div class="verdict"><span class="chip">strike ▣</span></div>
+    </div></div>
+  </div>
+  </div>
+</section>
+
+<section id="p2a">
+  <div class="shead"><span class="snum">P2</span><h2>Project 2 — CBT Scotia QA Managed Service <span class="mono" style="font-size:13px;color:var(--ink-3)">Y.IN2201961</span></h2></div>
+  <p class="sub">Three candidates, and a harder starting position than P1. The engagement is a quality assurance
+  managed service by name and by contract, the document filed with CRA describes the challenge as a shortage of
+  automation skills answered by hiring, and the project has no hours recorded against it in the Canadian time
+  system. Two of those three facts are ours to explain.</p>
+  <div class="stack">
+
+  <div class="exp">
+    <header><span class="code">P2-A</span><h3>Handing control between two automation runtimes with independent session state</h3><span class="badge strong">Only real candidate</span></header>
+    <div class="row claim"><div class="lab">Uncertainty</div><div class="val"><p>An authentication flow spans a web application and a mobile application driven by two separate automation runtimes, each holding its own session context, with no shared process, no shared memory and no inter-process contract between them. The web driver must suspend until an action completes inside the mobile runtime, and neither framework exposes a mechanism for one to observe completion in the other. It was unknown whether deterministic handoff between them was achievable, or whether cross-runtime coordination is only ever approximated by waiting.</p></div></div>
+    <div class="row claim"><div class="lab">Hypothesis</div><div class="val"><p>That a coordination channel external to both runtimes can carry a completion assertion reliably enough to sequence them deterministically, and that correctness under this scheme does not depend on the relative speed of the two runtimes.</p></div></div>
+    <div class="row"><div class="lab">Experiment</div><div class="val"><ul class="tight">
+      <li>Establish the failure characteristics of fixed waits — <strong>the team already told the Advisor these were unsuitable, which is a finding and should be presented as one</strong>, with the measurements that led to it.</li>
+      <li>Design a channel — token file, shared state record, signalling service — and specify the completion assertion it carries.</li>
+      <li>Test under deliberately skewed timing, forcing each runtime to be the slower one, to establish whether correctness is independent of relative speed.</li>
+      <li>Measure the residual failure rate against the fixed-wait baseline.</li>
+    </ul></div></div>
+    <div class="row need"><div class="lab">Record required</div><div class="val"><ul class="tight">
+      <li>The <strong>synchronisation code and its full history</strong> in Bitbucket. The commit sequence is the experimental record; a mechanism that appears in one commit and never changes suggests a known pattern applied, while a sequence of reworks suggests investigation.</li>
+      <li>Defect or story records in Jira or ALM describing intermittent authentication failures before the mechanism existed, and their closure after.</li>
+      <li>Any <strong>pass-rate comparison</strong> across the change.</li>
+      <li>Design discussion in the Confluence space — the QAT space already holds framework material, so a design page may well exist.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Where to look</div><div class="val"><ul class="tight">
+      <li><code>confluence.agile.bns</code>, QAT space — framework and tool-stack pages are already known to be there.</li>
+      <li>Bitbucket, the Quantum framework repository, <code>2023-04</code> to <code>2024-03</code>, filtered to the mobile authentication path.</li>
+      <li>ALM / Xray execution history for the affected suites either side of the change.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Verdict</div><div class="val">
+      <p style="font-size:13.4px;color:var(--ink-2);margin-bottom:9px">If the mechanism is a polling loop with backoff, it is a documented pattern and the candidate is struck. If it is a coordination protocol the team designed because no pattern fitted, it holds — and it pairs with <a href="#p1b">P1-B</a> as the same technological problem met in an unrelated environment. <strong>That pairing is the strongest single argument in the file</strong>, because it shows a problem being attacked rather than a story being told.</p>
+      <div class="verdict"><span class="chip">code history found ▢</span><span class="chip">polling pattern ▢</span><span class="chip">designed protocol ▢</span><span class="chip">checked by ______</span></div>
+    </div></div>
+  </div>
+
+  <div class="exp" id="p2b">
+    <header><span class="code">P2-B</span><h3>A common execution abstraction over runtimes with incompatible state models</h3><span class="badge mid">Conditional</span></header>
+    <div class="row claim"><div class="lab">Uncertainty</div><div class="val"><p>End-to-end validation had to traverse mobile, web, service and mainframe layers, driven by runtimes with incompatible execution and state models — and, as the team noted, none of them providing a store through which state could be handed on. It was unknown whether a single abstraction could carry state across all four without the semantics of any one layer being lost in translation.</p></div></div>
+    <div class="row claim"><div class="lab">Hypothesis</div><div class="val"><p>That a common state representation exists which each runtime can produce and consume without loss, and that a shared execution contract can be defined over runtimes whose native models do not correspond.</p></div></div>
+    <div class="row"><div class="lab">Experiment</div><div class="val"><ul class="tight">
+      <li>Define the state representation and the contract; implement adapters per runtime.</li>
+      <li>Establish, per layer, what the abstraction cannot express — the negative result matters as much as the positive one.</li>
+      <li>Test a traversal that crosses all four layers in a single scenario and verify state integrity end to end.</li>
+    </ul></div></div>
+    <div class="row need"><div class="lab">Record required</div><div class="val"><ul class="tight">
+      <li>A <strong>dated design document</strong> for the framework showing the abstraction was designed rather than accreted.</li>
+      <li>Evidence of <strong>a rejected approach</strong> — an architecture decision record, a superseded design, a discussion thread. Rejection evidence is what distinguishes design from assembly.</li>
+      <li>The repository history of the framework's core, as distinct from the test scripts written on top of it.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Where to look</div><div class="val"><ul class="tight">
+      <li>Confluence QAT space — the tool-stack and framework pages, and anything on knowledge management around them.</li>
+      <li>Bitbucket, framework core, initial commits and subsequent restructures.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Verdict</div><div class="val">
+      <p style="font-size:13.4px;color:var(--ink-2);margin-bottom:9px">The Advisor read this as orchestration of existing tools, and integration of commercially available tools is not advancement. The distinction that could carry it is <strong>state semantics across incompatible models</strong>, not tool coverage. Note the risk: the tool-stack material already in Confluence is dated late 2022 and early 2023, so some of it predates the claim year and cannot support FY2024 work.</p>
+      <div class="verdict"><span class="chip">design doc dated in-year ▢</span><span class="chip">rejected approach found ▢</span><span class="chip">checked by ______</span></div>
+    </div></div>
+  </div>
+
+  <div class="exp" id="p2c">
+    <header><span class="code">P2-C</span><h3>Advancing system time to validate deferred processing</h3><span class="badge weak">Recommend striking</span></header>
+    <div class="row claim"><div class="lab">Uncertainty</div><div class="val"><p>Outcomes that materialise only after long scheduled intervals — interest accrual, future-dated instructions — cannot be validated within a test window without forcing the batch to run early.</p></div></div>
+    <div class="row need"><div class="lab">Record required</div><div class="val"><ul class="tight">
+      <li>Evidence that forcing batch execution disturbed state in ways that had to be investigated and corrected, rather than simply being scheduled.</li>
+    </ul></div></div>
+    <div class="row"><div class="lab">Verdict</div><div class="val">
+      <p style="font-size:13.4px;color:var(--ink-2);margin-bottom:9px"><strong>Strike.</strong> Triggering a batch job ahead of schedule to observe its effect is established practice in every environment of this kind. Nothing in the interview record suggests otherwise.</p>
+      <div class="verdict"><span class="chip">strike ▣</span></div>
+    </div></div>
+  </div>
+
+  <div class="note stop">
+    <div class="ct">Two things about P2 that no technical argument will fix</div>
+    <p><strong>The document already filed contradicts the case.</strong> The submission to CRA states the primary
+    challenge was the limited availability of internal skill sets and that the response was onboarding
+    specialised resources. A skills shortage answered by recruitment is not a technological uncertainty, and it
+    is in the Agency's file in our own words. Any new position must account for that document, not ignore it —
+    the honest route is to say plainly that it described the commercial challenge and understated the technical
+    one, and then show the technical one.</p>
+    <p><strong>The project has no Canadian hours behind it.</strong> Even a won eligibility argument recovers
+    nothing without a substantiated labour base. Resolve where the claimed effort was performed before
+    investing further here.</p>
+  </div>
+  </div>
+</section>
+
+<section id="hunt">
+  <div class="shead"><span class="snum">03</span><h2>The artefact hunt</h2></div>
+  <p class="sub">Ranked by what each artefact would settle. The first two rows decide whether there is a case at
+  all; everything below them only sharpens one.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Artefact</th><th>System</th><th>Settles</th><th>If absent</th></tr></thead>
+      <tbody>
+        <tr><td><strong>History of the timing/completion code</strong></td><td>P1 validation repository, <span class="mono">2023-04</span> – <span class="mono">2024-03</span></td><td>P1-B — whether completion was investigated or a delay was padded</td><td>P1-B falls, and with it the strongest candidate in the file</td></tr>
+        <tr><td><strong>History of the mobile authentication handoff</strong></td><td>Bitbucket, Quantum framework</td><td>P2-A — designed protocol or documented pattern</td><td>P2 has no eligibility case left worth arguing</td></tr>
+        <tr><td>Measured arrival-delay data, in any form</td><td>Test logs, analyst spreadsheets, notebooks</td><td>Q5 for P1-B — that a record was kept as the work progressed</td><td>P1-B is arguable from commits alone, but materially weaker</td></tr>
+        <tr><td>Defect record for the interval mismatch</td><td>P1 defect tracker</td><td>P1-A — dates the moment the uncertainty was recognised</td><td>Fall back to the SharePoint daily status reports</td></tr>
+        <tr><td>Framework design document or decision record</td><td>Confluence QAT space</td><td>P2-B — design versus accretion</td><td>P2-B is not arguable</td></tr>
+        <tr><td>Execution pass rates either side of the sync change</td><td>ALM / Xray</td><td>Quantifies the result of P2-A</td><td>Argue P2-A qualitatively</td></tr>
+        <tr><td>Attribute-to-usage-type mapping, dated</td><td>Test design documents</td><td>P1-D as support work</td><td>Drop P1-D</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="stack" style="margin-top:14px">
+    <div class="note warn">
+      <div class="ct">Search the history, not the head</div>
+      <p>What matters is not what the code looks like now but <strong>how it got there</strong>. A repository
+      whose current state shows a clean, well-chosen mechanism proves nothing; the sequence of commits that
+      arrived at it is the experimental record, and it exists whether or not anyone was keeping one
+      deliberately. Pull the full log for the relevant files across the claim year before concluding anything
+      is missing.</p>
+      <p>The same applies to tickets closed as duplicates or won't-fix, and to superseded pages in Confluence.
+      Abandoned approaches are the most probative artefacts available, because they are the ones that show an
+      outcome was uncertain.</p>
+    </div>
+    <div class="note stop">
+      <div class="ct">Two constraints on anything found</div>
+      <p><strong>It has to fall inside the claim year</strong> — 1 April 2023 to 31 March 2024. Some of the
+      Scotia framework material already in hand is dated late 2022, and the evidence deck filed in May quotes a
+      delivery timeline running into April 2024. Neither supports FY2024 work.</p>
+      <p><strong>It has to be contemporaneous.</strong> Anything written now to describe what happened then is
+      a reconstruction, and must be labelled as one. A reconstruction resting on dated artefacts is legitimate
+      and is what a representation is made of. A reconstruction resting on recollection is what the Agency
+      already declined to accept.</p>
+    </div>
+  </div>
+</section>
+
+<section id="room">
+  <div class="shead"><span class="snum">04</span><h2>Surviving the room</h2></div>
+  <p class="sub">Both projects were lost in conversation, not on paper. If there is a second technical
+  discussion, these are the questions the Advisor will ask and the shape of an answer that holds.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>He will ask</th><th>What fails</th><th>What holds</th></tr></thead>
+      <tbody>
+        <tr><td>What did you not know when you started?</td><td>Naming a constraint — no access to the vendor, no documentation, no skills in-house</td><td>Naming a property of the technology whose behaviour could not be predicted, and saying why standard practice could not settle it</td></tr>
+        <tr><td>What did you try that did not work?</td><td>&ldquo;It took several iterations&rdquo;</td><td>A specific approach, why it was expected to work, what was observed instead, and what that ruled out</td></tr>
+        <tr><td>How did you know when you had solved it?</td><td>&ldquo;The tests passed&rdquo;</td><td>A measurement against a criterion set before the attempt</td></tr>
+        <tr><td>Isn't this quality control?</td><td>Describing coverage, cycle time or defect yield</td><td>The instrument distinction — the eligible work built the means of measurement; the testing is its application</td></tr>
+        <tr><td>Why is this not just integration?</td><td>Listing the technologies integrated</td><td>Identifying what no available component provided, and what had to be established to bridge it</td></tr>
+        <tr><td>Section 244 described mechanisms we did not see. Where are they?</td><td>Restating them, or defending the wording</td><td>Saying directly which were built and can be shown, and which overstated the work — then moving to the artefacts</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note" style="margin-top:14px">
+    <div class="ct">Who is in the room</div>
+    <p>The people who did the work, not the people who manage it. The first review needed two sessions because
+    key technical personnel were unavailable, and the discussion stayed at process level as a result. The
+    engineer who wrote the timing code and the engineer who wrote the synchronisation code are the two people
+    whose presence decides this — and on P1 the Advisor should hear from someone who appears in the salary
+    schedule, since two of the four people named to CRA as claimants do not.</p>
+  </div>
+</section>
+
+<section id="outcomes">
+  <div class="shead"><span class="snum">05</span><h2>Three honest outcomes</h2></div>
+  <p class="sub">Decide which one applies per project once the hunt is done, and say so plainly. All three are
+  defensible positions; only pretending decides badly.</p>
+  <div class="stack">
+    <div class="note">
+      <div class="ct">Substantiate — artefacts support the uncertainty as stated</div>
+      <p>Write the representation from the artefacts outward. Each claimed uncertainty cites a dated record;
+      each mechanism named in section 244 is either evidenced or expressly withdrawn. Expect a narrowed claim
+      — the eligible portion is the instrument development, not the full project effort, and saying so before
+      the Advisor does is worth more than the difference.</p>
+    </div>
+    <div class="note warn">
+      <div class="ct">Narrow — the work happened but the record is thin</div>
+      <p>Claim only the subset that artefacts reach, at a proportion the evidence carries, and state the method
+      openly as a present-day reconstruction from contemporaneous records. A small well-evidenced claim
+      survives review. A large one resting on the same evidence does not, and costs credibility on the years
+      that follow.</p>
+    </div>
+    <div class="note stop">
+      <div class="ct">Concede — the artefacts are not there</div>
+      <p>Then concede these two projects cleanly and in writing, and spend the effort on the five projects
+      denied for documentation rather than on merit. A concession made before being forced is worth real
+      goodwill with the same office that will review FY2025. <strong>On the evidence in hand today this remains
+      the most likely outcome for Project 2, and the hunt is what would change that.</strong></p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <strong>What this document is.</strong> An internal instrument for reconstructing an experimental record from
+  contemporaneous artefacts. The uncertainty and hypothesis statements are drafted conditionally, in the register
+  a representation would use, so that they can be adopted once — and only once — the corresponding artefact is
+  located and cited. They are not assertions of fact and must not be filed as written.
+  <br><br>
+  Candidate experiments are derived from the work described in CRA's Project Eligibility Report sections 5.1.2
+  and 5.2.2 — the Agency's own record of what Tech Mahindra described in the review meetings of 5 and 7 May 2026.
+  No mechanism has been introduced that does not appear in that record.
+  <br><br>
+  This is not legal or tax advice. Any representation built from this should be reviewed by a Canadian SR&amp;ED
+  practitioner or tax counsel before filing.
+  <br><br>
+  <strong>Protected B — client material.</strong> Do not distribute outside the Certainti.AI engagement team.
+</footer>
+</main>
+</div>
