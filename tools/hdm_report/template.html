@@ -373,8 +373,9 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
 <div class="grid g21">
   <div class="card">
     <div class="chead"><div class="ct"><h2>Planned completion runway</h2></div></div>
-    <p class="csub">Cumulative share of in-scope tasks reaching their planned completion date. Plan only — not actuals.</p>
+    <p class="csub">Cumulative share of in-scope tasks reaching their planned completion date. The curve is the plan; the figure below compares it against what is actually signed off.</p>
     <div id="ch-burn"></div>
+    <div class="insight" id="ins-burn"></div>
   </div>
   <div class="card">
     <div class="chead"><div class="ct"><h2>Load per due date</h2></div></div>
@@ -972,6 +973,19 @@ function render(){
   let cum = 0;
   const pts = dkeys.map(d=>{ const add=byDate[d], cumPrev=cum; cum+=add; return {d, add, cum, cumPrev}; });
   chartBurn(el("ch-burn"), pts, rs.length);
+  // Plan vs actual at the read date — the one comparison the curve cannot show.
+  const dueByNow = dated.filter(r=>r.planned <= TODAY).length;
+  const doneNow = rs.filter(r=>r.migStatus==="Completed").length;
+  const delta = doneNow - dueByNow;
+  el("ins-burn").innerHTML = !rs.length
+    ? "No tasks in the current filter."
+    : `By today the plan calls for <b>${dueByNow}</b> of ${rs.length} complete `
+      + `(${Math.round(dueByNow/rs.length*100)}%); <b>${doneNow}</b> actually are `
+      + `(${Math.round(doneNow/rs.length*100)}%) — `
+      + (delta > 0 ? `<b>${delta} ahead of plan</b>.`
+         : delta < 0 ? `<b>${-delta} behind plan</b>.`
+         : `exactly on plan.`)
+      + ` Dates left of the today marker have already passed.`;
   chartCols(el("ch-due"), dkeys.map(d=>({
     l:fmtDate(d), l2:new Date(d).toLocaleDateString("en-GB",{weekday:"short"}), full:fmtDate(d)+" "+new Date(d).getFullYear(),
     v:byDate[d], dd:days(TODAY,d)})));
