@@ -98,6 +98,16 @@ Reading the eight agreements reversed an earlier, too-optimistic read. **Payment
 
 Do not repeat the line that Canadian incorporation settles the taxable-supplier test. When requesting P3-P6 contractor evidence, **ask for agreements first**, then invoices.
 
+### Authorities memo — DAZZM verified 9 Sep 2026
+
+`P1_P2_Authorities_Memo.html` authority E is **DAZZM Inc. c. Le Roi, 2024 CCI 129** (English form 2024 TCC 129), docket **2021-3161(IT)G**, Gagnon J, heard Montreal 27-28 March 2024, judgment 8 October 2024. Notice of appeal 14 December 2021; taxation year ending 30 June 2018; reassessment 22 January 2020; **$208,853** in dispute on sub-project 1 of Project 1, "React Performance".
+
+**It is a General Procedure decision, not informal.** The secondary commentary calling it an informal hearing and therefore not precedent-setting is wrong. Two lines settle it: the TCC docket suffix `(IT)G` encodes Income Tax Act / General Procedure (informal would be `(IT)I`), and the Informal Procedure monetary limit is $25,000 of tax and penalties per taxation year - far below what $208,853 of disputed expenditure puts at issue. The authority is therefore stronger than the first draft of the memo allowed.
+
+Caveat carried forward: this rests on web-search triangulation of two independent sources (including a filed judgment published as `Dckt_2021-3161-IT-G_8-Oct-2024.pdf`), **not** on a read of the reasons. CanLII, the TCC database and canada.ca are unreachable from this environment. The particulars are corroborated; the holdings are still from commentary, and the substantiation holding - performance metrics and time estimates accepted in place of daily timesheets - must be read in the reasons before it is put to the Advisor, because it is the one we would lean on hardest.
+
+**Still unverified in that memo: Northwest Hydraulic, Clevor, Vortex, and the CRA policy wording.**
+
 ## Still outstanding
 
 1. Make the call to Kitty Leung, fill the letter placeholders, and submit the same day. A verbal extension that is never confirmed in writing protects nobody.
