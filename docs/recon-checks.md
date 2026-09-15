@@ -12,7 +12,7 @@ status.
 
 | # | Check | Objects | Rule | Observed |
 |---|-------|---------|------|----------|
-| R1 | Dangling case→fiscal FK | `case_projects.project_fiscal_rid` → `project_fiscal.rid` | every case project must resolve to a live `project_fiscal` row | **~4,880 of 31,096 (15.7%) dangle**; 0 NULL; 0 duplicate FK. **Count is growing** — 4,816 → 4,867 → 4,886 over ~20 min. Concentrated in **19 case / fiscal-year groups, 14 accounts, but only 7 tenant schemas** — whole case populations, not scattered rows |
+| R1 | Dangling case→fiscal FK | `case_projects.project_fiscal_rid` → `project_fiscal.rid` | every case project must resolve to a live `project_fiscal` row | **~4,880 of 31,096 (15.7%) dangle**; 0 NULL; 0 duplicate FK. **Count is growing** — 4,816 → 4,867 → 4,886 over ~20 min. Concentrated in **19 case / fiscal-year groups, 14 accounts, 7 tenant schemas**. **Not missing data** — these are stale links left by project re-loads; see the corrected root cause below |
 | R2 | Case project-year uniqueness | `case_projects` | at most one row per `(project_rid, fiscal_year)` | **929 extra rows** — same project-year taken into more than one case |
 | R3 | Account guard, fiscal side | `project_fiscal.account_rid` vs `account_details` + main `account` (Active) | every row must pass | **433 of 32,738 rows fail** |
 | R4 | Account guard, case side | `case_projects.account_rid` vs same | every row must pass | 0 of 31,096 fail |
@@ -38,43 +38,55 @@ status.
   Today all 71 accounts are Active, so the guard currently drops nobody on that
   clause; R3's 433 failures are missing `account_details` rows.
 
-## R1 — root cause (evidenced)
+## R1 — root cause (corrected 2026-09-15)
 
-The project-fiscal purge **never deletes `case_projects` rows**. Section 2 of
-`project_fiscal/base_sql/02_delete_project_ORGDB_SECTION2.sql` (block `[O20b]`,
-around line 672) only issues an `UPDATE` recomputing two type-agnostic totals
-(`total_cost_from_prj_res`, `total_effort_from_prj_res`) for each linked case.
-There is no `DELETE FROM ... case_projects` anywhere in the fiscal purge, so the
-snapshot row survives its `project_fiscal` parent and its `project_fiscal_rid`
-is left dangling.
+**Earlier attribution to the fiscal purge was wrong.** The purge gap is real —
+`project_fiscal/base_sql/02_delete_project_ORGDB_SECTION2.sql` block `[O20b]`
+only recomputes two totals on `case_projects` and never deletes the rows — but
+it is not what produces these. **Re-loads are.**
 
-Two consequences follow, and both are visible in production:
+A project re-load deletes and re-inserts `project` and `project_fiscal`. RIDs are
+minted by the database (`gen_random_uuid()`) and never reused, so the new rows
+carry new RIDs while the `case_projects` snapshot still holds the old ones. The
+data is intact; only the links are stale. The application does not notice because
+it resolves by `project_code`, not by RID.
 
-1. **Assessed cost exceeds loaded cost.** `case_projects` totals 6,548.1M USD
-   against `project_fiscal`'s 6,204.8M, even though the assessed population is
-   supposed to be a subset. The orphaned snapshots are the difference.
-2. **The same purge leaves a documented partial recompute.** The per-resource-
-   type breakdown (`total_cost_fte_from_prj_res`, `..._subcon_...`,
-   `..._nonlabor_...`) is not recomputed, because the resource-type lookup lives
-   in a different Postgres server and the SQL-only block cannot join across it.
-   So even the surviving rows can disagree with their own type-agnostic totals —
-   add this as a check when R5 is built out.
+### Worked example
 
-### Where it concentrates
+Schema `trd365_00416`, case `P001-aeba7eac-2fb8-48ea-94c2-a7204509323f`,
+`case_projects.rid = P001-897248c9-6632-4616-9f39-5fa99a5009ed`:
 
-Seven of the 26 schemas carrying `case_projects` hold every dangling row. One
-schema alone holds 8 of the 19 groups (~45% of the rows) across six different
-child accounts, and another holds three groups across two unrelated accounts.
-The recon report should therefore group by **tenant schema first**, then by
-account — the account view alone hides the concentration.
+| | |
+|---|---|
+| project_code / FY | `Y.TI2300009` / 2025 |
+| total_cost_prj | 50,543.23 |
+| case row created | 2026-08-21 11:12:18 |
+| `project_rid` | `P001-a91d1612-…` — absent from `project` |
+| `project_fiscal_rid` | `P001-9ffbeacd-…` — absent from `project_fiscal` |
 
-Note also that case numbers are minted per tenant schema, so `CHS-000000000`
-recurs in five different schemas. A case is identified only by the
-`(tenant_schema, case_number)` pair; any dashboard filter or recon key on case
-number alone will collide.
+The live rows for that same code were created five days later, on
+2026-08-26 15:55 — `project` `P001-8adaf4ce-…` (PRJ-0000009043) and
+`project_fiscal` `P001-8fa062d2-…` (PFI-0000013921, FY2025), the latter carrying
+**total_cost_prj 50,543.23, identical to the cent**. One
+`case_project_resource` row still points at the dead `project_fiscal_rid`.
 
-Caveat worth holding: the dangling count is **rising while nothing is being
-purged from this workstream**, so the purge explains the mechanism but is not
-necessarily the only producer. The live application may also be writing
-`case_projects` rows against `project_fiscal` rows it later replaces. Confirm
-before attributing.
+### Categories and repair keys
+
+| category | rows | re-match key |
+|---|---|---|
+| stale fiscal pointer — `project` row still live | **1,961** | `(project_rid, fiscal_year)` |
+| project RID moved too | **3,184** | `(account_rid, project_code, fiscal_year)` |
+| unresolvable | **0** | — |
+
+Of the second category, **3,099 resolve to exactly one live `project_fiscal`
+row — no ambiguous matches, none unmatched** — and 2,518 of those agree on cost
+to the cent. The recon report should therefore classify rather than simply count:
+a stale link is not missing data, and every row here is repairable from data
+already present.
+
+### Still open
+
+The `case_projects` cost exceeding `project_fiscal` cost (6,548.1M vs 6,204.8M
+USD) is **not** explained by orphaned snapshots, since nothing is orphaned. The
+929 duplicate `(project_rid, fiscal_year)` rows of R2 are the likelier cause.
+Do not restate the earlier explanation — verify this one first.
