@@ -12,7 +12,7 @@ status.
 
 | # | Check | Objects | Rule | Observed |
 |---|-------|---------|------|----------|
-| R1 | Dangling case→fiscal FK | `case_projects.project_fiscal_rid` → `project_fiscal.rid` | every case project must resolve to a live `project_fiscal` row | **~4,880 of 31,096 (15.7%) dangle**; 0 NULL; 0 duplicate FK. **Count is growing** — 4,816 → 4,867 → 4,886 over ~20 min. Concentrated in **19 case / fiscal-year groups across 14 accounts**, i.e. whole case populations, not scattered rows |
+| R1 | Dangling case→fiscal FK | `case_projects.project_fiscal_rid` → `project_fiscal.rid` | every case project must resolve to a live `project_fiscal` row | **~4,880 of 31,096 (15.7%) dangle**; 0 NULL; 0 duplicate FK. **Count is growing** — 4,816 → 4,867 → 4,886 over ~20 min. Concentrated in **19 case / fiscal-year groups, 14 accounts, but only 7 tenant schemas** — whole case populations, not scattered rows |
 | R2 | Case project-year uniqueness | `case_projects` | at most one row per `(project_rid, fiscal_year)` | **929 extra rows** — same project-year taken into more than one case |
 | R3 | Account guard, fiscal side | `project_fiscal.account_rid` vs `account_details` + main `account` (Active) | every row must pass | **433 of 32,738 rows fail** |
 | R4 | Account guard, case side | `case_projects.account_rid` vs same | every row must pass | 0 of 31,096 fail |
@@ -59,6 +59,19 @@ Two consequences follow, and both are visible in production:
    in a different Postgres server and the SQL-only block cannot join across it.
    So even the surviving rows can disagree with their own type-agnostic totals —
    add this as a check when R5 is built out.
+
+### Where it concentrates
+
+Seven of the 26 schemas carrying `case_projects` hold every dangling row. One
+schema alone holds 8 of the 19 groups (~45% of the rows) across six different
+child accounts, and another holds three groups across two unrelated accounts.
+The recon report should therefore group by **tenant schema first**, then by
+account — the account view alone hides the concentration.
+
+Note also that case numbers are minted per tenant schema, so `CHS-000000000`
+recurs in five different schemas. A case is identified only by the
+`(tenant_schema, case_number)` pair; any dashboard filter or recon key on case
+number alone will collide.
 
 Caveat worth holding: the dangling count is **rising while nothing is being
 purged from this workstream**, so the purge explains the mechanism but is not
