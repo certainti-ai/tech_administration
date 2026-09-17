@@ -75,6 +75,21 @@ def resolve_ref(col: str, ref_tables: set[str]) -> str | None:
     return None
 
 
+def merge_name(stem: str, suffix: str) -> str:
+    """Name a resolved column without stuttering.
+
+    ``country_rid`` joined to ``country.country_name`` should read
+    ``country_name``, not ``country_country_name`` — but ``account_rid`` joined
+    to ``account.industry_name`` really is the account's industry and keeps its
+    prefix. Overlapping words are folded, non-overlapping ones are not.
+    """
+    a, b = stem.split("_"), suffix.split("_")
+    for k in range(min(len(a), len(b)), 0, -1):
+        if a[-k:] == b[:k]:
+            return "_".join(a + b[k:])
+    return "_".join(a + b)
+
+
 CHAR = re.compile(r"^(character varying|character|text)")
 NUM = re.compile(r"^(numeric|integer|bigint|smallint|double precision|real)")
 TS = re.compile(r"^timestamp")
@@ -205,8 +220,9 @@ CREATE TABLE IF NOT EXISTS "{TARGET_SCHEMA}"."_consolidated_refresh" (
                 continue
             alias = "r%d" % len(joins)
             joins.append(f'  LEFT JOIN "{REF_SCHEMA}"."{rt}" {alias} ON {alias}.rid = u."{c}"')
+            stem = c[:-4] if c.endswith("_rid") else c
             for expr, suffix in ref_display[rt]:
-                base = c[:-4] + "_" + suffix if c.endswith("_rid") else c + "_" + suffix
+                base = merge_name(stem, suffix)
                 name = base if base not in used else base + "_ref"
                 used.add(name)
                 outs.append(f'  {expr.format(a=alias)} AS "{name}"')
