@@ -5,7 +5,15 @@ twice every day: **09:00 IST** and **18:00 IST**. Two Claude Routines fire a
 fresh session at those times; this file is what those sessions follow.
 
 **Artifact URL (do not create a new one):**
-`https://claude.ai/code/artifact/e04016e3-94f3-426b-85b8-90334eee7227`
+`https://claude.ai/artifact/Uh6qKdVzashCDjXDNWv9kJ`
+
+The same artifact was previously addressed as
+`https://claude.ai/code/artifact/e04016e3-94f3-426b-85b8-90334eee7227`, and
+publishing with that URL still updated it — the service returned the newer form
+on 2026-09-17 while reporting the same artifact's version count, so the scheme
+changed rather than the artifact. Either form has worked; prefer the newer one,
+and if a publish ever reports version 1, stop: that means a second artifact was
+created and the link people hold is now stale.
 
 ---
 
