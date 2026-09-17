@@ -23,7 +23,7 @@ Safety, in order of importance:
 
     python tools/copy_reference_tables.py                 # rehearse, change nothing
     python tools/copy_reference_tables.py --apply         # do it
-    python tools/copy_reference_tables.py --include-user  # add the user table
+    python tools/copy_reference_tables.py --env stage     # pre-production
 """
 from __future__ import annotations
 
@@ -39,18 +39,20 @@ TARGET_SCHEMA = "trd365"
 SOURCE_SCHEMA = "trd365"
 
 #: Reference tables, chosen because tenant-schema ``_rid`` columns resolve to
-#: them. Deliberately absent:
+#: them.
 #:
-#: ``account``  — the tenant registry, not reference data. It must have exactly
-#:                one authority, and that is main.
-#: ``user``     — resolves created_by/modified_by, but holds login identities,
-#:                which is a different sensitivity class from ``country``.
-#:                ``--include-user`` adds it when that is a considered choice.
+#: ``account`` and ``user`` are included at the owner's instruction. Two things
+#: follow that the refresh log is there to keep visible: the org copy of
+#: ``account`` is a second statement of which tenants exist and whether they are
+#: active, so a query joining it is answering from a snapshot rather than from
+#: main; and ``user`` carries login identities, so this schema is no longer
+#: purely non-sensitive lookup data and should be granted accordingly.
 #:
 #: ``interaction_templates`` is here and ``templates`` is too: probing found
 #: ``template_rid`` values in the former, so which one the column means is not
 #: settled. Both are tiny; copying both costs nothing and removes the guess.
 TABLES = [
+    "account",
     "case_filing_type",
     "checklist_template",
     "city",
@@ -82,6 +84,7 @@ TABLES = [
     "task_template",
     "task_type",
     "templates",
+    "user",
 ]
 
 REFRESH_LOG = "_reference_refresh"
@@ -132,14 +135,14 @@ def main() -> int:
     ap.add_argument("--env", default="prod", help="environment (default: prod)")
     ap.add_argument("--apply", action="store_true",
                     help="commit. Without it the run is rehearsed and rolled back.")
-    ap.add_argument("--include-user", action="store_true",
-                    help="also copy the user table (login identities)")
+    ap.add_argument("--without-identity", action="store_true",
+                    help="skip account and user, leaving only non-sensitive lookups")
     ap.add_argument("--tables", help="comma-separated override of the table list")
     args = ap.parse_args()
 
     tables = args.tables.split(",") if args.tables else list(TABLES)
-    if args.include_user:
-        tables.append("user")
+    if args.without_identity:
+        tables = [t for t in tables if t not in ("account", "user")]
     tables.sort()
 
     env = Environment(args.env)
