@@ -169,7 +169,27 @@ CREATE TABLE IF NOT EXISTS "{TARGET_SCHEMA}"."_consolidated_refresh" (
   tenants      integer     NOT NULL,
   seconds      numeric(8,3) NOT NULL,
   refreshed_at timestamptz NOT NULL
-)""".strip()]
+)""".strip(), f"""
+CREATE OR REPLACE PROCEDURE "{TARGET_SCHEMA}".refresh_all() LANGUAGE plpgsql AS $proc$
+DECLARE v text; t0 timestamptz; n bigint; k integer;
+BEGIN
+  FOR v IN SELECT matviewname FROM pg_matviews WHERE schemaname = '{TARGET_SCHEMA}' ORDER BY 1
+  LOOP
+    t0 := clock_timestamp();
+    EXECUTE format('REFRESH MATERIALIZED VIEW CONCURRENTLY %I.%I', '{TARGET_SCHEMA}', v);
+    EXECUTE format('SELECT count(*), count(DISTINCT tenant_schema) FROM %I.%I',
+                   '{TARGET_SCHEMA}', v) INTO n, k;
+    INSERT INTO "{TARGET_SCHEMA}"._consolidated_refresh
+           (view_name, row_count, tenants, seconds, refreshed_at)
+    VALUES (v, n, k, round(extract(epoch FROM clock_timestamp() - t0)::numeric, 3), now())
+    ON CONFLICT (view_name) DO UPDATE SET
+      row_count = EXCLUDED.row_count, tenants = EXCLUDED.tenants,
+      seconds = EXCLUDED.seconds, refreshed_at = EXCLUDED.refreshed_at;
+    -- Committing per view means a failure on the twentieth does not discard the
+    -- nineteen already refreshed, and keeps each REFRESH its own transaction.
+    COMMIT;
+  END LOOP;
+END $proc$""".strip()]
     notes: list[str] = [f"tenant schemas discovered: {len(schemas)}"]
 
     for table in TABLES:
