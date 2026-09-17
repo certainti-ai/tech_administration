@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Copy the main database's reference tables into the org database as ``trd365``.
+"""Copy the main database's reference tables into the org database.
 
 The two databases live on different Postgres servers, so no SQL-level copy is
 possible: rows are read from main and streamed into org over COPY.
@@ -35,7 +35,12 @@ from datetime import datetime, timezone
 from trd365_core.db import ConnectionPool
 from trd365_core.environments import Environment
 
-TARGET_SCHEMA = "trd365"
+#: Where the copies land in the ORG database. Everything downstream — the
+#: consolidated views, the dashboards — names this one schema and nothing else.
+DEFAULT_TARGET_SCHEMA = "trd365_all"
+
+#: The schema these tables live in on MAIN. Unrelated to the target above and
+#: not ours to rename.
 SOURCE_SCHEMA = "trd365"
 
 #: Reference tables, chosen because tenant-schema ``_rid`` columns resolve to
@@ -121,6 +126,9 @@ def source_shape(cur, table: str) -> tuple[list[tuple[str, str, bool]], list[str
     return columns, [r[0] for r in cur.fetchall()]
 
 
+TARGET_SCHEMA = DEFAULT_TARGET_SCHEMA
+
+
 def ddl_for(table: str, columns, pk) -> str:
     body = []
     for name, typ, not_null in columns:
@@ -138,12 +146,17 @@ def main() -> int:
     ap.add_argument("--without-identity", action="store_true",
                     help="skip account and user, leaving only non-sensitive lookups")
     ap.add_argument("--tables", help="comma-separated override of the table list")
+    ap.add_argument("--target-schema", default=DEFAULT_TARGET_SCHEMA,
+                    help="schema in the org database to write into")
     args = ap.parse_args()
 
     tables = args.tables.split(",") if args.tables else list(TABLES)
     if args.without_identity:
         tables = [t for t in tables if t not in ("account", "user")]
     tables.sort()
+
+    global TARGET_SCHEMA
+    TARGET_SCHEMA = args.target_schema
 
     env = Environment(args.env)
     started = datetime.now(timezone.utc)

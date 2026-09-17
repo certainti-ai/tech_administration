@@ -3,8 +3,8 @@
 
 One materialised view per table, each a ``UNION ALL`` over every tenant schema
 with a ``tenant_schema`` provenance column, then left-joined to the reference
-tables in ``trd365`` so names sit beside the rids they resolve. A dashboard
-reads one relation with no joins.
+tables that sit in the same schema, so names appear beside the rids they
+resolve. A dashboard names one schema and joins nothing.
 
 Materialised rather than physical because the whole estate is under a million
 rows: a full rebuild is cheap, so there is no incremental-refresh machinery to
@@ -43,7 +43,10 @@ from trd365_core.db import ConnectionPool
 from trd365_core.environments import Environment
 
 TARGET_SCHEMA = "trd365_all"
-REF_SCHEMA = "trd365"
+
+#: The reference tables live in the same schema as the consolidated views, so a
+#: dashboard names one schema and nothing else.
+REF_SCHEMA = "trd365_all"
 TENANT_RE = r"^trd365_[0-9]+$"
 
 TABLES = [
@@ -132,9 +135,14 @@ def build(pool, naive_tz: str) -> tuple[list[str], list[str]]:
     schemas = sorted(r[0] for r in pool.fetch("orgdb",
         "SELECT schema_name FROM information_schema.schemata WHERE schema_name ~ %s",
         (TENANT_RE,)))
+    # Reference tables share a schema with the consolidated views, so the join
+    # targets have to be narrowed deliberately. information_schema.tables omits
+    # materialised views, which already excludes them — but relying on that
+    # would make correctness an accident, and a tenant-scoped relation must
+    # never be joined on rid alone: that would cross tenants.
     ref_tables = {r[0] for r in pool.fetch("orgdb",
         "SELECT table_name FROM information_schema.tables WHERE table_schema = %s",
-        (REF_SCHEMA,))}
+        (REF_SCHEMA,))} - set(TABLES) - {"_consolidated_refresh", "_reference_refresh"}
 
     # One catalogue read for everything, rather than a query per table.
     catalogue: dict[tuple[str, str], dict[str, str]] = {}
