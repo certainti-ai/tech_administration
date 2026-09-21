@@ -108,6 +108,24 @@ Caveat carried forward: this rests on web-search triangulation of two independen
 
 **Still unverified in that memo: Northwest Hydraulic, Clevor, Vortex, and the CRA policy wording.**
 
+### Rogers "Project1 Additional Evidence" — assessed 21 Sep 2026
+
+Five files from the Rogers project team. Full assessment in `drafts/06_Rogers_Additional_Evidence_Assessment.md`. **None of it is fileable and two items would actively damage the position.**
+
+- `Wireless-Audit_CRA-Updated.pptx` is **textually identical** to the copy CRA already holds and to the OneDrive Final Submission copy (slide-by-slide diff returns nothing; only the zip packaging differs).
+- `Rogers_RTRM_Test_Strategy_v0.2.docx` is **Openet's document dated 2020-07-07** (v0.2 2020-08-19), audience "Openet development and testing teams". **Tech Mahindra appears zero times in 23 pages**; Openet 47, Rogers 22. The words research, uncertainty, hypothesis, experiment, prototype and investigation appear **zero times each**. Exit criteria across every stage: "Test result as per the expected criteria", "100% passed on Test Script & Test Case coverage", "All business requirements have been met" — para (f) quality control, written by the client's vendor. **Do not file.**
+- `RTRM Core Adoption ... Test cases_FInal_Approval.xlsx` is ~310 test case **designs** (443-row summary, 11 sheets, P1 189 / P2 154 / P3 94). Columns are name, priority, pre-condition, design steps, expected result. **No actual result, no pass/fail, no execution date, no tester.** Expected values are pre-specified (Result Code 2001, MCCMNC 302720, CC Time 10 mins). **Do not file as-is.**
+- `Core Adoption(NW-RTRM)-24.06.pptx` (Rogers, created 8 Aug 2023, 10 slides, window "OCT 08 to Nov 08" inside FY2024). Eight slides of coverage, out-of-scope and schedule/environment risk. **Slide 7 is the only new technical content of value**: REST-Assured Java framework, "Enhanced/migrated the Openet JMeter framework", "Extend the automation framework to develop the utility to fetch the CDRs from huge numbers of CDR files on remote systems", 260 regression + 115 sanity scripts. Tool development — claimable only as para (d) support work, and only if an eligible core exists for it to attach to.
+- `JIRA TP REPORT & DEFECT REPORT -DASHBORDS.eml` — PowerBI extract from **Rogers' JIRA, generated 18 Sep 2026**, 22 test plan keys. **Proves a contemporaneous system of record exists** (dated Gantt Sep 10-Nov 12, durations 8-63 days, dated defects, executive summaries "Status as of November 03, 2023"). **But the summary is uniformly adverse: Pass Actual 100%, 531 of 535 in-scope TERs passed, Failed 0, Blocked 0, Descoped 48, 0 open defects of 42 total, defect mix P1 2 / P2 32 / P3 8, average resolution 53 business hours, blocker time 0, 0% behind on all 22 plans.** The 14 P1 cases that did not pass were descoped, not failed. This is the Clevor fact pattern (authority F). **Do not file the dashboard.**
+
+**The affirmative risk.** Every item belongs to someone else — Rogers-branded deck, Rogers JIRA (`jira.pbibot@rci.rogers.com`, `reqcentral.com`), Rogers SharePoint, Openet's governing strategy and tools, TM staff carrying an **"- EXT"** suffix in Rogers' directory. Advancing this as the proof of P1 invites the Advisor to ask who bore the technological risk and who could exploit the result — i.e. whether P1 is TM's SR&ED at all or contract work to a client's specification. **That question is not open on the file today. This evidence would open it.**
+
+**The one live thread.** The JIRA keys, not the dashboard. Request three targeted pulls, filtered to 1 Apr 2023 - 31 Mar 2024: (1) the 2 P1 defects in full with comment history; (2) the P2 defects materially above the 53-hour average (the schema already carries an Aging field); (3) the 48 descoped TERs and the reason for each. A defect whose cause was genuinely unknown, with hypotheses recorded and tested in the comment history, is the experiment CRA said was absent. Note the year boundary: defects dated April-June fall into FY2025.
+
+**Secondary value.** If TERs and defects carry assignees, this is a route to a per-person allocation for P1 against CRA's "no distinction between regular work and SR&ED work" — worthless if eligibility fails, valuable as a **process fix for FY2025 onward**, since it shows the records for a bottom-up allocation already existed in the client's delivery systems and were never used.
+
+Nothing in this package changes the recovery ceiling of $250,795.
+
 ## Still outstanding
 
 1. Make the call to Kitty Leung, fill the letter placeholders, and submit the same day. A verbal extension that is never confirmed in writing protects nobody.
