@@ -50,11 +50,12 @@ REF_SCHEMA = "trd365_all"
 TENANT_RE = r"^trd365_[0-9]+$"
 
 TABLES = [
-    "account_details",
+    "account_details", "key_contact_details",
     "project", "project_fiscal", "project_fiscal_region",
     "project_resource", "project_resource_fiscal", "project_resource_fiscal_region",
     "cases", "case_team", "case_task", "case_projects", "case_project_fiscal_region",
     "case_project_resource", "case_project_resource_fiscal", "dossier_form",
+    "rd_credit_country_calculations", "rd_credit_state_calculations",
     "interactions", "interaction_items", "interaction_send_history",
     "interaction_response_history", "interaction_status_history",
     "chat_sessions", "chat_questions", "chat_answers", "chat_messages",
@@ -63,7 +64,7 @@ TABLES = [
 #: Columns worth an index on the consolidated side: every dashboard filters or
 #: joins on these, and without them a scan of the union is the only plan.
 INDEX_ON = ["account_rid", "project_rid", "project_fiscal_rid", "case_rid",
-            "fiscal_year", "session_rid"]
+            "fiscal_year", "session_rid", "entity_rid"]
 
 #: ``X_rid`` names its parent; the reference table is X, or its plural.
 def resolve_ref(col: str, ref_tables: set[str]) -> str | None:
@@ -311,7 +312,18 @@ def main() -> int:
     ap.add_argument("--naive-timezone", default="UTC",
                     help="zone assumed for tenants storing a naive timestamp (default UTC)")
     ap.add_argument("--out", help="write the generated SQL here")
+    ap.add_argument("--only", help="comma-separated subset of TABLES to build. Each view is "
+                                   "DROPped and recreated, so without this a rebuild of one "
+                                   "view takes the other twenty-odd down with it.")
     args = ap.parse_args()
+
+    if args.only:
+        wanted = [t.strip() for t in args.only.split(",") if t.strip()]
+        unknown = [t for t in wanted if t not in TABLES]
+        if unknown:
+            print("not in TABLES: %s" % ", ".join(unknown), file=sys.stderr)
+            return 2
+        TABLES[:] = wanted
 
     with ConnectionPool(Environment(args.env)) as pool:
         if args.refresh:
