@@ -56,6 +56,7 @@ TABLES = [
     "cases", "case_team", "case_task", "case_projects", "case_project_fiscal_region",
     "case_project_resource", "case_project_resource_fiscal", "dossier_form",
     "rd_credit_country_calculations", "rd_credit_state_calculations",
+    "notes", "notes_timeline",
     "interactions", "interaction_items", "interaction_send_history",
     "interaction_response_history", "interaction_status_history",
     "chat_sessions", "chat_questions", "chat_answers", "chat_messages",
@@ -64,7 +65,7 @@ TABLES = [
 #: Columns worth an index on the consolidated side: every dashboard filters or
 #: joins on these, and without them a scan of the union is the only plan.
 INDEX_ON = ["account_rid", "project_rid", "project_fiscal_rid", "case_rid",
-            "fiscal_year", "session_rid", "entity_rid"]
+            "fiscal_year", "session_rid", "entity_rid", "attach_to"]
 
 #: ``X_rid`` names its parent; the reference table is X, or its plural.
 def resolve_ref(col: str, ref_tables: set[str]) -> str | None:
